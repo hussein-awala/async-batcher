@@ -1,0 +1,56 @@
+[tool.poetry]
+name = "async-batcher"
+version = "0.0.1"
+description = "A service to batch your http requests."
+authors = ["Hussein Awala <hussein@awala.fr>"]
+readme = "README.md"
+repository = "https://github.com/hussein-awala/async-batcher"
+keywords = ["python", "asyncio", "rest", "grpc", "fastapi"]
+license = "Apache-2.0"
+packages = [{include = "async_batcher"}]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/hussein-awala/async-batcher/issues"
+"Documentation" = "https://github.com/hussein-awala/async-batcher/blob/main/README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+
+[tool.poetry.dev-dependencies]
+mock = "^5.1.0"
+pytest = "^7.4.3"
+pre-commit = "^3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py38"
+line-length = 110
+indent-width = 4
+src = ["async_batcher", "examples", "tests"]
+fixable = ["ALL"]
+ignore = ["E712"]
+select = [
+    "E", # pycodestyle
+    "W", # pycodestyle
+    "F", # Pyflakes
+    "B", # flake8-bugbear
+    "PIE", # flake8-pie
+    "C4", # flake8-comprehensions
+    "I", # isort
+    "UP", # pyupgrade,
+    "TCH", # flake8-type-checking
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.isort]
+required-imports = ["from __future__ import annotations"]
+combine-as-imports = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
