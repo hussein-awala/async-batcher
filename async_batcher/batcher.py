@@ -28,9 +28,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         self._current_batch = 0
         self._should_stop = False
 
-    @staticmethod
     @abc.abstractmethod
-    async def process_batch(batch: list[T]) -> list[S]:
+    async def process_batch(self, batch: list[T]) -> list[S]:
         """Process a batch of items.
 
         This method should be overridden by the user to define how to process a batch of items.
