@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import abc
 import asyncio
+import logging
 import uuid
 from collections import deque
 from threading import Thread
 from typing import Generic, TypeVar
-import logging
 
 T = TypeVar("T")
 S = TypeVar("S")
@@ -86,12 +88,13 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
                     self.results[query_id] = result
                 elapsed_time = asyncio.get_event_loop().time() - started_at
                 self.logger.debug(
-                    f"Processed batch {self._current_batch} of {len(batch)} elements in {elapsed_time} seconds."
+                    f"Processed batch {self._current_batch} of {len(batch)} elements"
+                    f" in {elapsed_time} seconds."
                 )
                 self._current_batch += 1
                 await asyncio.sleep(0.0001)
             else:
-                self.logger.debug(f"No items to process. Sleeping.")
+                self.logger.debug("No items to process. Sleeping.")
                 await asyncio.sleep(0.001)
 
     def run(self):
