@@ -19,7 +19,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
     results = dict[uuid.UUID, S]
     logger = logging.getLogger(__name__)
 
-    def __init__(self, batch_size: int = -1, sleep_time: float = 0.01):
+    def __init__(self, *, batch_size: int = -1, sleep_time: float = 0.01):
         super().__init__()
         self.batch_size = batch_size
         self.sleep_time = sleep_time
@@ -29,13 +29,13 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         self._should_stop = False
 
     @abc.abstractmethod
-    async def process_batch(self, batch: list[T]) -> list[S]:
+    async def process_batch(self, *, batch: list[T]) -> list[S]:
         """Process a batch of items.
 
         This method should be overridden by the user to define how to process a batch of items.
         """
 
-    async def _process_single(self, item: T) -> S:
+    async def _process_single(self, *, item: T) -> S:
         """Process a single item.
 
         This method adds the item to the buffer and waits for the result to be ready.
@@ -61,7 +61,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
                     return self.results.pop(query_id)
             await asyncio.sleep(self.sleep_time)
 
-    async def process(self, item: T) -> S:
+    async def process(self, *, item: T) -> S:
         """Add an item to the buffer and get the result when it's ready.
 
         Args:
