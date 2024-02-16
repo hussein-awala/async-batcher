@@ -70,7 +70,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         Returns:
             S: The result of processing the item.
         """
-        return await asyncio.get_event_loop().create_task(self._process_single(item))
+        return await asyncio.get_event_loop().create_task(self._process_single(item=item))
 
     async def arun(self):
         while not self._should_stop:
@@ -82,7 +82,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
                 ids.append(query_id)
             if batch:
                 started_at = asyncio.get_event_loop().time()
-                results = await asyncio.get_event_loop().create_task(self.process_batch(batch))
+                results = await asyncio.get_event_loop().create_task(self.process_batch(batch=batch))
                 for query_id, result in zip(ids, results):
                     self.results[query_id] = result
                 elapsed_time = asyncio.get_event_loop().time() - started_at

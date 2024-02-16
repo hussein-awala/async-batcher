@@ -35,4 +35,4 @@ async def predict(data: list[float]):
 
 @app.post("/optimized_predict")
 async def optimized_predict(data: list[float]):
-    return (await batcher.process(data))[0]
+    return (await batcher.process(item=data))[0]
