@@ -15,12 +15,16 @@ packages = [{include = "async_batcher"}]
 
 [tool.poetry.dependencies]
 python = "^3.8"
+aioboto3 = {version = "^12.3", optional = true}
 
+[tool.poetry.extras]
+aws= ["aioboto3"]
 
 [tool.poetry.dev-dependencies]
 mock = "^5.1.0"
 pytest = "^7.4.3"
 pre-commit = "^3"
+types-aioboto3 = {version = "^12.3", extras = ["dynamodb"]}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
