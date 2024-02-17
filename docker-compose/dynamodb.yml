@@ -27,4 +27,12 @@ services:
       --attribute-definitions AttributeName=Key,AttributeType=S
       --key-schema AttributeName=Key,KeyType=HASH
       --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+      --table-class STANDARD;
+      dynamodb create-table
+      --endpoint-url http://dynamodb-local:8000
+      --region us-west-2
+      --table-name multi-keys-table
+      --attribute-definitions AttributeName=key1,AttributeType=S AttributeName=key2,AttributeType=S
+      --key-schema AttributeName=key1,KeyType=HASH AttributeName=key2,KeyType=RANGE
+      --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
       --table-class STANDARD
