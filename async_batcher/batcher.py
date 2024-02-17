@@ -17,11 +17,12 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
 
     Args:
         batch_size (int, optional): The max number of items to process in a batch. Defaults to -1 (no limit).
-        sleep_time (float, optional): The time to sleep between checking if the result is ready.
-            Defaults to 0.01. Set it to a value close to the expected time to process a batch.
-        buffering_time (float, optional): The time to sleep after processing a batch or checking the buffer.
-            Defaults to 0.0001. You can increase this value if you don't need a low latency, but want to
-            reduce the number of processed batches.
+        sleep_time (float, optional): The time to sleep between checking if the result is ready in seconds.
+            Defaults to 0.01. Set it to a value close to the expected time to process a batch
+        buffering_time (float, optional): The time to sleep after processing a batch or checking the buffer
+            in seconds. Defaults to 0.001.
+            You can increase this value if you don't need a low latency, but want to reduce the number of
+            processed batches.
     """
 
     _buffer = deque[tuple[uuid.UUID, T]]
@@ -33,7 +34,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         *,
         batch_size: int = -1,
         sleep_time: float = 0.01,
-        buffering_time: float = 0.0001,
+        buffering_time: float = 0.001,
     ):
         super().__init__()
         self.batch_size = batch_size
