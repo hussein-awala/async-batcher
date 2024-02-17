@@ -13,18 +13,34 @@ S = TypeVar("S")
 
 
 class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
-    """A generic class for batching and processing items asynchronously."""
+    """A generic class for batching and processing items asynchronously.
 
-    buffer = deque[tuple[uuid.UUID, T]]
-    results = dict[uuid.UUID, S]
+    Args:
+        batch_size (int, optional): The max number of items to process in a batch. Defaults to -1 (no limit).
+        sleep_time (float, optional): The time to sleep between checking if the result is ready.
+            Defaults to 0.01. Set it to a value close to the expected time to process a batch.
+        buffering_time (float, optional): The time to sleep after processing a batch or checking the buffer.
+            Defaults to 0.0001. You can increase this value if you don't need a low latency, but want to
+            reduce the number of processed batches.
+    """
+
+    _buffer = deque[tuple[uuid.UUID, T]]
+    _results = dict[uuid.UUID, S]
     logger = logging.getLogger(__name__)
 
-    def __init__(self, *, batch_size: int = -1, sleep_time: float = 0.01):
+    def __init__(
+        self,
+        *,
+        batch_size: int = -1,
+        sleep_time: float = 0.01,
+        buffering_time: float = 0.0001,
+    ):
         super().__init__()
         self.batch_size = batch_size
         self.sleep_time = sleep_time
-        self.buffer = deque()
-        self.results = {}
+        self.buffering_time = buffering_time
+        self._buffer = deque()
+        self._results = {}
         self._current_batch = 0
         self._should_stop = False
 
@@ -51,14 +67,14 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         query_id = uuid.uuid4()
         last_checked_batch = self._current_batch
         self.logger.debug(f"Adding item {query_id} to the buffer.")
-        self.buffer.append((query_id, item))
+        self._buffer.append((query_id, item))
         while True:
             if self._current_batch > last_checked_batch:
                 last_checked_batch = self._current_batch
-                if query_id in self.results:
+                if query_id in self._results:
                     elapsed_time = asyncio.get_event_loop().time() - started_at
                     self.logger.debug(f"Item {query_id} is ready after {elapsed_time} seconds.")
-                    return self.results.pop(query_id)
+                    return self._results.pop(query_id)
             await asyncio.sleep(self.sleep_time)
 
     async def process(self, *, item: T) -> S:
@@ -79,8 +95,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         while not self._should_stop:
             ids = []
             batch = []
-            while self.buffer and len(batch) < self.batch_size:
-                query_id, item = self.buffer.popleft()
+            while self._buffer and len(batch) < self.batch_size:
+                query_id, item = self._buffer.popleft()
                 batch.append(item)
                 ids.append(query_id)
             if batch:
@@ -91,17 +107,17 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
                     self.logger.error("Error processing batch", exc_info=True)
                     results = [e] * len(batch)
                 for query_id, result in zip(ids, results):
-                    self.results[query_id] = result
+                    self._results[query_id] = result
                 elapsed_time = asyncio.get_event_loop().time() - started_at
                 self.logger.debug(
                     f"Processed batch {self._current_batch} of {len(batch)} elements"
                     f" in {elapsed_time} seconds."
                 )
                 self._current_batch += 1
-                await asyncio.sleep(0.0001)
+                await asyncio.sleep(self.buffering_time)
             else:
                 self.logger.debug("No items to process. Sleeping.")
-                await asyncio.sleep(0.001)
+                await asyncio.sleep(self.buffering_time)
 
     def run(self):
         """Run the batcher thread."""
