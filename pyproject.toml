@@ -22,7 +22,7 @@ aws= ["aioboto3"]
 
 [tool.poetry.dev-dependencies]
 mock = "^5.1.0"
-pytest = "^7.4.3"
+pytest = "^8"
 pytest-asyncio = "^0.23.5"
 pre-commit = "^3"
 types-aioboto3 = {version = "^12.3", extras = ["dynamodb"]}
