@@ -96,7 +96,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         while not self._should_stop:
             ids = []
             batch = []
-            while self._buffer and len(batch) < self.batch_size:
+            while self._buffer and (len(batch) < self.batch_size or self.batch_size == -1):
                 query_id, item = self._buffer.popleft()
                 batch.append(item)
                 ids.append(query_id)
