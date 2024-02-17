@@ -23,17 +23,17 @@ curl -X 'POST' \
   'http://127.0.0.1:8000/put' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
-  -d '{"Key": "key1", "attr1": "something1", "attr2": "something2"}'
+  -d '{"table_name": "test-table", "data": {"Key": "key1", "attr1": "something1", "attr2": "something1"}}' &
 curl -X 'POST' \
   'http://127.0.0.1:8000/put' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
-  -d '{"Key": "key2", "attr1": "something2", "attr2": "something2"}'
+  -d '{"table_name": "test-table", "data": {"Key": "key2", "attr1": "something2", "attr2": "something2"}}' &
 curl -X 'POST' \
   'http://127.0.0.1:8000/put' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
-  -d '{"Key": "key3", "attr1": "something3", "attr2": "something3"}'
+  -d '{"table_name": "multi-keys-table", "data": {"key1": "value1", "key2": "value2", "attr2": "something3"}}' &
 ```
 After that, you can use the following command to get the items from the DynamoDB table.
 ```bash
@@ -41,15 +41,20 @@ curl -X 'POST' \
   'http://127.0.0.1:8000/get' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
-  -d '{"Key": "key1"}'
+  -d '{"table_name": "test-table", "key": {"Key": "key1"}}' &
 curl -X 'POST' \
   'http://127.0.0.1:8000/get' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
-  -d '{"Key": "key2"}'
+  -d '{"table_name": "test-table", "key": {"Key": "key2"}}' &
 curl -X 'POST' \
   'http://127.0.0.1:8000/get' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
-  -d '{"Key": "key3"}'
+  -d '{"table_name": "multi-keys-table", "key": {"key1": "value1", "key2": "value2"}}' &
+curl -X 'POST' \
+  'http://127.0.0.1:8000/get' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{"table_name": "multi-keys-table", "key": {"key1": "value1", "key2": "value3"}}' &
 ```

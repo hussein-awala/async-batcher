@@ -5,10 +5,12 @@ from typing import Any
 import aioboto3
 from async_batcher.aws.dynamodb.get import AsyncDynamoDbGetBatcher, GetItem
 from async_batcher.aws.dynamodb.write import AsyncDynamoDbWriteBatcher, WriteOperation
+from pydantic import BaseModel
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 app = FastAPI()
+
 aioboto3_session = aioboto3.Session(
     region_name="us-west-2",
     aws_access_key_id="DUMMYIDEXAMPLE",
@@ -16,12 +18,26 @@ aioboto3_session = aioboto3.Session(
 )
 
 get_batcher = AsyncDynamoDbGetBatcher(
-    endpoint_url="http://localhost:8000", aioboto3_session=aioboto3_session, batch_size=200, sleep_time=0.0001
+    endpoint_url="http://localhost:8000",
+    aioboto3_session=aioboto3_session,
+    buffering_time=2,  # just for testing
 )
 
 write_batcher = AsyncDynamoDbWriteBatcher(
-    endpoint_url="http://localhost:8000", aioboto3_session=aioboto3_session, batch_size=200, sleep_time=0.0001
+    endpoint_url="http://localhost:8000",
+    aioboto3_session=aioboto3_session,
+    buffering_time=2,  # just for testing
 )
+
+
+class PutRequestModel(BaseModel):
+    table_name: str
+    data: dict[str, Any]
+
+
+class GetRequestModel(BaseModel):
+    table_name: str
+    key: dict[str, Any]
 
 
 @app.on_event("startup")
@@ -37,12 +53,20 @@ def shutdown_event():
 
 
 @app.post("/put")
-async def put(data: dict[str, Any]):
-    return await write_batcher.process(
-        item=WriteOperation(operation="PUT", table_name="test-table", data=data)
-    )
+async def put(request_data: PutRequestModel):
+    try:
+        return await write_batcher.process(
+            item=WriteOperation(operation="PUT", table_name=request_data.table_name, data=request_data.data)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/get")
-async def get(key: dict[str, Any]):
-    return await get_batcher.process(item=GetItem(table_name="test-table", key=key))
+async def get(request_data: GetRequestModel):
+    try:
+        return await get_batcher.process(
+            item=GetItem(table_name=request_data.table_name, key=request_data.key)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
