@@ -28,9 +28,7 @@ async def test_get_items(get_batcher: AsyncDynamoDbGetBatcher, write_batcher: As
                 )
             )
         )
-    write_batcher.start()
     await asyncio.gather(*tasks)
-    write_batcher.stop()
 
     tasks = []
     for i in range(20):
@@ -49,9 +47,7 @@ async def test_get_items(get_batcher: AsyncDynamoDbGetBatcher, write_batcher: As
             )
         )
     random.shuffle(tasks)
-    get_batcher.start()
     results = await asyncio.gather(*[task[1] for task in tasks])
-    get_batcher.stop()
 
     for ind, result in enumerate(results):
         table, i = tasks[ind][0]

@@ -8,7 +8,7 @@ from async_batcher.aws.dynamodb.write import AsyncDynamoDbWriteBatcher
 
 @pytest.fixture
 def dynamodb_aioboto3_session():
-    return aioboto3.Session(
+    yield aioboto3.Session(
         region_name="us-west-2",
         aws_access_key_id="DUMMYIDEXAMPLE",
         aws_secret_access_key="DUMMYEXAMPLEKEY",
@@ -17,17 +17,23 @@ def dynamodb_aioboto3_session():
 
 @pytest.fixture
 def get_batcher(dynamodb_aioboto3_session):
-    return AsyncDynamoDbGetBatcher(
+    batcher = AsyncDynamoDbGetBatcher(
         endpoint_url="http://localhost:8000",
         aioboto3_session=dynamodb_aioboto3_session,
         buffering_time=2,
     )
+    batcher.start()
+    yield batcher
+    batcher.stop()
 
 
 @pytest.fixture
 def write_batcher(dynamodb_aioboto3_session):
-    return AsyncDynamoDbWriteBatcher(
+    batcher = AsyncDynamoDbWriteBatcher(
         endpoint_url="http://localhost:8000",
         aioboto3_session=dynamodb_aioboto3_session,
         buffering_time=2,
     )
+    batcher.start()
+    yield batcher
+    batcher.stop()
