@@ -61,14 +61,16 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any]]):
         self.aioboto3_session = aioboto3_session or aioboto3.Session()
 
     async def process_batch(self, batch: list[GetItem]) -> list[dict[str, TableAttributeValueTypeDef]]:
-        batch_result_keys = []
+        indexed_items: dict[tuple, int] = {}
         request_items = {}
-        for item in batch:
+        tables_keys = {}
+        for ind, item in enumerate(batch):
             if item.table_name not in request_items:
                 request_items[item.table_name] = {"Keys": []}
+                tables_keys[item.table_name] = sorted(item.key.keys())
             # TODO: support ProjectionExpression and ConsistentRead
             request_items[item.table_name]["Keys"].append(item.key)
-            batch_result_keys.append((item.table_name, len(request_items[item.table_name]["Keys"]) - 1))
+            indexed_items[(item.table_name, *[item.key[key] for key in tables_keys[item.table_name]])] = ind
 
         dynamodb: DynamoDBServiceResource
         async with self.aioboto3_session.resource(
@@ -83,4 +85,10 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any]]):
                 RequestItems=request_items,
                 ReturnConsumedCapacity="NONE",
             )
-            return [response["Responses"][table_name][index] for table_name, index in batch_result_keys]
+            result: list[None | dict[str, TableAttributeValueTypeDef]] = [None] * len(batch)
+            # TODO: handle UnprocessedKeys
+            for table in response["Responses"]:
+                for item in response["Responses"][table]:
+                    index = indexed_items[(table, *[item[key] for key in tables_keys[table]])]
+                    result[index] = item
+            return result
