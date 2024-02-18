@@ -46,7 +46,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         self._should_stop = False
 
     @abc.abstractmethod
-    async def process_batch(self, *, batch: list[T]) -> list[S]:
+    async def process_batch(self, *, batch: list[T]) -> list[S] | None:
         """Process a batch of items.
 
         This method should be overridden by the user to define how to process a batch of items.
@@ -104,6 +104,10 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
                 started_at = asyncio.get_event_loop().time()
                 try:
                     results = await asyncio.get_event_loop().create_task(self.process_batch(batch=batch))
+                    if results is None:
+                        results = [None] * len(batch)
+                    if len(results) != len(batch):
+                        raise ValueError(f"Expected to get {len(batch)} results, but got {len(results)}.")
                 except Exception as e:
                     self.logger.error("Error processing batch", exc_info=True)
                     results = [e] * len(batch)
