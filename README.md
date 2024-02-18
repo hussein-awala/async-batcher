@@ -33,6 +33,9 @@ with [locust](https://locust.io/) to simulate multiple users making requests to 
 In this example, we have a tensorflow model that takes ~11ms to make a single prediction and ~13ms to process
 a batch of 200 predictions.
 
+For this benchmark, we ran the FastAPI server with Uvicorn with 12 workers,
+on a MacBook Pro with Apple M2 Max chip (12 cores).
+
 Predict endpoint:
 
 ![predict__total_requests_per_second.png](assets%2Fpredict__total_requests_per_second.png)
@@ -41,11 +44,18 @@ Optimized Predict endpoint:
 
 ![optimized_predict__total_requests_per_second.png](assets%2Foptimized_predict__total_requests_per_second.png)
 
-As we can see from the graphs, for the `/predict` endpoint, the server was able to handle ~15 simultaneous requests per
-second, where ~130 requests/second were failing. For the `/optimized_predict` endpoint, the server was able to handle
-all the requests (~170 requests/second) without any failure, with a response time of ~49ms in average and ~62ms in
-95th percentile.
+As we can see from the graphs, for the `/predict` endpoint, the failure rate started to increase linearly at the RPS
+of ~284 requests/second, and the 95th percentile response time was ~1100ms at this point. Then with the increase of
+the RPS, the number of successful requests was ~130 requests/second in average, with a high failure rate
+(~300 from ~400 requests/second).
 
+For the `/optimized_predict` endpoint, the failure was smaller than 3 requests/second (0.00625%) during the whole test,
+the average response time was increasing slightly with the increase of the RPS, and it reached ~120ms in average at
+the end of the test (> 480 requests/second), with a 95th percentile response time almost stable and smaller than 500ms.
+
+You can find check the reports for more details:
+- [predict__report.html](assets/predict__report.html)
+- [optimized_predict__report.html](assets/optimized_predict__report.html)
 ## Use cases
 
 The `AsyncBatcher` library can be used in any application that needs to handle asynchronous requests in batches,
