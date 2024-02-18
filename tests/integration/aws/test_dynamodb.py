@@ -7,6 +7,8 @@ import pytest
 from async_batcher.aws.dynamodb.get import AsyncDynamoDbGetBatcher, GetItem
 from async_batcher.aws.dynamodb.write import AsyncDynamoDbWriteBatcher, WriteOperation
 
+pytestmark = [pytest.mark.integration, pytest.mark.integration_dynamodb]
+
 
 @pytest.mark.asyncio
 async def test_dynamodb_batchers(

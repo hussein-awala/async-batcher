@@ -6,6 +6,16 @@ import pytest
 from async_batcher.batcher import AsyncBatcher
 
 
+def pytest_runtest_setup(item):
+    def _has_marker(item, marker_name: str) -> bool:
+        return len(list(item.iter_markers(name=marker_name))) > 0
+
+    markexpr = item.config.getoption("markexpr")
+    if markexpr == "":
+        if _has_marker(item=item, marker_name="integration"):
+            pytest.skip("skipping integration tests")
+
+
 class MockAsyncBatcher(AsyncBatcher):
     mock_batch_processor = mock.AsyncMock(side_effect=lambda batch: [i * 2 for i in batch])
 

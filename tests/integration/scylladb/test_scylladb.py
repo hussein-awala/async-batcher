@@ -10,6 +10,8 @@ from async_batcher.scylladb.update import AsyncScyllaDbWriteBatcher, WriteOperat
 if TYPE_CHECKING:
     from cassandra.cqlengine.models import Model
 
+pytestmark = [pytest.mark.integration, pytest.mark.integration_scylladb]
+
 
 @pytest.mark.asyncio
 async def test_scylladb_batchers(
