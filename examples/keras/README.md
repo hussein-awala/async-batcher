@@ -1,6 +1,7 @@
-# Async Batcher with FastAPI
+# Async Batcher with Keras model and FastAPI
 
-This example shows how to use the `async_batcher` library with FastAPI.
+This example shows how to use the `async_batcher` library with FastAPI to process data
+in batches by a Keras (Tensorflow) model.
 
 In this example, we serve a TensorFlow model using FastAPI and create two endpoints:
 - `/predict` to make predictions using the TensorFlow model directly

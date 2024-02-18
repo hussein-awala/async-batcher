@@ -27,7 +27,7 @@ async_batcher.start()
 
 ## Benchmark
 
-To evaluate the performance of the `AsyncBatcher` library, we used the [FastAPI example](examples/fastapi) to simulate
+To evaluate the performance of the `AsyncBatcher` library, we used the [Keras example](examples/keras)
 with [locust](https://locust.io/) to simulate multiple users making requests to the server.
 
 In this example, we have a tensorflow model that takes ~11ms to make a single prediction and ~13ms to process

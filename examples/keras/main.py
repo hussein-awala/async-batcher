@@ -4,7 +4,6 @@ import asyncio
 
 import tensorflow as tf
 from async_batcher.batcher import AsyncBatcher
-
 from fastapi import FastAPI
 
 
