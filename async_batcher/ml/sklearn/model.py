@@ -20,7 +20,7 @@ class SklearnAsyncBatcher(AsyncBatcher):
         super().__init__(batch_size=batch_size, sleep_time=sleep_time, buffering_time=buffering_time)
         self.model = model
 
-    def process_batch(self, batch):
+    async def process_batch(self, batch):
         if hasattr(self.model, "predict"):
             return self.model.predict(batch)
         else:
