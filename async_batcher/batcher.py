@@ -44,6 +44,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         self._results = {}
         self._current_batch = 0
         self._should_stop = False
+        self._force_stop = False
+        self._is_running = False
 
     @abc.abstractmethod
     async def process_batch(self, *, batch: list[T]) -> list[S] | None:
@@ -87,13 +89,16 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         Returns:
             S: The result of processing the item.
         """
+        if not self._is_running:
+            raise RuntimeError("The batcher is not running.")
         result = await asyncio.get_event_loop().create_task(self._process_single(item=item))
         if isinstance(result, Exception):
             raise result
         return result
 
     async def arun(self):
-        while not self._should_stop:
+        self._is_running = True
+        while not self._should_stop or (not self._force_stop and len(self._buffer) > 0):
             ids = []
             batch = []
             while self._buffer and (len(batch) < self.batch_size or self.batch_size == -1):
@@ -123,11 +128,19 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
             else:
                 self.logger.debug("No items to process. Sleeping.")
                 await asyncio.sleep(self.buffering_time)
+        self._is_running = False
 
     def run(self):
         """Run the batcher thread."""
         asyncio.run(self.arun())
 
-    def stop(self):
-        """Stop the batcher thread."""
+    def stop(self, force: bool = False):
+        """Stop the batcher thread.
+
+        Args:
+            force (bool, optional): Whether to force stop the batcher without waiting for processing
+                the remaining buffer items. Defaults to False.
+        """
+        if force:
+            self._force_stop = True
         self._should_stop = True
