@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 import tensorflow as tf
 from async_batcher.batcher import AsyncBatcher
 
@@ -8,7 +10,8 @@ from fastapi import FastAPI
 
 class MlBatcher(AsyncBatcher[list[float], list[float]]):
     async def process_batch(self, batch: list[list[float]]) -> list[float]:
-        return model.predict(batch).tolist()
+        batch_result = await asyncio.get_event_loop().run_in_executor(None, model.predict, batch)
+        return batch_result.tolist()
 
 
 app = FastAPI()
