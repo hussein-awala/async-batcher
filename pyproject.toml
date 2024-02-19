@@ -51,6 +51,7 @@ select = [
     "UP", # pyupgrade,
     "TCH", # flake8-type-checking
 ]
+exclude = ["*_pb2*"]
 
 [tool.ruff.format]
 docstring-code-format = true
