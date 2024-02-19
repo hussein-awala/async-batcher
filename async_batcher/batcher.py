@@ -48,7 +48,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         self._is_running = False
 
     @abc.abstractmethod
-    async def process_batch(self, *, batch: list[T]) -> list[S] | None:
+    async def process_batch(self, batch: list[T]) -> list[S] | None:
         """Process a batch of items.
 
         This method should be overridden by the user to define how to process a batch of items.
@@ -80,7 +80,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
                     return self._results.pop(query_id)
             await asyncio.sleep(self.sleep_time)
 
-    async def process(self, *, item: T) -> S:
+    async def process(self, item: T) -> S:
         """Add an item to the buffer and get the result when it's ready.
 
         Args:
@@ -96,7 +96,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
             raise result
         return result
 
-    async def arun(self):
+    async def _arun(self):
+        """Run the batcher asynchronously."""
         self._is_running = True
         while not self._should_stop or (not self._force_stop and len(self._buffer) > 0):
             ids = []
@@ -132,7 +133,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
 
     def run(self):
         """Run the batcher thread."""
-        asyncio.run(self.arun())
+        asyncio.run(self._arun())
 
     def stop(self, force: bool = False):
         """Stop the batcher thread.

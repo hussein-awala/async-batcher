@@ -11,7 +11,21 @@ if TYPE_CHECKING:
     from keras import Model
 
 
-class SklearnAsyncBatcher(AsyncBatcher):
+class KerasAsyncBatcher(AsyncBatcher):
+    """Batcher for Keras models.
+
+    Args:
+        model: The Keras model to use for prediction.
+        executor: The executor to use for running the prediction.
+        batch_size (int, optional): The max number of items to process in a batch. Defaults to -1 (no limit).
+        sleep_time (float, optional): The time to sleep between checking if the result is ready in seconds.
+            Defaults to 0.01. Set it to a value close to the expected time to process a batch
+        buffering_time (float, optional): The time to sleep after processing a batch or checking the buffer
+            in seconds. Defaults to 0.001.
+            You can increase this value if you don't need a low latency, but want to reduce the number of
+            processed batches.
+    """
+
     def __init__(
         self,
         *,
