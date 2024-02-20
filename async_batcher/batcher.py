@@ -125,7 +125,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
                     f" in {elapsed_time} seconds."
                 )
                 self._current_batch += 1
-                await asyncio.sleep(self.buffering_time)
+                await asyncio.sleep(max(self.buffering_time - elapsed_time, 0))
             else:
                 self.logger.debug("No items to process. Sleeping.")
                 await asyncio.sleep(self.buffering_time)
