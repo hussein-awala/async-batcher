@@ -17,10 +17,14 @@ packages = [{include = "async_batcher"}]
 python = "^3.8"
 aioboto3 = {version = "^12.3", optional = true}
 scylla-driver = {version = "^3", optional = true}
+keras = {version = "^2.12", optional = true}
+scikit-learn = {version = "^1.2", optional = true}
 
 [tool.poetry.extras]
 aws= ["aioboto3"]
 scylla = ["scylla-driver"]
+keras = ["keras"]
+sklearn = ["scikit-learn"]
 
 [tool.poetry.dev-dependencies]
 mock = "^5.1.0"
