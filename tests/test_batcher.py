@@ -59,7 +59,7 @@ async def test_process_batch_with_short_buffering_time():
     )
 
     calls_maker1 = CallsMaker(batcher, 0, 0, 5)
-    calls_maker2 = CallsMaker(batcher, 0.2, 5, 20)
+    calls_maker2 = CallsMaker(batcher, 0.25, 5, 20)
     calls_maker3 = CallsMaker(batcher, 0.4, 20, 30)
     await asyncio.gather(calls_maker1.arun(), calls_maker2.arun(), calls_maker3.arun())
 

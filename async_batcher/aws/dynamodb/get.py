@@ -48,11 +48,10 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any]]):
         endpoint_url: str | None = None,
         config: AioConfig | None = None,
         aioboto3_session: aioboto3.Session | None = None,
-        batch_size: int = 100,
-        sleep_time: float = 0.01,
-        buffering_time: float = 0.001,
+        max_batch_size: int = 100,
+        max_queue_time: float = 0.001,
     ):
-        super().__init__(batch_size=batch_size, sleep_time=sleep_time, buffering_time=buffering_time)
+        super().__init__(max_batch_size=max_batch_size, max_queue_time=max_queue_time)
         self.region_name = region_name
         self.use_ssl = use_ssl
         self.verify = verify

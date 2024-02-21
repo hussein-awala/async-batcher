@@ -31,11 +31,10 @@ class KerasAsyncBatcher(AsyncBatcher):
         *,
         model: Model,
         executor: Executor | None = None,
-        batch_size: int = -1,
-        sleep_time: float = 0.01,
-        buffering_time: float = 0.001,
+        max_batch_size: int = -1,
+        max_queue_time: float = 0.001,
     ):
-        super().__init__(batch_size=batch_size, sleep_time=sleep_time, buffering_time=buffering_time)
+        super().__init__(max_batch_size=max_batch_size, max_queue_time=max_queue_time)
         self.model = model
         self.executor = executor
 

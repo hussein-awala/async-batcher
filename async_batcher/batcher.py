@@ -4,7 +4,7 @@ import abc
 import asyncio
 import logging
 from collections import namedtuple
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Union
 
 T = TypeVar("T")
 S = TypeVar("S")
@@ -33,10 +33,12 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         max_queue_time: float = 0.01,
     ):
         super().__init__()
+        if max_batch_size is None or 0 <= max_batch_size <= 1:
+            raise ValueError("Valid max_batch_size value is greater than 1 or -1 for infinite")
         self.max_batch_size = max_batch_size
         self.max_queue_time = max_queue_time
         self._queue = asyncio.Queue()
-        self._current_task = None
+        self._current_task: Union[asyncio.Task, None] = None
         self._should_stop = False
         self._force_stop = False
         self._is_running = False
@@ -65,31 +67,42 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         await future
         return future.result()
 
+    async def _fill_batch_from_queue(self):
+        try:
+            batch = [await asyncio.wait_for(self._queue.get(), timeout=1.0)]
+        except asyncio.TimeoutError:
+            return []
+
+        started_at = asyncio.get_running_loop().time()
+        while 1:
+            try:
+                max_wait = self.max_queue_time - (asyncio.get_running_loop().time() - started_at)
+                if max_wait > 0:
+                    item = await asyncio.wait_for(self._queue.get(), timeout=self.max_queue_time)
+                else:
+                    item = self._queue.get_nowait()
+                batch.append(item)
+            except (asyncio.QueueEmpty, asyncio.TimeoutError):
+                break
+            if 0 < self.max_batch_size <= len(batch):
+                break
+        return batch
+
     async def batch_run(self):
         """Run the batcher asynchronously."""
         self._is_running = True
         while not self._should_stop or (not self._force_stop and self._queue.qsize() > 0):
-            try:
-                batch = [await asyncio.wait_for(self._queue.get(), timeout=1.0)]
-            except asyncio.TimeoutError:
+            batch = await self._fill_batch_from_queue()
+            if not batch:
                 continue
-            started_at = asyncio.get_running_loop().time()
-            while 1:
-                try:
-                    max_wait = self.max_queue_time - (asyncio.get_running_loop().time() - started_at)
-                    if max_wait > 0:
-                        item = await asyncio.wait_for(self._queue.get(), timeout=self.max_queue_time)
-                    else:
-                        item = self._queue.get_nowait()
-                    batch.append(item)
-                    if self.max_batch_size is not None and 1 < self.max_batch_size <= len(batch):
-                        break
-                except (asyncio.QueueEmpty, asyncio.TimeoutError):
-                    break
 
             started_at = asyncio.get_event_loop().time()
             try:
-                results = await self.process_batch(batch=[q_item.item for q_item in batch])
+                batch_items = [q_item.item for q_item in batch]
+                if asyncio.iscoroutinefunction(self.process_batch):
+                    results = await self.process_batch(batch=batch_items)
+                else:
+                    results = await asyncio.get_event_loop().run_in_executor(None, self.process_batch, batch_items)
                 if results is None:
                     results = [None] * len(batch)
                 if len(results) != len(batch):
@@ -110,13 +123,14 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
 
 
     def stop(self, force: bool = False):
-        """Stop the batcher thread.
+        """Stop the batcher asyncio task.
 
         Args:
             force (bool, optional): Whether to force stop the batcher without waiting for processing
                 the remaining buffer items. Defaults to False.
         """
-        self.logger.debug("stop")
         if force:
             self._force_stop = True
         self._should_stop = True
+        if self._current_task and not self._current_task.done() and not self._current_task.get_loop().is_closed():
+            self._current_task.get_loop().run_until_complete(self._current_task)

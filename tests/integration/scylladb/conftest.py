@@ -15,8 +15,7 @@ TEST_KEYSPACE = "test_keyspace"
 
 @pytest.fixture
 def scylladb_write_batcher():
-    write_batcher = AsyncScyllaDbWriteBatcher(buffering_time=2)
-    write_batcher.start()
+    write_batcher = AsyncScyllaDbWriteBatcher(max_queue_time=2)
     yield write_batcher
     write_batcher.stop()
     time.sleep(2)

@@ -13,14 +13,9 @@ class MlBatcher(AsyncBatcher[list[float], list[float]]):
     def __init__(self, model, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.model: keras.src.engine.sequential.Sequential = model
-        print(type(self.model))
 
-    def predict(self, batch):
-        return self.model.predict(batch, verbose=0)
-
-    async def process_batch(self, batch: list[list[float]]) -> list[float]:
-        batch_result = await asyncio.get_event_loop().run_in_executor(None, self.predict, batch)
-        return batch_result.tolist()
+    def process_batch(self, batch: list[list[float]]) -> list[float]:
+        return self.model.predict(batch, verbose=0).tolist()
 
 
 app = FastAPI()
