@@ -4,7 +4,7 @@ import abc
 import asyncio
 import logging
 from collections import namedtuple
-from typing import Generic, TypeVar, Union
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
 S = TypeVar("S")
@@ -38,7 +38,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self.max_batch_size = max_batch_size
         self.max_queue_time = max_queue_time
         self._queue = asyncio.Queue()
-        self._current_task: Union[asyncio.Task, None] = None
+        self._current_task: asyncio.Task | None = None
         self._should_stop = False
         self._force_stop = False
         self._is_running = False
@@ -102,7 +102,9 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 if asyncio.iscoroutinefunction(self.process_batch):
                     results = await self.process_batch(batch=batch_items)
                 else:
-                    results = await asyncio.get_event_loop().run_in_executor(None, self.process_batch, batch_items)
+                    results = await asyncio.get_event_loop().run_in_executor(
+                        None, self.process_batch, batch_items
+                    )
                 if results is None:
                     results = [None] * len(batch)
                 if len(results) != len(batch):
@@ -115,12 +117,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 for q_item, result in zip(batch, results):
                     q_item.future.set_result(result)
             elapsed_time = asyncio.get_event_loop().time() - started_at
-            self.logger.debug(
-                f"Processed batch of {len(batch)} elements"
-                f" in {elapsed_time} seconds."
-            )
+            self.logger.debug(f"Processed batch of {len(batch)} elements" f" in {elapsed_time} seconds.")
         self._is_running = False
-
 
     def stop(self, force: bool = False):
         """Stop the batcher asyncio task.
@@ -132,5 +130,9 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         if force:
             self._force_stop = True
         self._should_stop = True
-        if self._current_task and not self._current_task.done() and not self._current_task.get_loop().is_closed():
+        if (
+            self._current_task
+            and not self._current_task.done()
+            and not self._current_task.get_loop().is_closed()
+        ):
             self._current_task.get_loop().run_until_complete(self._current_task)
