@@ -10,11 +10,8 @@ from async_batcher.batcher import AsyncBatcher
 if TYPE_CHECKING:
     from cassandra.cqlengine.models import Model
 
-# For Python 3.8 and 3.9 compatibility
-KW_ONLY_DATACLASS = {"kw_only": True} if "kw_only" in dataclass.__kwdefaults__ else {}
 
-
-@dataclass(**KW_ONLY_DATACLASS)
+@dataclass(kw_only=True)
 class WriteOperation:
     operation: Literal["INSERT", "UPDATE", "DELETE"]
     model: Model
