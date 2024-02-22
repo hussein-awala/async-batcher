@@ -114,7 +114,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 for q_item in batch:
                     q_item.future.set_exception(e)
             else:
-                for q_item, result in zip(batch, results):
+                for q_item, result in zip(batch, results, strict=True):
                     q_item.future.set_result(result)
             elapsed_time = asyncio.get_event_loop().time() - started_at
             self.logger.debug(f"Processed batch of {len(batch)} elements" f" in {elapsed_time} seconds.")
