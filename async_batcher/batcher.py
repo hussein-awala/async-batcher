@@ -3,16 +3,14 @@ from __future__ import annotations
 import abc
 import asyncio
 import logging
-import uuid
-from collections import deque
-from threading import Thread
-from typing import Generic, TypeVar
+from collections import namedtuple
+from typing import Generic, TypeVar, Union
 
 T = TypeVar("T")
 S = TypeVar("S")
 
 
-class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
+class AsyncBatcher(Generic[T, S], abc.ABC):
     """A generic class for batching and processing items asynchronously.
 
     Args:
@@ -25,24 +23,22 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
             processed batches.
     """
 
-    _buffer = deque[tuple[uuid.UUID, T]]
-    _results = dict[uuid.UUID, S]
     logger = logging.getLogger(__name__)
+    QueueItem = namedtuple("QueueItem", ["item", "future"])
 
     def __init__(
         self,
         *,
-        batch_size: int = -1,
-        sleep_time: float = 0.01,
-        buffering_time: float = 0.001,
+        max_batch_size: int = -1,
+        max_queue_time: float = 0.01,
     ):
         super().__init__()
-        self.batch_size = batch_size
-        self.sleep_time = sleep_time
-        self.buffering_time = buffering_time
-        self._buffer = deque()
-        self._results = {}
-        self._current_batch = 0
+        if max_batch_size is None or 0 <= max_batch_size <= 1:
+            raise ValueError("Valid max_batch_size value is greater than 1 or -1 for infinite")
+        self.max_batch_size = max_batch_size
+        self.max_queue_time = max_queue_time
+        self._queue = asyncio.Queue()
+        self._current_task: Union[asyncio.Task, None] = None
         self._should_stop = False
         self._force_stop = False
         self._is_running = False
@@ -54,34 +50,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         This method should be overridden by the user to define how to process a batch of items.
         """
 
-    async def _process_single(self, *, item: T) -> S:
-        """Process a single item.
-
-        This method adds the item to the buffer and waits for the result to be ready.
-        It's used by the `process` method to add an item to the buffer and get the result when it's ready.
-
-        Args:
-            item (T): The item to process.
-
-        Returns:
-            S: The result of processing the item.
-        """
-        started_at = asyncio.get_event_loop().time()
-        query_id = uuid.uuid4()
-        last_checked_batch = self._current_batch
-        self.logger.debug(f"Adding item {query_id} to the buffer.")
-        self._buffer.append((query_id, item))
-        while True:
-            if self._current_batch > last_checked_batch:
-                last_checked_batch = self._current_batch
-                if query_id in self._results:
-                    elapsed_time = asyncio.get_event_loop().time() - started_at
-                    self.logger.debug(f"Item {query_id} is ready after {elapsed_time} seconds.")
-                    return self._results.pop(query_id)
-            await asyncio.sleep(self.sleep_time)
-
     async def process(self, item: T) -> S:
-        """Add an item to the buffer and get the result when it's ready.
+        """Add an item to the queue and get the result when it's ready.
 
         Args:
             item (T): The item to process.
@@ -89,54 +59,71 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         Returns:
             S: The result of processing the item.
         """
-        if not self._is_running:
-            raise RuntimeError("The batcher is not running.")
-        result = await asyncio.get_event_loop().create_task(self._process_single(item=item))
-        if isinstance(result, Exception):
-            raise result
-        return result
+        if self._current_task is None:
+            self._current_task = asyncio.get_running_loop().create_task(self.batch_run())
+        logging.debug(item)
+        future = asyncio.get_running_loop().create_future()
+        await self._queue.put(self.QueueItem(item, future))
+        await future
+        return future.result()
 
-    async def _arun(self):
+    async def _fill_batch_from_queue(self):
+        try:
+            batch = [await asyncio.wait_for(self._queue.get(), timeout=1.0)]
+        except asyncio.TimeoutError:
+            return []
+
+        started_at = asyncio.get_running_loop().time()
+        while 1:
+            try:
+                max_wait = self.max_queue_time - (asyncio.get_running_loop().time() - started_at)
+                if max_wait > 0:
+                    item = await asyncio.wait_for(self._queue.get(), timeout=self.max_queue_time)
+                else:
+                    item = self._queue.get_nowait()
+                batch.append(item)
+            except (asyncio.QueueEmpty, asyncio.TimeoutError):
+                break
+            if 0 < self.max_batch_size <= len(batch):
+                break
+        return batch
+
+    async def batch_run(self):
         """Run the batcher asynchronously."""
         self._is_running = True
-        while not self._should_stop or (not self._force_stop and len(self._buffer) > 0):
-            ids = []
-            batch = []
-            while self._buffer and (len(batch) < self.batch_size or self.batch_size == -1):
-                query_id, item = self._buffer.popleft()
-                batch.append(item)
-                ids.append(query_id)
-            if batch:
-                started_at = asyncio.get_event_loop().time()
-                try:
-                    results = await asyncio.get_event_loop().create_task(self.process_batch(batch=batch))
-                    if results is None:
-                        results = [None] * len(batch)
-                    if len(results) != len(batch):
-                        raise ValueError(f"Expected to get {len(batch)} results, but got {len(results)}.")
-                except Exception as e:
-                    self.logger.error("Error processing batch", exc_info=True)
-                    results = [e] * len(batch)
-                for query_id, result in zip(ids, results):
-                    self._results[query_id] = result
-                elapsed_time = asyncio.get_event_loop().time() - started_at
-                self.logger.debug(
-                    f"Processed batch {self._current_batch} of {len(batch)} elements"
-                    f" in {elapsed_time} seconds."
-                )
-                self._current_batch += 1
-                await asyncio.sleep(max(self.buffering_time - elapsed_time, 0))
+        while not self._should_stop or (not self._force_stop and self._queue.qsize() > 0):
+            batch = await self._fill_batch_from_queue()
+            if not batch:
+                continue
+
+            started_at = asyncio.get_event_loop().time()
+            try:
+                batch_items = [q_item.item for q_item in batch]
+                if asyncio.iscoroutinefunction(self.process_batch):
+                    results = await self.process_batch(batch=batch_items)
+                else:
+                    results = await asyncio.get_event_loop().run_in_executor(None, self.process_batch, batch_items)
+                if results is None:
+                    results = [None] * len(batch)
+                if len(results) != len(batch):
+                    raise ValueError(f"Expected to get {len(batch)} results, but got {len(results)}.")
+            except Exception as e:
+                self.logger.error("Error processing batch", exc_info=True)
+                for q_item in batch:
+                    q_item.future.set_exception(e)
             else:
-                self.logger.debug("No items to process. Sleeping.")
-                await asyncio.sleep(self.buffering_time)
+                for q_item, result in zip(batch, results):
+                    q_item.future.set_result(result)
+            elapsed_time = asyncio.get_event_loop().time() - started_at
+            self.logger.debug(
+                f"Processed batch of {len(batch)} elements"
+                f" in {elapsed_time} seconds."
+            )
         self._is_running = False
 
-    def run(self):
-        """Run the batcher thread."""
-        asyncio.run(self._arun())
 
     def stop(self, force: bool = False):
-        """Stop the batcher thread.
+        """Stop the batcher asyncio task.
 
         Args:
             force (bool, optional): Whether to force stop the batcher without waiting for processing
@@ -145,3 +132,5 @@ class AsyncBatcher(Generic[T, S], abc.ABC, Thread):
         if force:
             self._force_stop = True
         self._should_stop = True
+        if self._current_task and not self._current_task.done() and not self._current_task.get_loop().is_closed():
+            self._current_task.get_loop().run_until_complete(self._current_task)

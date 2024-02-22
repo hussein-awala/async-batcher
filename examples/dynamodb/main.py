@@ -20,13 +20,13 @@ aioboto3_session = aioboto3.Session(
 get_batcher = AsyncDynamoDbGetBatcher(
     endpoint_url="http://localhost:8000",
     aioboto3_session=aioboto3_session,
-    buffering_time=2,  # just for testing
+    max_queue_time=2,  # just for testing
 )
 
 write_batcher = AsyncDynamoDbWriteBatcher(
     endpoint_url="http://localhost:8000",
     aioboto3_session=aioboto3_session,
-    buffering_time=2,  # just for testing
+    max_queue_time=2,  # just for testing
 )
 
 
@@ -38,12 +38,6 @@ class PutRequestModel(BaseModel):
 class GetRequestModel(BaseModel):
     table_name: str
     key: dict[str, Any]
-
-
-@app.on_event("startup")
-async def startup_event():
-    get_batcher.start()
-    write_batcher.start()
 
 
 @app.on_event("shutdown")

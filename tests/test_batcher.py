@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-from threading import Thread
 
 import pytest
+
 from tests.conftest import MockAsyncBatcher
 
 
-class CallsMaker(Thread):
+class CallsMaker:
     """Calls the batcher with a range of items after a sleep time.
 
     This class is used to simulate multiple calls to the batcher with a range of items
@@ -25,12 +25,10 @@ class CallsMaker(Thread):
 
     async def arun(self):
         await asyncio.sleep(self.sleep_time)
-        return await asyncio.gather(
+        result = await asyncio.gather(
             *[self.batcher.process(item=i) for i in range(self.start_range, self.end_range)]
         )
-
-    def run(self):
-        self.result = asyncio.run(self.arun())
+        self.result = result
 
 
 @pytest.mark.asyncio
@@ -56,22 +54,14 @@ async def test_process_batch_with_bigger_buffer(mock_async_batcher):
 @pytest.mark.asyncio
 async def test_process_batch_with_short_buffering_time():
     batcher = MockAsyncBatcher(
-        batch_size=10,
-        sleep_time=0.01,
-        buffering_time=0.2,
+        max_batch_size=10,
+        max_queue_time=0.2,
     )
 
     calls_maker1 = CallsMaker(batcher, 0, 0, 5)
-    calls_maker2 = CallsMaker(batcher, 0.3, 5, 20)
-    calls_maker3 = CallsMaker(batcher, 0.6, 20, 30)
-    batcher.start()
-    calls_maker1.start()
-    calls_maker2.start()
-    calls_maker3.start()
-    calls_maker1.join()
-    calls_maker2.join()
-    calls_maker3.join()
-    batcher.stop()
+    calls_maker2 = CallsMaker(batcher, 0.25, 5, 20)
+    calls_maker3 = CallsMaker(batcher, 0.4, 20, 30)
+    await asyncio.gather(calls_maker1.arun(), calls_maker2.arun(), calls_maker3.arun())
 
     assert batcher.mock_batch_processor.call_count == 4
     # the first range of size 5 should be processed in a single batch

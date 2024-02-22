@@ -25,7 +25,6 @@ class PredictorGRPC(predictor_pb2_grpc.KerasPredictorServicer):
         super().__init__(*args, **kwargs)
         model = tf.keras.models.load_model("../diabetes_tf_model.h5")
         self.batcher = MlBatcher(model=model, batch_size=200, sleep_time=0.0001)
-        self.batcher.start()
 
     async def Predict(
         self,

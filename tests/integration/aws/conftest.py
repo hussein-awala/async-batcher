@@ -27,9 +27,8 @@ def get_batcher(dynamodb_aioboto3_session):
     batcher = AsyncDynamoDbGetBatcher(
         endpoint_url="http://localhost:8000",
         aioboto3_session=dynamodb_aioboto3_session,
-        buffering_time=2,
+        max_queue_time=2,
     )
-    batcher.start()
     yield batcher
     batcher.stop()
 
@@ -39,9 +38,8 @@ def write_batcher(dynamodb_aioboto3_session):
     batcher = AsyncDynamoDbWriteBatcher(
         endpoint_url="http://localhost:8000",
         aioboto3_session=dynamodb_aioboto3_session,
-        buffering_time=2,
+        max_queue_time=2,
     )
-    batcher.start()
     yield batcher
     batcher.stop()
 
