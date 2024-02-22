@@ -12,8 +12,11 @@ if TYPE_CHECKING:
     from types_aiobotocore_dynamodb import DynamoDBServiceResource
     from types_aiobotocore_dynamodb.type_defs import TableAttributeValueTypeDef
 
+# For Python 3.8 and 3.9 compatibility
+KW_ONLY_DATACLASS = {"kw_only": True} if "kw_only" in dataclass.__kwdefaults__ else {}
 
-@dataclass(kw_only=True)
+
+@dataclass(**KW_ONLY_DATACLASS)
 class WriteOperation:
     operation: Literal["PUT", "DELETE"]
     table_name: str
