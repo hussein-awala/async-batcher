@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-import asyncio
 import gc
+from typing import TYPE_CHECKING
 
-import keras.src.engine.sequential
 import tensorflow as tf
 from async_batcher.batcher import AsyncBatcher
 from fastapi import FastAPI
+
+if TYPE_CHECKING:
+    import keras.src.engine.sequential
 
 
 class MlBatcher(AsyncBatcher[list[float], list[float]]):
@@ -24,9 +26,11 @@ model = tf.keras.models.load_model("../diabetes_tf_model.h5")
 
 batcher = MlBatcher(model=model, max_queue_time=0.001)
 
+
 @app.on_event("startup")
 async def startup_event():
     gc.freeze()
+
 
 @app.on_event("shutdown")
 def shutdown_event():

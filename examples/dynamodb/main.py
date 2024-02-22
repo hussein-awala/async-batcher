@@ -5,9 +5,8 @@ from typing import Any
 import aioboto3
 from async_batcher.aws.dynamodb.get import AsyncDynamoDbGetBatcher, GetItem
 from async_batcher.aws.dynamodb.write import AsyncDynamoDbWriteBatcher, WriteOperation
-from pydantic import BaseModel
-
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 app = FastAPI()
 
