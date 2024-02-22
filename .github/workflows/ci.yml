@@ -33,7 +33,7 @@ jobs:
     needs: changed-files
     if: ${{ needs.changed-files.outputs.should_run_pytest == 'true' }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [ "ubuntu-latest", "macos-latest" ]
         python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
