@@ -24,7 +24,7 @@ class PredictorGRPC(predictor_pb2_grpc.KerasPredictorServicer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         model = tf.keras.models.load_model("../diabetes_tf_model.h5")
-        self.batcher = MlBatcher(model=model, batch_size=200, sleep_time=0.0001)
+        self.batcher = MlBatcher(model=model, max_batch_size=200, max_queue_time=0.01)
 
     async def Predict(
         self,
@@ -62,5 +62,6 @@ if __name__ == "__main__":
     try:
         loop.run_until_complete(serve())
     finally:
-        loop.run_until_complete(*_cleanup_coroutines)
+        if _cleanup_coroutines:
+            loop.run_until_complete(*_cleanup_coroutines)
         loop.close()
