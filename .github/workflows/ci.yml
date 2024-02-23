@@ -31,7 +31,7 @@ jobs:
 
   pytest:
     needs: changed-files
-    if: ${{ needs.changed-files.outputs.should_run_pytest == 'true' }}
+    if: ${{ needs.changed-files.outputs.should_run_pytest == 'true' || github.event.action == 'reopened' }}
     strategy:
       fail-fast: false
       matrix:
