@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from unittest import mock
 
 import pytest
@@ -21,7 +20,6 @@ class MockAsyncBatcher(AsyncBatcher):
     mock_batch_processor = mock.AsyncMock(side_effect=lambda batch: [i * 2 for i in batch])
 
     async def process_batch(self, *args, **kwargs):
-        logging.debug(("fuck", args, kwargs))
         return await self.mock_batch_processor(*args, **kwargs)
 
 
