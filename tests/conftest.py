@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from unittest import mock
 
@@ -23,6 +24,16 @@ class MockAsyncBatcher(AsyncBatcher):
     async def process_batch(self, *args, **kwargs):
         logging.debug(("fuck", args, kwargs))
         return await self.mock_batch_processor(*args, **kwargs)
+
+
+class SlowAsyncBatcher(MockAsyncBatcher):
+    def __init__(self, sleep_time: float = 1, **kwargs):
+        super().__init__(**kwargs)
+        self.sleep_time = sleep_time
+
+    async def process_batch(self, *args, **kwargs):
+        await asyncio.sleep(self.sleep_time)
+        return await super().process_batch(*args, **kwargs)
 
 
 @pytest.fixture(scope="function")
