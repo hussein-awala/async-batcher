@@ -21,7 +21,7 @@ class MyAsyncBatcher(AsyncBatcher):
         print(batch)
 
 # Create a new instance of the `MyAsyncBatcher` class
-async_batcher = MyAsyncBatcher(batch_size=20)
+async_batcher = MyAsyncBatcher(max_batch_size=20)
 async_batcher.start()
 ```
 
