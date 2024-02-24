@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 
 import pytest
 
@@ -80,31 +81,31 @@ async def test_process_batch_with_short_buffering_time():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "concurrency, min_execution_time, max_execution_time",
+    "concurrency, expected_execution_time",
     [
         # batch 1: from 0 to 1
         # batch 2: from 1 to 2
         # batch 3: from 2 to 3
-        # batch 4: from 3.2 to 4.2 (< max_batch_size, extra 0.2)
-        (1, 4.2, 4.4),
+        # batch 4: from 3.2 to 4.2 (< max_batch_size, extra 0.4)
+        (1, 4.2),
         # batch 1: from 0 to 1
         # batch 2: from 0.25 to 1.25
         # batch 3: from 1 to 2
-        # batch 4: from 1.45 to 2.45 (< max_batch_size, extra 0.2)
-        (2, 2.45, 2.65),
+        # batch 4: from 1.45 to 2.45 (< max_batch_size, extra 0.4)
+        (2, 2.45),
         # batch 1: from 0 to 1
         # batch 2: from 0.25 to 1.25
         # batch 3: from 0.4 to 1.4
-        # batch 4: from 1.2 to 2.2 (< max_batch_size, extra 0.2)
-        (3, 2.2, 2.4),
+        # batch 4: from 1.2 to 2.2 (< max_batch_size, extra 0.4)
+        (3, 2.2),
         # batch 1: from 0 to 1
         # batch 2: from 0.25 to 1.25
         # batch 3: from 0.4 to 1.4
-        # batch 4: from 0.6 to 1.6 (< max_batch_size, extra 0.2)
-        (-1, 1.6, 1.8),
+        # batch 4: from 0.6 to 1.6 (< max_batch_size, extra 0.4)
+        (-1, 1.6),
     ],
 )
-async def test_concurrent_process_batch(concurrency, min_execution_time, max_execution_time):
+async def test_concurrent_process_batch(concurrency, expected_execution_time):
     batcher = SlowAsyncBatcher(
         sleep_time=1,
         max_batch_size=10,
@@ -119,11 +120,15 @@ async def test_concurrent_process_batch(concurrency, min_execution_time, max_exe
     await asyncio.gather(calls_maker1.arun(), calls_maker2.arun(), calls_maker3.arun())
     ended_at = asyncio.get_event_loop().time()
 
-    # the last batch should be processed after:
-    # 1 (batch processing time) + 0.4 (sleep time) seconds = 1.4 seconds at most
     # we add 0.4 seconds to the expected time to account for the sleep time
-    assert min_execution_time < ended_at - started_at
-    assert ended_at - started_at < max_execution_time
+    # for Python 3.12, we need to add 1 second to the expected time because there
+    # is a slowness in some asyncio functions
+    if sys.version_info >= (3, 12):
+        safe_time = 1
+    else:
+        safe_time = 0.4
+    assert expected_execution_time < ended_at - started_at
+    assert ended_at - started_at < expected_execution_time + safe_time
 
     assert batcher.mock_batch_processor.call_count == 4
     # the first range of size 5 should be processed in a single batch

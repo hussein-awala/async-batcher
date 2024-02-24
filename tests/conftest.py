@@ -7,6 +7,16 @@ import pytest
 from async_batcher.batcher import AsyncBatcher
 
 
+@pytest.fixture(scope="session")
+def event_loop():
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+
+
 def pytest_runtest_setup(item):
     def _has_marker(item, marker_name: str) -> bool:
         return len(list(item.iter_markers(name=marker_name))) > 0
