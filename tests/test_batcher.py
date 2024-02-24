@@ -169,7 +169,8 @@ async def test_force_stop_batcher():
     await asyncio.gather(*[batcher.process(item=i) for i in range(10)])
     assert await batcher.is_running()
     await batcher.stop(force=True)
-    assert batcher._current_task.cancelled() or batcher._current_task.cancelling()
-    for task in batcher._running_batches:
-        assert task.cancelled() or task.cancelling()
+    if sys.version_info >= (3, 11):
+        assert batcher._current_task.cancelled() or batcher._current_task.cancelling()
+        for task in batcher._running_batches.values():
+            assert task.cancelled() or task.cancelling()
     batcher.mock_batch_processor.reset_mock()
