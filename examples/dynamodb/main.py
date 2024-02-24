@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import aioboto3
@@ -41,8 +42,10 @@ class GetRequestModel(BaseModel):
 
 @app.on_event("shutdown")
 def shutdown_event():
-    get_batcher.stop()
-    write_batcher.stop()
+    async def stop_batchers():
+        await asyncio.gather(get_batcher.stop(), write_batcher.stop())
+
+    asyncio.run(stop_batchers())
 
 
 @app.post("/put")

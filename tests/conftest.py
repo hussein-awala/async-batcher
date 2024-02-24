@@ -1,9 +1,20 @@
 from __future__ import annotations
 
+import asyncio
 from unittest import mock
 
 import pytest
 from async_batcher.batcher import AsyncBatcher
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
 
 def pytest_runtest_setup(item):
@@ -21,6 +32,16 @@ class MockAsyncBatcher(AsyncBatcher):
 
     async def process_batch(self, *args, **kwargs):
         return await self.mock_batch_processor(*args, **kwargs)
+
+
+class SlowAsyncBatcher(MockAsyncBatcher):
+    def __init__(self, sleep_time: float = 1, **kwargs):
+        super().__init__(**kwargs)
+        self.sleep_time = sleep_time
+
+    async def process_batch(self, *args, **kwargs):
+        await asyncio.sleep(self.sleep_time)
+        return await super().process_batch(*args, **kwargs)
 
 
 @pytest.fixture(scope="function")

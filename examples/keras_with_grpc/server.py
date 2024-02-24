@@ -49,7 +49,7 @@ async def serve() -> None:
 
     async def server_graceful_shutdown():
         logging.info("Starting graceful shutdown...")
-        predictor.batcher.stop()
+        await predictor.batcher.stop()
         await server.stop(30)
 
     _cleanup_coroutines.append(server_graceful_shutdown())
