@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import asyncio
 import logging
+import warnings
 from collections import namedtuple
 from typing import TYPE_CHECKING, Generic, TypeVar
 
@@ -17,13 +18,15 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
     """A generic class for batching and processing items asynchronously.
 
     Args:
-        batch_size (int, optional): The max number of items to process in a batch. Defaults to -1 (no limit).
-        sleep_time (float, optional): The time to sleep between checking if the result is ready in seconds.
-            Defaults to 0.01. Set it to a value close to the expected time to process a batch
-        buffering_time (float, optional): The time to sleep after processing a batch or checking the buffer
-            in seconds. Defaults to 0.001.
-            You can increase this value if you don't need a low latency, but want to reduce the number of
-            processed batches.
+        max_batch_size (int, optional): The max number of items to process in a batch.
+            Defaults to -1 (no limit).
+        max_queue_time (float, optional): The max time for a task to stay in the queue before processing
+            it if the batch is not full and the number of running batches is less than the concurrency.
+            Defaults to 0.01.
+        concurrency (int, optional): The max number of concurrent batches to process.
+            Defaults to 1. If -1, it will process all batches concurrently.
+        executor (Executor, optional): The executor to use to process the batch if the `process_batch` method
+            is not a Coroutine. If None, it will use the default asyncio executor. Defaults to None.
     """
 
     logger = logging.getLogger(__name__)
@@ -36,12 +39,34 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         max_queue_time: float = 0.01,
         concurrency: int = 1,
         executor: Executor | None = None,
+        **kwargs,
     ):
         super().__init__()
         if max_batch_size is None or 0 <= max_batch_size <= 1:
             raise ValueError("Valid max_batch_size value is greater than 1 or -1 for infinite")
         if concurrency is None or concurrency == 0:
             raise ValueError("Valid concurrency value is greater than 0 or -1 for infinite")
+        # check deprecated arguments
+        if "sleep_time" in kwargs:
+            warnings.warn(
+                "The 'sleep_time' has no effect and will be removed in a future version. "
+                "In the current version, the process task will sleep until the result is ready.",
+                stacklevel=2,
+            )
+        if "buffering_time" in kwargs:
+            warnings.warn(
+                "The 'buffering_time' has no effect and will be removed in a future version. "
+                "In the current version, the process_bath task will sleep until there is any item in"
+                " the queue.",
+                stacklevel=2,
+            )
+        if "batch_size" in kwargs:
+            warnings.warn(
+                "The 'batch_size' argument is deprecated and will be removed in a future version. "
+                "Use 'max_batch_size' instead.",
+                stacklevel=2,
+            )
+            max_batch_size = kwargs.pop("batch_size")
         self.max_batch_size = max_batch_size
         self.max_queue_time = max_queue_time
         self.concurrency = concurrency

@@ -29,14 +29,13 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any]]):
         endpoint_url: The complete URL to use for the constructed client. This is useful for local testing.
         config: The configuration for the session.
         aioboto3_session: The aioboto3 session to use. If not provided, a new session is created.
-        batch_size: The maximum number of items to process in a single batch. The default is 100 items,
-            which is the maximum number of items that can be processed in a single batch.
-        sleep_time (float, optional): The time to sleep between checking if the result is ready in seconds.
-            Defaults to 0.01. Set it to a value close to the expected time to process a batch
-        buffering_time (float, optional): The time to sleep after processing a batch or checking the buffer
-            in seconds. Defaults to 0.001.
-            You can increase this value if you don't need a low latency, but want to reduce the number of
-            processed batches.
+        max_batch_size (int, optional): The max number of items to process in a batch.The default is 100
+            items, which is the maximum number of items that can be processed in a single batch.
+        max_queue_time (float, optional): The max time for a task to stay in the queue before processing
+            it if the batch is not full and the number of running batches is less than the concurrency.
+            Defaults to 0.01.
+        concurrency (int, optional): The max number of concurrent batches to process. Defaults to 1.
+            If -1, it will process all batches concurrently.
     """
 
     def __init__(
@@ -49,9 +48,13 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any]]):
         config: AioConfig | None = None,
         aioboto3_session: aioboto3.Session | None = None,
         max_batch_size: int = 100,
-        max_queue_time: float = 0.001,
+        max_queue_time: float = 0.01,
+        concurrency: int = 1,
+        **kwargs,
     ):
-        super().__init__(max_batch_size=max_batch_size, max_queue_time=max_queue_time)
+        super().__init__(
+            max_batch_size=max_batch_size, max_queue_time=max_queue_time, concurrency=concurrency, **kwargs
+        )
         self.region_name = region_name
         self.use_ssl = use_ssl
         self.verify = verify

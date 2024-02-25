@@ -20,7 +20,9 @@ class WriteOperation:
 
 
 class AsyncScyllaDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
-    async def process_batch(self, *, batch: list[WriteOperation]) -> list[None | Exception]:
+    """Batcher for ScyllaDB write operations."""
+
+    def process_batch(self, *, batch: list[WriteOperation]) -> list[None | Exception]:
         results = []
         with BatchQuery() as b:
             for op in batch:
