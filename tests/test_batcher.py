@@ -77,6 +77,7 @@ async def test_process_batch_with_short_buffering_time():
     assert calls_maker1.result == [i * 2 for i in range(5)]
     assert calls_maker2.result == [i * 2 for i in range(5, 20)]
     assert calls_maker3.result == [i * 2 for i in range(20, 30)]
+    await batcher.stop()
 
 
 @pytest.mark.asyncio
@@ -143,6 +144,7 @@ async def test_concurrent_process_batch(concurrency, expected_execution_time):
     assert calls_maker1.result == [i * 2 for i in range(5)]
     assert calls_maker2.result == [i * 2 for i in range(5, 20)]
     assert calls_maker3.result == [i * 2 for i in range(20, 30)]
+    await batcher.stop()
     batcher.mock_batch_processor.reset_mock()
 
 
