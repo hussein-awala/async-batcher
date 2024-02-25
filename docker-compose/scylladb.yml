@@ -4,37 +4,43 @@ services:
   scylla-node1:
     image: scylladb/scylla
     container_name: scylla-node1
+    restart: always
     ports:
       - "9042:9042"
     environment:
       - CLUSTER_NAME=scylla-cluster
     command:
-      - --alternator-port 8000
-      - --alternator-write-isolation unsafe
-      - --smp 2
+      --seeds=scylla-node1
+      --alternator-write-isolation unsafe
+      --alternator-port 8000
+      --smp 1
+      --memory 750M
+      --overprovisioned 1
+      --api-address 0.0.0.0
+    healthcheck:
+      test: [ "CMD-SHELL", "[ $$(nodetool statusgossip) = running ]" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   scylla-node2:
     image: scylladb/scylla
     container_name: scylla-node2
+    restart: always
     ports:
       - "9043:9042"
     environment:
       - CLUSTER_NAME=scylla-cluster
     command:
-      - --seeds="scylla-node1"
-      - --alternator-port 8000
-      - --alternator-write-isolation unsafe
-      - --smp 2
-
-  scylla-node3:
-    image: scylladb/scylla
-    container_name: scylla-node3
-    ports:
-      - "9044:9042"
-    environment:
-      - CLUSTER_NAME=scylla-cluster
-    command:
-      - --seeds="scylla-node1"
-      - --alternator-port 8000
-      - --alternator-write-isolation unsafe
-      - --smp 2
+      --seeds=scylla-node1
+      --alternator-write-isolation unsafe
+      --alternator-port 8000
+      --smp 1
+      --memory 750M
+      --overprovisioned 1
+      --api-address 0.0.0.0
+    healthcheck:
+      test: [ "CMD-SHELL", "[ $$(nodetool statusgossip) = running ]" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10

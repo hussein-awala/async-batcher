@@ -27,7 +27,6 @@ def scylladb_session():
         [
             DefaultEndPoint("localhost", 9042),
             DefaultEndPoint("localhost", 9043),
-            DefaultEndPoint("localhost", 9044),
         ]
     )
 
