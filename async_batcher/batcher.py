@@ -4,7 +4,10 @@ import abc
 import asyncio
 import logging
 from collections import namedtuple
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
+
+if TYPE_CHECKING:
+    from concurrent.futures import Executor
 
 T = TypeVar("T")
 S = TypeVar("S")
@@ -32,6 +35,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         max_batch_size: int = -1,
         max_queue_time: float = 0.01,
         concurrency: int = 1,
+        executor: Executor | None = None,
     ):
         super().__init__()
         if max_batch_size is None or 0 <= max_batch_size <= 1:
@@ -41,6 +45,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self.max_batch_size = max_batch_size
         self.max_queue_time = max_queue_time
         self.concurrency = concurrency
+        self.executor = executor
         self._queue = asyncio.Queue()
         self._current_task: asyncio.Task | None = None
         self._running_batches: dict[int, asyncio.Task] = {}
@@ -103,7 +108,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 results = await self.process_batch(batch=batch_items)
             else:
                 results = await asyncio.get_event_loop().run_in_executor(
-                    None, self.process_batch, batch_items
+                    self.executor, self.process_batch, batch_items
                 )
             if results is None:
                 results = [None] * len(batch)
