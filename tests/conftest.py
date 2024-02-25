@@ -51,5 +51,5 @@ def mock_async_batcher():
         max_queue_time=0.01,
     )
     yield batcher
-    batcher.stop()
+    asyncio.get_event_loop().run_until_complete(batcher.stop())
     batcher.mock_batch_processor.reset_mock()
