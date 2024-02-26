@@ -25,12 +25,14 @@ scikit-learn = [
     {version = "^1.2", optional = true, markers = "python_version < '3.12'"},
     {version = "^1.3", optional = true, markers = "python_version == '3.12'"}
 ]
+sqlalchemy = {version = ">=1.4 <3", extras = ["asyncio"], optional = true}
 
 [tool.poetry.extras]
 aws= ["aioboto3"]
 scylla = ["scylla-driver"]
 keras = ["keras"]
 sklearn = ["scikit-learn"]
+sqlalchemy = ["sqlalchemy"]
 
 [tool.poetry.dev-dependencies]
 mock = "^5.1.0"
@@ -38,6 +40,7 @@ pytest = "^8"
 pytest-asyncio = "^0.23.5"
 pre-commit = "^3"
 types-aioboto3 = {version = "^12.3", extras = ["dynamodb"]}
+aiosqlite = "^0.20"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
