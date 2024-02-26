@@ -10,16 +10,16 @@ from tests.sqlalchemy.conftest import TestModel
 
 
 @pytest.mark.asyncio(scope="session")
-async def test_async_sqlalchemy_write_batcher(async_session_maker, create_models):
+async def test_async_sqlalchemy_write_batcher(async_sqlite_engine, create_models):
     insert_batcher = AsyncSqlalchemyWriteBatcher(
         model=TestModel,
-        async_session_maker=async_session_maker,
+        async_engine=async_sqlite_engine,
         operation="insert",
         returning=[TestModel.name, TestModel.age],
     )
     update_batcher = AsyncSqlalchemyWriteBatcher(
         model=TestModel,
-        async_session_maker=async_session_maker,
+        async_engine=async_sqlite_engine,
         operation="update",
     )
     # 10 inserts
@@ -29,7 +29,7 @@ async def test_async_sqlalchemy_write_batcher(async_session_maker, create_models
     # check returned result
     assert returned_result == [(f"Name {i}", i) for i in range(10)]
     # read all rows from the table and validate them
-    async with insert_batcher.create_async_session() as session:
+    async with insert_batcher.async_session_maker() as session:
         rows_in_table = (await session.scalars(select(TestModel))).all()
     assert len(rows_in_table) == 10
     for i, row in enumerate(rows_in_table):
@@ -39,7 +39,7 @@ async def test_async_sqlalchemy_write_batcher(async_session_maker, create_models
     # 10 updates
     await asyncio.gather(*[update_batcher.process({"id": i, "age": i * 2}) for i in range(10)])
     # read all rows from the table and validate them
-    async with update_batcher.create_async_session() as session:
+    async with update_batcher.async_session_maker() as session:
         rows_in_table = (await session.scalars(select(TestModel))).all()
     assert len(rows_in_table) == 10
     for i, row in enumerate(rows_in_table):

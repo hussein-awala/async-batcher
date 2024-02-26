@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest_asyncio
 
 from sqlalchemy import String
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -24,11 +24,6 @@ async def async_sqlite_engine() -> AsyncEngine:
     async_engine = create_async_engine("sqlite+aiosqlite://")
     yield async_engine
     await async_engine.dispose()
-
-
-@pytest_asyncio.fixture(scope="session")
-async def async_session_maker(async_sqlite_engine) -> async_sessionmaker[AsyncSession]:
-    yield async_sessionmaker(bind=async_sqlite_engine)
 
 
 @pytest_asyncio.fixture(scope="session")

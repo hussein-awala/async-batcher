@@ -1,22 +1,23 @@
 from __future__ import annotations
 
-import contextlib
+from asyncio import current_task
 from typing import TYPE_CHECKING, Any, Literal
 
 from async_batcher.batcher import AsyncBatcher
 from sqlalchemy import Row, insert, update
+from sqlalchemy.ext.asyncio import async_scoped_session, async_sessionmaker
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import Sequence
 
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+    from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 
 class AsyncSqlalchemyWriteBatcher(AsyncBatcher[dict[str, Any], None]):
     def __init__(
         self,
         model: Any,
-        async_session_maker: async_sessionmaker[AsyncSession],
+        async_engine: AsyncEngine,
         operation: Literal["insert", "update"] = "insert",
         returning: Any = None,
         **kwargs,
@@ -25,29 +26,22 @@ class AsyncSqlalchemyWriteBatcher(AsyncBatcher[dict[str, Any], None]):
             raise ValueError(f"Invalid operation: {operation}")
         super().__init__(**kwargs)
         self.model = model
-        self.async_session_maker = async_session_maker
+        self.async_engine = async_engine
+        self.async_session_maker = async_scoped_session(
+            async_sessionmaker(
+                bind=async_engine,
+                autocommit=False,
+                autoflush=False,
+                expire_on_commit=False,
+            ),
+            scopefunc=current_task,
+        )
         self.operation = operation
         self.returning = returning
 
-    @contextlib.asynccontextmanager
-    async def create_async_session(self) -> AsyncIterator[AsyncSession]:
-        """A contextmanager to create and teardown an async session."""
-        async_session: AsyncSession | None = None
-        try:
-            async with self.async_session_maker() as async_session:
-                yield async_session
-            await async_session.commit()
-        except Exception:
-            if async_session:
-                await async_session.rollback()
-            raise
-        finally:
-            if async_session:
-                await async_session.close()
-
     async def process_batch(self, batch: list[dict[str, Any]]) -> Sequence[Row[tuple[Any]]] | None:
         session: AsyncSession
-        async with self.create_async_session() as session:
+        async with self.async_session_maker() as session:
             if self.operation == "insert":
                 statement = insert(self.model).returning()
             elif self.operation == "update":
