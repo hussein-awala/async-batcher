@@ -61,5 +61,6 @@ class AsyncSqlalchemyWriteBatcher(AsyncBatcher[dict[str, Any], None]):
                 statement=statement,
                 params=batch,
             )
-        if self.returning:
-            return res.all()
+            await session.commit()
+            if self.returning:
+                return res.all()
