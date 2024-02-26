@@ -40,7 +40,7 @@ pytest = "^8"
 pytest-asyncio = "^0.23.5"
 pre-commit = "^3"
 types-aioboto3 = {version = "^12.3", extras = ["dynamodb"]}
-aiosqlite = "^0.20"
+asyncpg = "^0.29"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

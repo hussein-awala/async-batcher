@@ -8,18 +8,20 @@ from async_batcher.sqlalchemy.write import AsyncSqlalchemyWriteBatcher
 from sqlalchemy import select
 from tests.sqlalchemy.conftest import _TestModel
 
+pytestmark = [pytest.mark.integration, pytest.mark.integration_postgres]
+
 
 @pytest.mark.asyncio(scope="session")
-async def test_async_sqlalchemy_write_batcher(async_sqlite_engine, create_models):
+async def test_async_sqlalchemy_postgres_write_batcher(async_postgres_engine, create_models):
     insert_batcher = AsyncSqlalchemyWriteBatcher(
         model=_TestModel,
-        async_engine=async_sqlite_engine,
+        async_engine=async_postgres_engine,
         operation="insert",
         returning=[_TestModel.name, _TestModel.age],
     )
     update_batcher = AsyncSqlalchemyWriteBatcher(
         model=_TestModel,
-        async_engine=async_sqlite_engine,
+        async_engine=async_postgres_engine,
         operation="update",
     )
     # 10 inserts

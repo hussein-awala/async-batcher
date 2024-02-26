@@ -38,6 +38,7 @@ jobs:
             src:
               - "async_batcher/aws/**"
               - "async_batcher/scylladb/**"
+              - "async_batcher/sqlalchemy/**"
               - "tests/integration/**"
               - "poetry.lock"
 
@@ -124,13 +125,22 @@ jobs:
         run: poetry install --no-interaction --all-extras
 
       - name: Run docker-compose
-        run: docker compose -f docker-compose/dynamodb.yml -f docker-compose/scylladb.yml up -d --wait
+        run: |
+          docker compose \
+            -f docker-compose/dynamodb.yml \
+            -f docker-compose/postgres.yml \
+            up -d --wait
 
       # TODO: Make the ScyllaDB containers more stable then activate all the integration tests
-      - name: Run tests
+      - name: Run DynamoDB integration tests
         run: |
           source .venv/bin/activate
           pytest tests/ -m integration_dynamodb
+
+      - name: Run Postgres integration tests
+        run: |
+          source .venv/bin/activate
+          pytest tests/ -m integration_postgres
 
   linter:
     runs-on: ubuntu-latest
