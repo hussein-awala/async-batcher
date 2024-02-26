@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 pytestmark = [pytest.mark.integration, pytest.mark.integration_scylladb]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(scope="session")
 async def test_scylladb_batchers(
     scylladb_tables: tuple[Model, Model], scylladb_write_batcher: AsyncScyllaDbWriteBatcher
 ):
@@ -101,7 +101,7 @@ async def test_scylladb_batchers(
         assert row.attr2 == i * 3
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(scope="session")
 async def test_scylladb_batchers_exceptions(
     scylladb_tables: tuple[Model, Model], scylladb_write_batcher: AsyncScyllaDbWriteBatcher
 ):

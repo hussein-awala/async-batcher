@@ -10,7 +10,7 @@ from async_batcher.aws.dynamodb.write import AsyncDynamoDbWriteBatcher, WriteOpe
 pytestmark = [pytest.mark.integration, pytest.mark.integration_dynamodb]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(scope="session")
 async def test_dynamodb_batchers(
     dynamodb_tables: tuple[str, str],
     get_batcher: AsyncDynamoDbGetBatcher,
