@@ -181,6 +181,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                         self._running_batches[task_id] = asyncio.get_event_loop().create_task(
                             self._concurrent_batch_run(task_id, batch)
                         )
+                        await asyncio.sleep(0)
                         task_id += 1
                     started_at = None
                 except asyncio.TimeoutError:
