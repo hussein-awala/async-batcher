@@ -7,6 +7,8 @@ import warnings
 from collections import namedtuple
 from typing import TYPE_CHECKING, Generic, TypeVar
 
+from async_batcher.exceptions import QueueFullException
+
 if TYPE_CHECKING:
     from concurrent.futures import Executor
 
@@ -23,6 +25,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         max_queue_time (float, optional): The max time for a task to stay in the queue before processing
             it if the batch is not full and the number of running batches is less than the concurrency.
             Defaults to 0.01.
+        max_queue_size (int, optional): The max number of items to keep in the queue.
+            Defaults to -1 (no limit).
         concurrency (int, optional): The max number of concurrent batches to process.
             Defaults to 1. If -1, it will process all batches concurrently.
         executor (Executor, optional): The executor to use to process the batch if the `process_batch` method
@@ -38,6 +42,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         max_batch_size: int = -1,
         max_queue_time: float = 0.01,
         concurrency: int = 1,
+        max_queue_size: int = -1,
         executor: Executor | None = None,
         **kwargs,
     ):
@@ -71,7 +76,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self.max_queue_time = max_queue_time
         self.concurrency = concurrency
         self.executor = executor
-        self._queue = asyncio.Queue()
+        self._queue = asyncio.Queue(maxsize=max_queue_size)
         self._current_task: asyncio.Task | None = None
         self._running_batches: dict[int, asyncio.Task] = {}
         self._concurrency_semaphore = asyncio.Semaphore(concurrency) if concurrency > 0 else None
@@ -100,6 +105,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             self._current_task = asyncio.get_running_loop().create_task(self.run())
         logging.debug(item)
         future = asyncio.get_running_loop().create_future()
+        if self._queue.full():
+            raise QueueFullException("The queue is full, cannot process more items at the moment.")
         await self._queue.put(self.QueueItem(item, future))
         await future
         return future.result()
