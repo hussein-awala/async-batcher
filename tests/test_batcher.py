@@ -4,6 +4,7 @@ import asyncio
 import sys
 
 import pytest
+from async_batcher.exceptions import QueueFullException
 
 from tests.conftest import MockAsyncBatcher, SlowAsyncBatcher
 
@@ -24,10 +25,16 @@ class CallsMaker:
         self.start_range = start_range
         self.end_range = end_range
 
+    async def process_and_catch_exception(self, item):
+        try:
+            return await self.batcher.process(item=item)
+        except Exception as e:
+            return e
+
     async def arun(self):
         await asyncio.sleep(self.sleep_time)
         result = await asyncio.gather(
-            *[self.batcher.process(item=i) for i in range(self.start_range, self.end_range)]
+            *[self.process_and_catch_exception(item=i) for i in range(self.start_range, self.end_range)]
         )
         self.result = result
 
@@ -176,3 +183,26 @@ async def test_force_stop_batcher():
         for task in batcher._running_batches.values():
             assert task.cancelled() or task.cancelling()
     batcher.mock_batch_processor.reset_mock()
+
+
+@pytest.mark.asyncio(scope="session")
+async def test_max_queue_size():
+    batcher = SlowAsyncBatcher(
+        sleep_time=1,
+        max_batch_size=10,
+        max_queue_time=0.2,
+        concurrency=1,
+        max_queue_size=15,
+    )
+    batcher.mock_batch_processor.reset_mock()
+    calls_maker1 = CallsMaker(batcher, 0, 0, 10)
+    calls_maker2 = CallsMaker(batcher, 0.25, 10, 20)
+    calls_maker3 = CallsMaker(batcher, 0.4, 20, 30)
+    await asyncio.gather(calls_maker1.arun(), calls_maker2.arun(), calls_maker3.arun())
+    assert batcher.mock_batch_processor.call_count == 3
+    assert calls_maker1.result == [i * 2 for i in range(10)]
+    assert calls_maker2.result == [i * 2 for i in range(10, 20)]
+    assert calls_maker3.result[:5] == [i * 2 for i in range(20, 25)]
+    assert all(isinstance(e, QueueFullException) for e in calls_maker3.result[5:])
+    batcher.mock_batch_processor.reset_mock()
+    await batcher.stop()
