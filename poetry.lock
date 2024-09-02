@@ -689,13 +689,13 @@ license = ["ukkonen"]
 
 [[package]]
 name = "idna"
-version = "3.6"
+version = "3.8"
 description = "Internationalized Domain Names in Applications (IDNA)"
 optional = true
-python-versions = ">=3.5"
+python-versions = ">=3.6"
 files = [
-    {file = "idna-3.6-py3-none-any.whl", hash = "sha256:c05567e9c24a6b9faaa835c4821bad0590fbb9d5779e7caa6e1cc4978e7eb24f"},
-    {file = "idna-3.6.tar.gz", hash = "sha256:9ecdbbd083b06798ae1e86adcbfe8ab1479cf864e4ee30fe4e46a003d12491ca"},
+    {file = "idna-3.8-py3-none-any.whl", hash = "sha256:050b4e5baadcd44d760cedbd2b8e639f2ff89bbc7a5730fcc662954303377aac"},
+    {file = "idna-3.8.tar.gz", hash = "sha256:d838c2c0ed6fced7693d5e8ab8e734d5f8fda53a039c0164afb0b82e771e3603"},
 ]
 
 [[package]]
