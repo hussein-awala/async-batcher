@@ -15,7 +15,7 @@ packages = [{include = "async_batcher"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-aioboto3 = {version = "^12.3", optional = true}
+aioboto3 = {version = "^13.1", optional = true}
 scylla-driver = {version = "^3", optional = true}
 keras = [
     {version = "^2.12", optional = true, markers = "python_version < '3.12'"},
@@ -39,7 +39,7 @@ mock = "^5.1.0"
 pytest = "^8"
 pytest-asyncio = "^0.23.5"
 pre-commit = "^3"
-types-aioboto3 = {version = "^12.3", extras = ["dynamodb"]}
+types-aioboto3 = {version = "^13.1", extras = ["dynamodb"]}
 aiosqlite = "^0.20"
 asyncpg = "^0.29"
 
