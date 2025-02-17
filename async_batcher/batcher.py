@@ -118,7 +118,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             return []
         if started_at is None:
             started_at = asyncio.get_event_loop().time()
-        while 1:
+        while True:
             try:
                 max_wait = self.max_queue_time - (asyncio.get_running_loop().time() - started_at)
                 if max_wait > 0:
