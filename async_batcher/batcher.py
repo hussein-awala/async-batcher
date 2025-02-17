@@ -80,8 +80,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self._current_task: asyncio.Task | None = None
         self._running_batches: dict[int, asyncio.Task] = {}
         self._concurrency_semaphore = asyncio.Semaphore(concurrency) if concurrency > 0 else None
-        self._stop = False
-        self._is_running = False
+        self._stop = asyncio.Event()
+        self._is_running = asyncio.Event()
 
     @abc.abstractmethod
     async def process_batch(self, batch: list[T]) -> list[S] | None:
@@ -99,7 +99,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         Returns:
             S: The result of processing the item.
         """
-        if self._stop:
+        if self._stop.is_set():
             raise RuntimeError("Batcher is stopped")
         if self._current_task is None:
             self._current_task = asyncio.get_running_loop().create_task(self.run())
@@ -166,7 +166,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
 
     async def run(self):
         """Run the batcher asynchronously."""
-        self._is_running = True
+        self._is_running.set()
         task_id = 0
         if self.concurrency > 0:
             started_at = None
@@ -204,10 +204,10 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                         self._batch_run(task_id, batch)
                     )
                     task_id += 1
-        self._is_running = False
+        self._is_running.clear()
 
     def _should_stop(self):
-        return self._stop and self._queue.qsize() == 0
+        return self._stop.is_set() and self._queue.qsize() == 0
 
     async def is_running(self):
         """Check if the batcher is running.
@@ -215,7 +215,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         Returns:
             bool: True if the batcher is running, False otherwise.
         """
-        return self._is_running
+        return self._is_running.is_set()
 
     async def stop(self, force: bool = False, timeout: float | None = None):
         """Stop the batcher asyncio task.
@@ -234,7 +234,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 if not task.done():
                     task.cancel()
         else:
-            self._stop = True
+            self._stop.set()
             if (
                 self._current_task
                 and not self._current_task.done()
