@@ -117,7 +117,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         except asyncio.TimeoutError:
             return []
         if started_at is None:
-            started_at = asyncio.get_event_loop().time()
+            started_at = asyncio.get_running_loop().time()
         while True:
             try:
                 max_wait = self.max_queue_time - (asyncio.get_running_loop().time() - started_at)
@@ -133,13 +133,13 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         return batch
 
     async def _batch_run(self, task_id: int, batch: list[QueueItem]):
-        started_at = asyncio.get_event_loop().time()
+        started_at = asyncio.get_running_loop().time()
         try:
             batch_items = [q_item.item for q_item in batch]
             if asyncio.iscoroutinefunction(self.process_batch):
                 results = await self.process_batch(batch=batch_items)
             else:
-                results = await asyncio.get_event_loop().run_in_executor(
+                results = await asyncio.get_running_loop().run_in_executor(
                     self.executor, self.process_batch, batch_items
                 )
             if results is None:
@@ -156,7 +156,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                     q_item.future.set_exception(result)
                 else:
                     q_item.future.set_result(result)
-        elapsed_time = asyncio.get_event_loop().time() - started_at
+        elapsed_time = asyncio.get_running_loop().time() - started_at
         self.logger.debug(f"Processed batch of {len(batch)} elements" f" in {elapsed_time} seconds.")
         self._running_batches.pop(task_id)
 
@@ -172,7 +172,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             started_at = None
             while not self._should_stop():
                 if started_at is None:
-                    started_at = asyncio.get_event_loop().time()
+                    started_at = asyncio.get_running_loop().time()
                 semaphore_acquired = False
                 try:
                     # to check if the batcher should stop, we raise a timeout after 1 second
@@ -185,7 +185,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                     )
                     if batch:
                         # create a new task to process the batch
-                        self._running_batches[task_id] = asyncio.get_event_loop().create_task(
+                        self._running_batches[task_id] = asyncio.get_running_loop().create_task(
                             self._concurrent_batch_run(task_id, batch)
                         )
                         await asyncio.sleep(0)
@@ -200,7 +200,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             while not self._should_stop():
                 batch = await self._fill_batch_from_queue(started_at=None)
                 if batch:
-                    self._running_batches[task_id] = asyncio.get_event_loop().create_task(
+                    self._running_batches[task_id] = asyncio.get_running_loop().create_task(
                         self._batch_run(task_id, batch)
                     )
                     task_id += 1

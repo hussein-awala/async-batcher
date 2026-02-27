@@ -38,13 +38,13 @@ class SlowAsyncBatcher(MockAsyncBatcher):
 
 
 @pytest.fixture(scope="function")
-def mock_async_batcher():
+async def mock_async_batcher():
     batcher = MockAsyncBatcher(
         max_batch_size=10,
         max_queue_time=0.01,
     )
     yield batcher
-    asyncio.get_event_loop().run_until_complete(batcher.stop())
+    await batcher.stop()
     batcher.mock_batch_processor.reset_mock()
 
 

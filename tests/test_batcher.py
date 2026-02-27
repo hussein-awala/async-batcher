@@ -121,12 +121,12 @@ async def test_concurrent_process_batch(concurrency, expected_execution_time):
         concurrency=concurrency,
     )
     batcher.mock_batch_processor.reset_mock()
-    started_at = asyncio.get_event_loop().time()
+    started_at = asyncio.get_running_loop().time()
     calls_maker1 = CallsMaker(batcher, 0, 0, 5)
     calls_maker2 = CallsMaker(batcher, 0.25, 5, 20)
     calls_maker3 = CallsMaker(batcher, 0.4, 20, 30)
     await asyncio.gather(calls_maker1.arun(), calls_maker2.arun(), calls_maker3.arun())
-    ended_at = asyncio.get_event_loop().time()
+    ended_at = asyncio.get_running_loop().time()
 
     # we add 0.4 seconds to the expected time to account for the sleep time
     # for Python 3.12, we need to add 1 second to the expected time because there
