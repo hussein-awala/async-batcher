@@ -162,8 +162,18 @@ async def test_stop_batcher(mock_async_batcher):
     assert await mock_async_batcher.is_running()
     await mock_async_batcher.stop()
     assert not await mock_async_batcher.is_running()
-    with pytest.raises(RuntimeError):
-        await mock_async_batcher.process(item=0)
+
+
+@pytest.mark.asyncio(scope="session")
+async def test_restart_batcher_after_stop(mock_async_batcher):
+    await asyncio.gather(*[mock_async_batcher.process(item=i) for i in range(10)])
+    await mock_async_batcher.stop()
+    assert not await mock_async_batcher.is_running()
+
+    # batcher should restart automatically on next process() call
+    result = await asyncio.gather(*[mock_async_batcher.process(item=i) for i in range(5)])
+    assert await mock_async_batcher.is_running()
+    assert result == [i * 2 for i in range(5)]
 
 
 @pytest.mark.asyncio(scope="session")

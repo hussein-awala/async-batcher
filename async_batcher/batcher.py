@@ -100,7 +100,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             S: The result of processing the item.
         """
         if self._stop.is_set():
-            raise RuntimeError("Batcher is stopped")
+            self._stop.clear()
+            self._current_task = None
         if self._current_task is None:
             self._current_task = asyncio.get_running_loop().create_task(self.run())
         logging.debug(item)
