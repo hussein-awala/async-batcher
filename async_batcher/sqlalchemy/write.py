@@ -43,7 +43,7 @@ class AsyncSqlalchemyWriteBatcher(AsyncBatcher[dict[str, Any], None]):
         session: AsyncSession
         async with self.async_session_maker() as session:
             if self.operation == "insert":
-                statement = insert(self.model).returning()
+                statement = insert(self.model)
             elif self.operation == "update":
                 statement = update(self.model)
             if self.returning:
