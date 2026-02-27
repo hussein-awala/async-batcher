@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
@@ -11,6 +12,8 @@ if TYPE_CHECKING:
     from aiobotocore.config import AioConfig
     from types_aiobotocore_dynamodb import DynamoDBServiceResource
     from types_aiobotocore_dynamodb.type_defs import TableAttributeValueTypeDef
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(kw_only=True)
@@ -84,9 +87,16 @@ class AsyncDynamoDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
             endpoint_url=self.endpoint_url,
             config=self.config,
         ) as dynamodb:
-            # TODO: return something useful
-            await dynamodb.batch_write_item(
-                RequestItems=request_items,
-                ReturnConsumedCapacity="NONE",
-                ReturnItemCollectionMetrics="NONE",
-            )
+            unprocessed_items = request_items
+            while unprocessed_items:
+                response = await dynamodb.batch_write_item(
+                    RequestItems=unprocessed_items,
+                    ReturnConsumedCapacity="NONE",
+                    ReturnItemCollectionMetrics="NONE",
+                )
+                unprocessed_items = response.get("UnprocessedItems", {})
+                if unprocessed_items:
+                    logger.warning(
+                        "Retrying %d unprocessed items from batch_write_item",
+                        sum(len(v) for v in unprocessed_items.values()),
+                    )
