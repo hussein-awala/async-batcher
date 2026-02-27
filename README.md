@@ -6,12 +6,13 @@ and processes them asynchronously. It is designed for scenarios where multiple r
 batches to improve efficiency and throughput.
 
 ## Key Features
+- Generic typing: `AsyncBatcher[T, S]` where `T` is the input type and `S` is the output type.
 - Asynchronous processing: Uses asyncio for non-blocking execution.
+- Flexible `process_batch`: Supports both async and sync implementations (sync runs in an `Executor`).
 - Batching mechanism: Groups items into batches based on size or time constraints.
-- Concurrency control: Limits the number of concurrent batch executions.
-- Custom processing logic: Users must implement the `process_batch` method to define batch behavior.
-- Queue management: Uses an `asyncio.Queue` to manage incoming items.
-- Error handling: Ensures robust error reporting and handling.
+- Concurrency control: Limits the number of concurrent batch executions via semaphore.
+- Queue management: Uses an `asyncio.Queue` with optional capacity limits (`max_queue_size`).
+- Error handling: Exceptions from `process_batch` are propagated to individual item futures.
 
 ## How it works
 
@@ -22,44 +23,48 @@ batches to improve efficiency and throughput.
 ### 2. Queue Management and Batching
 - A background task (`run()`) continuously monitors the queue.
 - Items are collected into batches based on:
-  - `max_batch_size`: Maximum items per batch.
+  - `max_batch_size`: Maximum items per batch (-1 for unlimited).
   - `max_queue_time`: Maximum time an item can wait before being processed.
+- The queue can be bounded via `max_queue_size` — when full, `process()` raises `QueueFullException`.
 - Once a batch is ready, it is passed to the processing function.
 
 ### 3. Processing the Batch
 - If `process_batch` is asynchronous, it is awaited directly.
-- If `process_batch` is synchronous, it runs inside an `Executor`.
-- Each item’s future is resolved with the corresponding processed result.
+- If `process_batch` is synchronous, it runs inside an `Executor` (configurable, defaults to the asyncio default executor).
+- Each item's future is resolved with the corresponding result.
+- If `process_batch` raises an exception, it is propagated to all futures in that batch.
 
 ### 4. Concurrency Control
 - If `concurrency > 0`, a semaphore ensures that only a limited number of batches are processed simultaneously.
 - Otherwise, all batches run concurrently.
 
 ### 5. Stopping the Batcher
-- Calling `stop(force=True)` cancels all ongoing tasks.
+- Calling `stop(force=True)` cancels all ongoing tasks immediately.
 - Calling `stop(force=False)` waits for pending items to be processed before shutting down.
+- An optional `timeout` parameter limits how long the graceful shutdown waits.
 
 ```mermaid
 sequenceDiagram
     participant User
     participant AsyncBatcher
     participant Queue as asyncio.Queue
-    participant RunLoop
+    participant RunLoop as RunLoop (run())
     participant Semaphore
-    participant BatchProcessor
+    participant BatchTask as BatchTask (_batch_run)
+    participant Executor
 
     User->>AsyncBatcher: process(item)
     activate AsyncBatcher
-    AsyncBatcher->>Queue: put(QueueItem(item, future))
-    AsyncBatcher-->>User: returns future
+    AsyncBatcher->>Queue: put_nowait(QueueItem(item, future))
+    AsyncBatcher-->>User: awaits future
     deactivate AsyncBatcher
 
-    Note over AsyncBatcher: Starts RunLoop on first process()
+    Note over AsyncBatcher: Starts RunLoop on first process() call
 
-    loop Run Loop (run() method)
-        RunLoop->>Queue: Collect items (max_batch_size/max_queue_time)
+    loop Run Loop
+        RunLoop->>Queue: _fill_batch_from_queue(max_batch_size, max_queue_time)
         activate Queue
-        Queue-->>RunLoop: Batch [QueueItem1, QueueItem2...]
+        Queue-->>RunLoop: batch [QueueItem1, QueueItem2...]
         deactivate Queue
 
         alt Concurrency Limited (concurrency > 0)
@@ -69,26 +74,31 @@ sequenceDiagram
             deactivate Semaphore
         end
 
-        RunLoop->>BatchProcessor: create_task(_batch_run(batch))
-        activate BatchProcessor
+        RunLoop->>BatchTask: create_task(_batch_run(batch))
+        activate BatchTask
+        Note over RunLoop: RunLoop continues immediately<br/>to collect next batch
 
         alt Async process_batch
-            BatchProcessor->>AsyncBatcher: await process_batch(batch)
+            BatchTask->>AsyncBatcher: await process_batch(batch_items)
+            AsyncBatcher-->>BatchTask: results [S1, S2...]
         else Sync process_batch
-            BatchProcessor->>Executor: run_in_executor(process_batch)
+            BatchTask->>Executor: run_in_executor(process_batch, batch_items)
+            Executor-->>BatchTask: results [S1, S2...]
         end
 
-        AsyncBatcher-->>BatchProcessor: results [S1, S2...]
-        BatchProcessor->>QueueItem1.future: set_result(S1)
-        BatchProcessor->>QueueItem2.future: set_result(S2)
-        deactivate BatchProcessor
+        alt Success
+            BatchTask->>User: future.set_result(S1), future.set_result(S2)...
+        else Exception
+            BatchTask->>User: future.set_exception(error)
+        end
 
         alt Concurrency Limited
-            RunLoop->>Semaphore: release()
+            BatchTask->>Semaphore: release()
         end
+        deactivate BatchTask
     end
 
-    Note over User, BatchProcessor: User's await future gets resolved
+    Note over User: User's awaited future resolves with result
 ```
 
 ## How to use
@@ -148,4 +158,4 @@ such as:
 ## Final Notes
 - Implement `process_batch` according to your needs.
 - Ensure `max_batch_size` and `max_queue_time` are configured based on performance requirements.
-- Handle exceptions inside `process_batch` to avoid failures affecting other tasks.
+- Exceptions raised by `process_batch` are propagated to all futures in that batch, but do not affect other batches.
