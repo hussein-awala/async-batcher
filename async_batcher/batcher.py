@@ -105,9 +105,10 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             self._current_task = asyncio.get_running_loop().create_task(self.run())
         logging.debug(item)
         future = asyncio.get_running_loop().create_future()
-        if self._queue.full():
+        try:
+            self._queue.put_nowait(self.QueueItem(item, future))
+        except asyncio.QueueFull:
             raise QueueFullException("The queue is full, cannot process more items at the moment.")
-        await self._queue.put(self.QueueItem(item, future))
         await future
         return future.result()
 
