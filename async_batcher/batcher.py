@@ -122,7 +122,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             try:
                 max_wait = self.max_queue_time - (asyncio.get_running_loop().time() - started_at)
                 if max_wait > 0:
-                    item = await asyncio.wait_for(self._queue.get(), timeout=self.max_queue_time)
+                    item = await asyncio.wait_for(self._queue.get(), timeout=max_wait)
                 else:
                     item = self._queue.get_nowait()
                 batch.append(item)
