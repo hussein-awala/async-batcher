@@ -156,9 +156,10 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                     q_item.future.set_exception(result)
                 else:
                     q_item.future.set_result(result)
-        elapsed_time = asyncio.get_event_loop().time() - started_at
-        self.logger.debug(f"Processed batch of {len(batch)} elements" f" in {elapsed_time} seconds.")
-        self._running_batches.pop(task_id)
+        finally:
+            elapsed_time = asyncio.get_event_loop().time() - started_at
+            self.logger.debug(f"Processed batch of {len(batch)} elements" f" in {elapsed_time} seconds.")
+            self._running_batches.pop(task_id, None)
 
     async def _concurrent_batch_run(self, task_id: int, batch: list[QueueItem]):
         async with self._concurrency_semaphore:
