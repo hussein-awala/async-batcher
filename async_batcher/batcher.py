@@ -103,7 +103,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             raise RuntimeError("Batcher is stopped")
         if self._current_task is None:
             self._current_task = asyncio.get_running_loop().create_task(self.run())
-        logging.debug(item)
+        self.logger.debug("Processing item: %s", item)
         future = asyncio.get_running_loop().create_future()
         if self._queue.full():
             raise QueueFullException("The queue is full, cannot process more items at the moment.")
