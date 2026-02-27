@@ -161,8 +161,10 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self._running_batches.pop(task_id)
 
     async def _concurrent_batch_run(self, task_id: int, batch: list[QueueItem]):
-        async with self._concurrency_semaphore:
+        try:
             await self._batch_run(task_id, batch)
+        finally:
+            self._concurrency_semaphore.release()
 
     async def run(self):
         """Run the batcher asynchronously."""
@@ -173,29 +175,26 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             while not self._should_stop():
                 if started_at is None:
                     started_at = asyncio.get_event_loop().time()
-                semaphore_acquired = False
                 try:
                     # to check if the batcher should stop, we raise a timeout after 1 second
                     # if the semaphore is not acquired
                     await asyncio.wait_for(self._concurrency_semaphore.acquire(), timeout=1.0)
-                    semaphore_acquired = True
-                    # if the queue is empty, we need to let the batch filler create it
-                    batch = await self._fill_batch_from_queue(
-                        started_at=started_at if self._queue.qsize() > 0 else None
-                    )
-                    if batch:
-                        # create a new task to process the batch
-                        self._running_batches[task_id] = asyncio.get_event_loop().create_task(
-                            self._concurrent_batch_run(task_id, batch)
-                        )
-                        await asyncio.sleep(0)
-                        task_id += 1
-                    started_at = None
                 except asyncio.TimeoutError:
-                    pass
-                finally:
-                    if semaphore_acquired:
-                        self._concurrency_semaphore.release()
+                    continue
+                # if the queue is empty, we need to let the batch filler create it
+                batch = await self._fill_batch_from_queue(
+                    started_at=started_at if self._queue.qsize() > 0 else None
+                )
+                if batch:
+                    # create a new task to process the batch
+                    self._running_batches[task_id] = asyncio.get_event_loop().create_task(
+                        self._concurrent_batch_run(task_id, batch)
+                    )
+                    await asyncio.sleep(0)
+                    task_id += 1
+                else:
+                    self._concurrency_semaphore.release()
+                started_at = None
         else:
             while not self._should_stop():
                 batch = await self._fill_batch_from_queue(started_at=None)
