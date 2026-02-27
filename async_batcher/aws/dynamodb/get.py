@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -11,6 +12,8 @@ if TYPE_CHECKING:
     from aiobotocore.config import AioConfig
     from types_aiobotocore_dynamodb import DynamoDBServiceResource
     from types_aiobotocore_dynamodb.type_defs import TableAttributeValueTypeDef
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(kw_only=True)
@@ -83,14 +86,21 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any]]):
             endpoint_url=self.endpoint_url,
             config=self.config,
         ) as dynamodb:
-            response = await dynamodb.batch_get_item(
-                RequestItems=request_items,
-                ReturnConsumedCapacity="NONE",
-            )
             result: list[None | dict[str, TableAttributeValueTypeDef]] = [None] * len(batch)
-            # TODO: handle UnprocessedKeys
-            for table in response["Responses"]:
-                for item in response["Responses"][table]:
-                    index = indexed_items[(table, *[item[key] for key in tables_keys[table]])]
-                    result[index] = item
+            unprocessed_keys = request_items
+            while unprocessed_keys:
+                response = await dynamodb.batch_get_item(
+                    RequestItems=unprocessed_keys,
+                    ReturnConsumedCapacity="NONE",
+                )
+                for table in response.get("Responses", {}):
+                    for item in response["Responses"][table]:
+                        index = indexed_items[(table, *[item[key] for key in tables_keys[table]])]
+                        result[index] = item
+                unprocessed_keys = response.get("UnprocessedKeys", {})
+                if unprocessed_keys:
+                    logger.warning(
+                        "Retrying %d unprocessed keys from batch_get_item",
+                        sum(len(v["Keys"]) for v in unprocessed_keys.values()),
+                    )
             return result
