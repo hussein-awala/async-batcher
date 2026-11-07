@@ -87,6 +87,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install HDF5 headers for the Python 3.15 source build
+        if: ${{ matrix.suite == 'keras' && matrix.python == '3.15' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libhdf5-dev pkg-config
       - uses: ./.github/actions/setup-project
         with:
           python-version: ${{ matrix.python }}
