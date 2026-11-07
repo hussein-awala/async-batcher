@@ -62,7 +62,8 @@ jobs:
       - name: Run core tests
         run: |
           shopt -s nullglob
-          python -m pytest tests/test_batcher*.py tests/test_core_*.py
+          python -m pytest tests/test_batcher*.py tests/test_core_*.py \
+            tests/test_force_stop*.py tests/test_stop_cancelled*.py tests/test_request_logging*.py
 
   unit-tests:
     needs: changed-files
