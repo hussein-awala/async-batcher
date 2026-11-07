@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import time
-
 import pytest
+import pytest_asyncio
 from async_batcher.scylladb.update import AsyncScyllaDbWriteBatcher
 from cassandra.cluster import Cluster
 from cassandra.connection import DefaultEndPoint
@@ -13,12 +12,11 @@ from cassandra.cqlengine.models import Model
 TEST_KEYSPACE = "test_keyspace"
 
 
-@pytest.fixture
-def scylladb_write_batcher():
+@pytest_asyncio.fixture
+async def scylladb_write_batcher():
     write_batcher = AsyncScyllaDbWriteBatcher(max_queue_time=2)
     yield write_batcher
-    write_batcher.stop()
-    time.sleep(2)
+    await write_batcher.stop()
 
 
 @pytest.fixture
@@ -30,13 +28,16 @@ def scylladb_session():
         ]
     )
 
-    session = cluster.connect()
-    session.execute(
-        f"CREATE KEYSPACE IF NOT EXISTS {TEST_KEYSPACE} "
-        "WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 3}"
-    )
-    session.execute(f"USE {TEST_KEYSPACE}")
-    yield session
+    try:
+        session = cluster.connect()
+        session.execute(
+            f"CREATE KEYSPACE IF NOT EXISTS {TEST_KEYSPACE} "
+            "WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 3}"
+        )
+        session.execute(f"USE {TEST_KEYSPACE}")
+        yield session
+    finally:
+        cluster.shutdown()
 
 
 @pytest.fixture

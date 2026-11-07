@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import aioboto3
 import pytest
+import pytest_asyncio
 from async_batcher.aws.dynamodb.get import AsyncDynamoDbGetBatcher
 from async_batcher.aws.dynamodb.write import AsyncDynamoDbWriteBatcher
 
@@ -22,26 +23,26 @@ def dynamodb_aioboto3_session():
     )
 
 
-@pytest.fixture
-def get_batcher(dynamodb_aioboto3_session):
+@pytest_asyncio.fixture
+async def get_batcher(dynamodb_aioboto3_session):
     batcher = AsyncDynamoDbGetBatcher(
         endpoint_url="http://localhost:8000",
         aioboto3_session=dynamodb_aioboto3_session,
         max_queue_time=2,
     )
     yield batcher
-    batcher.stop()
+    await batcher.stop()
 
 
-@pytest.fixture
-def write_batcher(dynamodb_aioboto3_session):
+@pytest_asyncio.fixture
+async def write_batcher(dynamodb_aioboto3_session):
     batcher = AsyncDynamoDbWriteBatcher(
         endpoint_url="http://localhost:8000",
         aioboto3_session=dynamodb_aioboto3_session,
         max_queue_time=2,
     )
     yield batcher
-    batcher.stop()
+    await batcher.stop()
 
 
 @pytest.fixture
