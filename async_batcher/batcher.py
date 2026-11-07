@@ -36,7 +36,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
     """
 
     logger = logging.getLogger(__name__)
-    QueueItem = namedtuple("QueueItem", ["item", "future"])
+    QueueItem = namedtuple("QueueItem", ["item", "future", "enqueued_at"])
 
     def __init__(
         self,
@@ -112,7 +112,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         future = asyncio.get_running_loop().create_future()
         if self._queue.full():
             raise QueueFullException("The queue is full, cannot process more items at the moment.")
-        await self._queue.put(self.QueueItem(item, future))
+        await self._queue.put(self.QueueItem(item, future, asyncio.get_running_loop().time()))
         await future
         return future.result()
 
@@ -121,13 +121,12 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             batch = [await asyncio.wait_for(self._queue.get(), timeout=1.0)]
         except asyncio.TimeoutError:
             return []
-        if started_at is None:
-            started_at = asyncio.get_event_loop().time()
+        started_at = batch[0].enqueued_at
         while self.max_batch_size < 0 or len(batch) < self.max_batch_size:
             try:
                 max_wait = self.max_queue_time - (asyncio.get_running_loop().time() - started_at)
                 if max_wait > 0:
-                    item = await asyncio.wait_for(self._queue.get(), timeout=self.max_queue_time)
+                    item = await asyncio.wait_for(self._queue.get(), timeout=max_wait)
                 else:
                     item = self._queue.get_nowait()
                 batch.append(item)
