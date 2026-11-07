@@ -102,6 +102,59 @@ async def test_multiple_flush_boundaries_and_cost_carryover(harness):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("eager", [False, True])
+@pytest.mark.parametrize("cancel_oldest", [False, True])
+async def test_concurrent_flush_waits_for_out_of_order_boundary_but_not_later_work(
+    harness, eager, cancel_oldest
+):
+    if eager and not hasattr(asyncio, "eager_task_factory"):
+        pytest.skip("Eager tasks require Python 3.12+")
+    loop = asyncio.get_running_loop()
+    previous = loop.get_task_factory()
+    gates = {item: asyncio.Event() for item in (1, 2, 3)}
+    started = asyncio.Queue()
+    events = []
+
+    class IndependentBatches(AsyncBatcher):
+        async def process_batch(self, batch):
+            started.put_nowait(batch[0])
+            await gates[batch[0]].wait()
+            return batch
+
+    if eager:
+        loop.set_task_factory(asyncio.eager_task_factory)
+    batcher = harness.create(IndependentBatches, max_batch_size=1, concurrency=3, on_batch=events.append)
+    try:
+        first, second = harness.submit(batcher, 1, 2)
+        assert {await started.get(), await started.get()} == {1, 2}
+        flushing = harness.spawn(batcher.flush())
+        await wait_until(lambda: bool(batcher._flush_targets))
+        later = harness.submit(batcher, 3)[0]
+        assert await started.get() == 3
+        if cancel_oldest:
+            first.cancel()
+            await asyncio.gather(first, return_exceptions=True)
+        gates[2].set()
+        assert await second == 2
+        await wait_until(lambda: len(events) == 1)
+        assert not flushing.done()
+        gates[1].set()
+        await asyncio.wait_for(flushing, 1)
+        assert [event.batch_id for event in events] == [2, 1]
+        assert events[-1].cancelled == int(cancel_oldest)
+        assert not later.done()
+        assert batcher.stats().active_batches == 1
+        if not cancel_oldest:
+            assert await first == 1
+        gates[3].set()
+        assert await later == 3
+    finally:
+        for gate in gates.values():
+            gate.set()
+        loop.set_task_factory(previous)
+
+
+@pytest.mark.asyncio
 async def test_flush_waits_for_cancelled_request_backend_and_completion_hook(harness):
     events = []
     batcher = harness.create(GatedBatcher, max_batch_size=1, on_batch=events.append)
