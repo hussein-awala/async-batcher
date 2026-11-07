@@ -9,7 +9,7 @@ from numbers import Real
 from typing import TYPE_CHECKING, Generic, Self, TypeVar
 
 from async_batcher.batcher import AsyncBatcher, _processing_ancestors
-from async_batcher.exceptions import AsyncBatchException
+from async_batcher.exceptions import AsyncBatchException, QueueFullException
 from async_batcher.map import MapOutcome, map_items, map_outcomes
 
 if TYPE_CHECKING:
@@ -53,6 +53,7 @@ class GroupedBatcher(Generic[K, T, S]):
         *,
         group_key: Callable[[T], K],
         max_groups: int = 128,
+        max_pending_items: int | None = None,
         idle_timeout: float = 60,
         log_exceptions: bool = True,
     ) -> None:
@@ -68,6 +69,12 @@ class GroupedBatcher(Generic[K, T, S]):
         self._log_exceptions = log_exceptions
         if isinstance(max_groups, bool) or not isinstance(max_groups, int) or max_groups < 1:
             raise ValueError("max_groups must be a positive integer")
+        if max_pending_items is not None and (
+            isinstance(max_pending_items, bool)
+            or not isinstance(max_pending_items, int)
+            or max_pending_items < 1
+        ):
+            raise ValueError("max_pending_items must be a positive integer or None")
         try:
             valid_timeout = (
                 not isinstance(idle_timeout, bool)
@@ -82,6 +89,8 @@ class GroupedBatcher(Generic[K, T, S]):
         self._factory = factory
         self._group_key = group_key
         self.max_groups = max_groups
+        self.max_pending_items = max_pending_items
+        self._pending_items = 0
         self.idle_timeout = idle_timeout
         self._groups: dict[K, _Group[K, T, S]] = {}
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -93,6 +102,11 @@ class GroupedBatcher(Generic[K, T, S]):
     def group_count(self) -> int:
         """Number of allocated groups, including those still stopping."""
         return len(self._groups)
+
+    @property
+    def pending_items(self) -> int:
+        """Owned submissions, including group cleanup and child admission waits."""
+        return self._pending_items
 
     def _get_loop(self) -> asyncio.AbstractEventLoop:
         loop = asyncio.get_running_loop()
@@ -112,7 +126,10 @@ class GroupedBatcher(Generic[K, T, S]):
             group.timer = None
 
     def _request_done(self, group: _Group[K, T, S], task: asyncio.Task[S]) -> None:
-        group.pending.discard(task)
+        if task not in group.pending:
+            return
+        group.pending.remove(task)
+        self._pending_items -= 1
         if not task.cancelled():
             # A caller can stop waiting while accepted work continues.
             task.exception()
@@ -209,19 +226,33 @@ class GroupedBatcher(Generic[K, T, S]):
         """
         self._get_loop()
         self._check_open()
-        key = self._group_key(item)
-        if inspect.isawaitable(key):
-            if inspect.iscoroutine(key):
-                key.close()
-            raise TypeError("group_key must return a hashable key directly")
-        hash(key)
-        group = await self._get_group(key)
-        task = asyncio.create_task(
-            group.batcher.process(item, wait_for_space=wait_for_space, enqueue_timeout=enqueue_timeout)
-        )
-        group.pending.add(task)
-        task.add_done_callback(lambda completed: self._request_done(group, completed))
-        return await asyncio.shield(task)
+        if self.max_pending_items is not None and self._pending_items >= self.max_pending_items:
+            raise QueueFullException("GroupedBatcher aggregate pending-item limit reached")
+        self._pending_items += 1
+        try:
+            key = self._group_key(item)
+            if inspect.isawaitable(key):
+                if inspect.iscoroutine(key):
+                    key.close()
+                raise TypeError("group_key must return a hashable key directly")
+            hash(key)
+            group = await self._get_group(key)
+            task = asyncio.create_task(
+                group.batcher.process(item, wait_for_space=wait_for_space, enqueue_timeout=enqueue_timeout)
+            )
+            group.pending.add(task)
+            task.add_done_callback(lambda completed: self._request_done(group, completed))
+        except BaseException:
+            # No child owns this reservation yet (including cancelled eviction waits).
+            self._pending_items -= 1
+            raise
+        try:
+            return await asyncio.shield(task)
+        finally:
+            # Eagerly completed children can return before their callback runs.
+            # Reconcile now so sequential callers do not see a stale full cap.
+            if task.done():
+                self._request_done(group, task)
 
     async def _stop_groups(self) -> None:
         groups = list(self._groups.values())
