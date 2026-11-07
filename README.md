@@ -165,6 +165,13 @@ logging.basicConfig(level=logging.DEBUG)
 asyncio.run(main())
 ```
 
+### Kinesis and Firehose
+
+`AsyncKinesisBatcher` and `AsyncFirehoseBatcher` combine individual records into
+native AWS batch requests, split requests by count and bytes, and retry partial
+failures without resending acknowledged records. Install the `aws` extra and
+provide a caller-owned asynchronous client. See the [usage and delivery semantics](docs/aws-streams.md).
+
 ### DynamoDB read consistency
 
 `AsyncDynamoDbGetBatcher` uses eventually consistent reads by default. Set
