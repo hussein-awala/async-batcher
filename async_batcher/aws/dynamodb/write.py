@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Literal
 
 import aioboto3
 
+from async_batcher.aws.dynamodb._retry import batch_responses, validate_max_retries
 from async_batcher.batcher import AsyncBatcher
 
 if TYPE_CHECKING:
@@ -37,6 +38,8 @@ class AsyncDynamoDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
             Defaults to 0.01.
         concurrency (int, optional): The max number of concurrent batches to process.
             Defaults to 1. If -1, it will process all batches concurrently.
+        max_retries (int, optional): Number of retries for unprocessed requests, with exponential backoff.
+            Defaults to 5. Exhaustion raises DynamoDBRetryError; successful writes are not rolled back.
     """
 
     def __init__(
@@ -51,11 +54,14 @@ class AsyncDynamoDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
         max_batch_size: int = 25,
         max_queue_time: float = 0.01,
         concurrency: int = 1,
+        max_retries: int = 5,
         **kwargs,
     ):
         super().__init__(
             max_batch_size=max_batch_size, max_queue_time=max_queue_time, concurrency=concurrency, **kwargs
         )
+        validate_max_retries(max_retries)
+        self.max_retries = max_retries
         self.region_name = region_name
         self.use_ssl = True if use_ssl is None else use_ssl
         self.verify = verify
@@ -84,9 +90,12 @@ class AsyncDynamoDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
             endpoint_url=self.endpoint_url,
             config=self.config,
         ) as dynamodb:
-            # TODO: return something useful
-            await dynamodb.batch_write_item(
-                RequestItems=request_items,
+            async for _ in batch_responses(
+                dynamodb.batch_write_item,
+                request_items,
+                "UnprocessedItems",
+                self.max_retries,
                 ReturnConsumedCapacity="NONE",
                 ReturnItemCollectionMetrics="NONE",
-            )
+            ):
+                pass
