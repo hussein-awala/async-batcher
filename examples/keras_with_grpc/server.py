@@ -35,9 +35,6 @@ class PredictorGRPC(predictor_pb2_grpc.KerasPredictorServicer):
         return predictor_pb2.PredictionResult(result=result[0])
 
 
-_cleanup_coroutines = []
-
-
 async def serve() -> None:
     server = grpc.aio.server()
     predictor = PredictorGRPC()
@@ -47,21 +44,18 @@ async def serve() -> None:
     logging.info(f"Starting server on {listen_addr}")
     await server.start()
 
-    async def server_graceful_shutdown():
+    try:
+        await server.wait_for_termination()
+    finally:
         logging.info("Starting graceful shutdown...")
-        await predictor.batcher.stop()
-        await server.stop(30)
-
-    _cleanup_coroutines.append(server_graceful_shutdown())
-    await server.wait_for_termination()
+        try:
+            # Stop accepting RPCs and let existing handlers finish before closing
+            # the batcher those handlers still need.
+            await server.stop(30)
+        finally:
+            await predictor.batcher.stop()
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(serve())
-    finally:
-        if _cleanup_coroutines:
-            loop.run_until_complete(*_cleanup_coroutines)
-        loop.close()
+    asyncio.run(serve())
