@@ -78,7 +78,9 @@ async def test_sqlite_batch_rolls_back_without_undoing_earlier_batches(tmp_path)
 async def test_jsonl_reader_uses_real_file_offsets_and_closes_chunks(tmp_path):
     path = tmp_path / "rows.jsonl"
     documents = [{"id": str(index), "text": "été 🌎"} for index in range(7)]
-    path.write_text("".join(json.dumps(document, ensure_ascii=False) + "\n" for document in documents))
+    path.write_text(
+        "".join(json.dumps(document, ensure_ascii=False) + "\n" for document in documents), encoding="utf-8"
+    )
     source = read_jsonl(path, chunk_size=2)
     assert [document async for document in source] == [Document(**document) for document in documents]
     path.unlink()
