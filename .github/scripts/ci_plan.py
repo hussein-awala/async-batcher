@@ -11,6 +11,7 @@ def plan(event: str, changed: set[str]) -> dict:
     core = [{"os": "ubuntu-24.04", "python": version} for version in versions]
     if full or event == "push" or "core" in changed:
         core.extend({"os": runner, "python": "3.15"} for runner in ("macos-15", "macos-15-intel"))
+        core.extend({"os": "windows-2025", "python": version} for version in ("3.11", "3.15"))
     adapters = []
     services = []
     for suite, groups in (

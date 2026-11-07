@@ -19,7 +19,7 @@ class PlanTests(unittest.TestCase):
             {"ubuntu-24.04"},
         )
 
-    def test_core_changes_keep_both_macos_architectures(self):
+    def test_core_changes_keep_macos_architectures_and_windows_endpoints(self):
         result = plan("pull_request", {"core"})
         self.assertTrue(result["has_examples"])
         self.assertEqual(
@@ -29,6 +29,8 @@ class PlanTests(unittest.TestCase):
                 {"os": "ubuntu-24.04", "python": "3.15"},
                 {"os": "macos-15", "python": "3.15"},
                 {"os": "macos-15-intel", "python": "3.15"},
+                {"os": "windows-2025", "python": "3.11"},
+                {"os": "windows-2025", "python": "3.15"},
             ],
         )
 
@@ -75,7 +77,7 @@ class PlanTests(unittest.TestCase):
                 )
                 self.assertEqual(
                     {row["os"] for row in result["core"]["include"]},
-                    {"ubuntu-24.04", "macos-15", "macos-15-intel"},
+                    {"ubuntu-24.04", "macos-15", "macos-15-intel", "windows-2025"},
                 )
                 self.assertEqual(
                     {(row["suite"], row["python"]) for row in result["adapters"]["include"]},
@@ -112,7 +114,7 @@ class PlanTests(unittest.TestCase):
     def test_main_expands_core_without_unrelated_service_jobs(self):
         result = plan("push", {"keras"})
         self.assertTrue(result["has_examples"])
-        self.assertEqual(len(result["core"]["include"]), 7)
+        self.assertEqual(len(result["core"]["include"]), 9)
         self.assertEqual([row["suite"] for row in result["adapters"]["include"]], ["keras"])
         self.assertFalse(result["has_services"])
 

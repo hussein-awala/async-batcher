@@ -40,6 +40,8 @@ class CoveragePlanTests(unittest.TestCase):
         )
         self.assertEqual(suites, ADAPTER_PATHS.keys())
         self.assertIn("coverage-data-core-macos-15-intel-py3.15", names)
+        self.assertIn("coverage-data-core-windows-2025-py3.11", names)
+        self.assertIn("coverage-data-core-windows-2025-py3.15", names)
         self.assertIn("coverage-data-adapter-kafka-py3.11", names)
         self.assertIn("coverage-data-adapter-kafka-py3.15", names)
         self.assertIn("coverage-data-service-scylladb", names)
@@ -179,6 +181,27 @@ class CoverageReportTests(unittest.TestCase):
         self.assertEqual((output / "summary.md").read_text(), (self.root / "step-summary.md").read_text())
         # Parallel input files remain available for diagnosing a failed collection.
         self.assertEqual(len(artifact_files(self.root / "coverage-data", self.names)), 2)
+
+    def test_windows_relative_paths_contribute_branches_to_the_linux_report(self):
+        from coverage import CoverageData
+
+        self.plan["core"]["include"][1]["os"] = "windows-2025"
+        self.names, _ = planned_artifacts(self.plan["core"], self.plan["adapters"], self.plan["services"])
+        self.env.update(matrices_env(self.plan))
+        self.collect()  # The second runner alone executes the false branch.
+        windows_file = artifact_files(self.root / "coverage-data", self.names)[1]
+        data = CoverageData(basename=str(windows_file))
+        data.read()
+        arcs = {name.replace("/", "\\"): data.arcs(name) for name in data.measured_files()}
+        data.erase()
+        data = CoverageData(basename=str(windows_file))
+        data.add_arcs(arcs)
+        data.write()
+        result = self.report()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        report = json.loads((self.root / "coverage-report" / "coverage.json").read_text())
+        self.assertEqual(report["totals"]["percent_covered"], 100)
+        self.assertEqual(report["files"]["async_batcher/batcher.py"]["missing_branches"], [])
 
     def test_below_threshold_reports_failure_without_hiding_reports_or_reusing_old_data(self):
         self.collect()

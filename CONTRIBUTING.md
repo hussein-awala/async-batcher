@@ -191,8 +191,8 @@ packages and Actions weekly.
 
 Every pull request runs the Linux core gate on Python 3.11 and 3.15, with adapter suites selected
 by changed paths. Core implementation, core test, shared core fixture, and infrastructure changes
-also run macOS ARM and Intel core checks. Every main push retains all supported core interpreters
-and both macOS architectures. Workflow or dependency changes, scheduled runs, and manual runs
+also run macOS ARM and Intel core checks, plus Windows on Python 3.11 and 3.15. Every main push
+retains all supported Linux core interpreters, both macOS architectures, and both Windows endpoints. Workflow or dependency changes, scheduled runs, and manual runs
 exercise the full matrix. Superseded runs on the same PR or on `main` are cancelled; separate PRs and
 scheduled/manual runs remain independent.
 
