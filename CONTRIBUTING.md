@@ -78,4 +78,5 @@ packages and Actions weekly.
 
 CI runs a fast core gate for pull requests, selects adapter suites by changed paths, and runs broader
 Python coverage for changes to the workflow or dependencies. Scheduled and manual runs exercise
-the full matrix. Superseded runs on the same PR are cancelled; separate PRs remain independent.
+the full matrix. Superseded runs on the same PR or on `main` are cancelled; separate PRs and
+scheduled/manual runs remain independent.

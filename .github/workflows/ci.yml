@@ -12,11 +12,11 @@ on:
 permissions:
   contents: read
 
-# Only newer commits to the same PR cancel earlier work. Main, scheduled and
-# manual runs have unique groups, so pending runs cannot displace one another.
+# Newer commits replace obsolete checks on the same PR or main branch.
+# Scheduled/manual runs remain independent, as do different PRs.
 concurrency:
-  group: ci-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || (github.event_name == 'push' && github.ref) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
 
 defaults:
   run:
