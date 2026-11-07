@@ -4,13 +4,26 @@ This guide describes the current checkout. See [installation](../README.md#insta
 The public core imports are:
 
 ```python
-from async_batcher import AsyncBatcher, AsyncBatchException, QueueFullException
+from async_batcher import (
+    AsyncBatcher,
+    AsyncBatchException,
+    BatchEvent,
+    BatcherStats,
+    GroupedBatcher,
+    GroupLimitError,
+    QueueFullException,
+)
 ```
 
 `AsyncBatcher[T, S]` accepts items of type `T` and produces results of type `S`.
-Override `process_batch(self, batch)` with an async method for asynchronous I/O or a regular
+Use `AsyncBatcher.from_callable(processor, **options)` for an existing bulk function, or override
+`process_batch(self, batch)` with an async method for asynchronous I/O or a regular
 method for synchronous work. Use `process(item)` for normal submissions; calling `process_batch`
 directly bypasses queueing, core limits, result validation, and shutdown tracking.
+
+See [functions and contexts](functions.md), [bounded streams and queue admission](bulk-processing.md),
+[cost budgets](cost-aware-batching.md), [statistics](observability.md), [grouped batching](grouped-batching.md),
+and the runnable [cookbook](cookbook.md) for focused examples.
 
 ## Configuration
 
@@ -20,11 +33,20 @@ directly bypasses queueing, core limits, result validation, and shutdown trackin
 | `max_queue_time` | `0.01` | Finite, nonnegative collection delay in seconds, measured from the oldest item's enqueue time. |
 | `concurrency` | `1` | Positive number of simultaneously processing batches, or `-1` for unlimited. |
 | `max_queue_size` | `-1` | Positive limit on buffered items; `-1` or `0` means unlimited. |
+| `max_batch_cost` | `None` | Optional positive finite per-batch budget; requires `item_cost`. Count and cost limits both apply. |
+| `item_cost` | `None` | Synchronous nonnegative finite cost estimator, evaluated once per submission; requires `max_batch_cost`. |
+| `on_batch` | `None` | Fast synchronous observer receiving one payload-free `BatchEvent` per completed dispatched batch. |
 | `executor` | `None` | Same-interpreter executor for synchronous processors; `None` uses asyncio's default thread executor. |
 
-A full queue raises `QueueFullException` immediately; it does not wait for space. The queue limit
-does not include items already collected or processing. Applications choose whether to reject,
-delay, or retry an overload response.
+A full queue raises `QueueFullException` immediately by default. Use
+`process(item, wait_for_space=True, enqueue_timeout=seconds)` for optional bounded admission waiting;
+the timeout covers queue admission only. [Map](bulk-processing.md) uses waiting admission and bounds
+its own source consumption. Waiting producers are outside the shared queue limit, so creating an
+unbounded number of waiting tasks still consumes unbounded memory.
+
+The queue limit does not include items already collected or processing. An overflow item retained
+for the next cost-limited batch still counts toward queue capacity. A cost above the batch budget
+or an invalid estimator result fails only that submission, before enqueueing.
 
 The dispatcher acquires a concurrency slot before collecting its next batch. A busy processor
 can therefore delay dispatch beyond `max_queue_time`; this setting is not a request deadline.
@@ -56,7 +78,16 @@ Adapter failures can occur after external side effects; a failed batch is not an
 
 ## Lifecycle
 
-- `await process(item)` enqueues the item and waits for its result, starting the dispatcher automatically.
+- `AsyncBatcher.from_callable(processor, **options)` wraps a bulk function with the same limits and result rules.
+- `async with batcher` binds its loop and drains accepted work on exit, including an exceptional exit.
+  Keep external client/executor contexts outside it. Context entry does not itself start a dispatcher.
+- `await process(item, *, wait_for_space=False, enqueue_timeout=None)` admits an item and waits for its
+  result, starting the dispatcher automatically.
+- `map(source, *, max_pending=128, ordered=True)` returns a bounded async iterator. It yields in input
+  order by default, or completion order with `ordered=False`; source/request errors fail iteration
+  promptly. Use `contextlib.aclosing` when breaking early. Closing a map does not stop a shared batcher.
+- `stats()` returns an immutable `BatcherStats` snapshot on the owning event-loop thread, without
+  binding the loop or resetting counters. Counters survive stop/restart; gauges describe current work.
 - `await run()` explicitly starts a dispatcher and waits until shutdown. It is optional and is not
   a start-and-return call. A batcher cannot have two dispatchers; use `process()` for automatic restart.
 - `await is_running()` reports whether the dispatcher is running or draining active batches.
@@ -67,14 +98,20 @@ Adapter failures can occur after external side effects; a failed batch is not an
 - `await stop(force=True)` cancels pending request futures and awaits batch-task cleanup. Repeated calls
   are safe. Cleanup can itself take time; the `timeout` argument also applies to a forced stop.
 
-The first `process()`, `run()`, or `stop()` call binds the batcher to one event loop. It cannot
+The first `process()`, `run()`, `stop()`, or context entry binds the batcher to one event loop. It cannot
 be moved to another loop, including after stopping. Once dispatcher and worker completion callbacks
 finish, the next `process()` call automatically restarts it on the same loop. During graceful
 draining or forced cleanup, submissions raise `RuntimeError("Batcher is stopping")`, including
 after a shutdown timeout.
 
-Keep `await batcher.stop()` in a `finally` block, as in the [quickstart](../README.md#quickstart).
+Use `async with`, as in the [quickstart](../README.md#quickstart), or keep `await batcher.stop()` in a
+`finally` block when you need an explicit timeout or force policy.
 Call it from outside `process_batch`: a processor or a child task cannot await its own shutdown.
+
+`GroupedBatcher(factory, group_key=..., max_groups=128, idle_timeout=60)` owns separate fresh child
+batchers for compatible keys. Idle children are drained before their slots are reused; if every
+slot is busy, a new key raises `GroupLimitError`. Its `stop()` permanently closes the manager,
+unlike an individual batcher's automatic restart. See [group ownership and shutdown](grouped-batching.md).
 
 Cancelling one `process()` caller does not cancel the other items in its batch. Its accepted work
 may still execute, so neither caller cancellation nor forced shutdown guarantees that an external
@@ -109,7 +146,10 @@ sequenceDiagram
     participant Futures as Item futures
 
     User->>AsyncBatcher: await process(item)
-    AsyncBatcher->>Queue: put_nowait(item, future, enqueued_at)
+    opt Waiting admission requested and queue full
+        AsyncBatcher->>Queue: wait for capacity or shutdown
+    end
+    AsyncBatcher->>Queue: put_nowait(item, future, enqueued_at, cost)
     opt Dispatcher has not started
         AsyncBatcher->>RunLoop: create_task(_run())
     end
