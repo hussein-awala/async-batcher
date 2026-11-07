@@ -86,8 +86,30 @@ async def _map_items(submit, source, *, max_pending, ordered):
     pending = {}
     completed_order = deque()
     closing = False
+    failure = None
+
+    async def request(index, item):
+        nonlocal failure
+        try:
+            return await submit(index, item)
+        except BaseException as error:
+            # Publish before task completion: an eager/ready consumer must not
+            # wait for a scheduled done callback to observe an item failure.
+            if failure is None:
+                failure = error
+            raise
 
     def completed(task):
+        nonlocal failure
+        try:
+            error = task.exception()
+        except asyncio.CancelledError as error:
+            # A task cancelled before its first step never enters request().
+            if failure is None:
+                failure = error
+        else:
+            if failure is None and error is not None:
+                failure = error
         if not ordered:
             completed_order.append(task)
         changed.set()
@@ -105,7 +127,7 @@ async def _map_items(submit, source, *, max_pending, ordered):
                     break
                 if closing:
                     break
-                task = asyncio.create_task(submit(index, item))
+                task = asyncio.create_task(request(index, item))
                 index += 1
                 pending[task] = None
                 task.add_done_callback(completed)
@@ -119,11 +141,9 @@ async def _map_items(submit, source, *, max_pending, ordered):
             changed.clear()
             if feeder.done():
                 feeder.result()
-            # Fail promptly even when a preceding ordered result or the source
-            # is blocked. Cleanup below retrieves all other task exceptions.
-            for task in pending:
-                if task.done() and (task.cancelled() or task.exception() is not None):
-                    task.result()
+            # Completion publishes failure once, independent of window size.
+            if failure is not None:
+                raise failure
             ready = (
                 next(iter(pending), None)
                 if ordered

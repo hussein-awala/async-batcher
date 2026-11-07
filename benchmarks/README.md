@@ -99,3 +99,10 @@ and cleanup. There is no throughput or latency CI threshold. Correctness and rep
 measurement belong in CI; noisy performance comparisons need an explicitly controlled run.
 
 The older application measurements remain in [BENCHMARK.md](../BENCHMARK.md#historical-application-benchmarks).
+
+## Pending-window map overhead
+
+The [map-window experiment](results/map-windows/README.md) measures cheap async processing with
+pending windows of 128, 1,024 and 8,192. Its standalone `benchmarks.map_windows` helper verifies
+routed results, bounds every trial, and retains raw timings plus runtime source hashes. This
+isolates producer bookkeeping overhead; it does not estimate application or backend throughput.

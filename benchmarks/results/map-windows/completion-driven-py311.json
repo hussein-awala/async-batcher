@@ -1,0 +1,125 @@
+{
+  "label": "completion-driven",
+  "started_at": "2026-11-07T21:17:32.704328+00:00",
+  "finished_at": "2026-11-07T21:17:34.104961+00:00",
+  "python": "3.11.18 (main, Oct 25 2026, 19:41:29) [Clang 21.0.0 (clang-2100.3.34.2)]",
+  "platform": "macOS-27.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "source": "/Users/hussein-awala/.codex/worktrees/core-review-prs/asyncio-batcher/async_batcher/__init__.py",
+  "commit": "f553ea7685d092d662368810750574bae54648c9",
+  "dirty": true,
+  "runtime_sha256": {
+    "async_batcher/map.py": "24f6cd078a8bfbaafd5b18b1c01d29865eed9232422829155396fa1e543d5e14",
+    "async_batcher/batcher.py": "853b20cf196c8551537ec39b75185694a35b7cfe668c02fbc3f6692c1de08bf5"
+  },
+  "settings": {
+    "requests": 16384,
+    "windows": [
+      128,
+      1024,
+      8192
+    ],
+    "repetitions": 3,
+    "seed": 17,
+    "batch_size": 64,
+    "concurrency": 4,
+    "ordered": true,
+    "queue_time": 0
+  },
+  "case_order": [
+    [
+      128,
+      1024,
+      8192
+    ],
+    [
+      128,
+      8192,
+      1024
+    ],
+    [
+      8192,
+      128,
+      1024
+    ]
+  ],
+  "trials": [
+    {
+      "window": 128,
+      "requests": 16384,
+      "elapsed_seconds": 0.13123691704822704,
+      "items_per_second": 124842.92048691753,
+      "batches": 256,
+      "repetition": 0
+    },
+    {
+      "window": 1024,
+      "requests": 16384,
+      "elapsed_seconds": 0.1467712500016205,
+      "items_per_second": 111629.4914693382,
+      "batches": 256,
+      "repetition": 0
+    },
+    {
+      "window": 8192,
+      "requests": 16384,
+      "elapsed_seconds": 0.1766692089731805,
+      "items_per_second": 92738.28809912878,
+      "batches": 256,
+      "repetition": 0
+    },
+    {
+      "window": 128,
+      "requests": 16384,
+      "elapsed_seconds": 0.1255050420295447,
+      "items_per_second": 130544.55609953184,
+      "batches": 256,
+      "repetition": 1
+    },
+    {
+      "window": 8192,
+      "requests": 16384,
+      "elapsed_seconds": 0.16926770901773125,
+      "items_per_second": 96793.41733327135,
+      "batches": 256,
+      "repetition": 1
+    },
+    {
+      "window": 1024,
+      "requests": 16384,
+      "elapsed_seconds": 0.14230120897991583,
+      "items_per_second": 115136.05623907533,
+      "batches": 256,
+      "repetition": 1
+    },
+    {
+      "window": 8192,
+      "requests": 16384,
+      "elapsed_seconds": 0.17857029102742672,
+      "items_per_second": 91750.98447637951,
+      "batches": 256,
+      "repetition": 2
+    },
+    {
+      "window": 128,
+      "requests": 16384,
+      "elapsed_seconds": 0.12397583300480619,
+      "items_per_second": 132154.78858177818,
+      "batches": 256,
+      "repetition": 2
+    },
+    {
+      "window": 1024,
+      "requests": 16384,
+      "elapsed_seconds": 0.12848862499231473,
+      "items_per_second": 127513.2331829372,
+      "batches": 256,
+      "repetition": 2
+    }
+  ],
+  "median_seconds": {
+    "128": 0.1255050420295447,
+    "1024": 0.14230120897991583,
+    "8192": 0.1766692089731805
+  }
+}
