@@ -3,8 +3,10 @@ from __future__ import annotations
 import abc
 import asyncio
 import logging
+import math
 import warnings
 from collections import namedtuple
+from numbers import Real
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 from async_batcher.exceptions import QueueFullException
@@ -21,7 +23,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
 
     Args:
         max_batch_size (int, optional): The max number of items to process in a batch.
-            Defaults to -1 (no limit).
+            Defaults to -1 (no limit); 1 processes each item separately.
         max_queue_time (float, optional): The max time for a task to stay in the queue before processing
             it if the batch is not full and the number of running batches is less than the concurrency.
             Defaults to 0.01.
@@ -47,24 +49,13 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         **kwargs,
     ):
         super().__init__()
-        if max_batch_size is None or 0 <= max_batch_size <= 1:
-            raise ValueError("Valid max_batch_size value is greater than 1 or -1 for infinite")
-        if concurrency is None or concurrency == 0:
-            raise ValueError("Valid concurrency value is greater than 0 or -1 for infinite")
-        # check deprecated arguments
-        if "sleep_time" in kwargs:
-            warnings.warn(
-                "The 'sleep_time' has no effect and will be removed in a future version. "
-                "In the current version, the process task will sleep until the result is ready.",
-                stacklevel=2,
-            )
-        if "buffering_time" in kwargs:
-            warnings.warn(
-                "The 'buffering_time' has no effect and will be removed in a future version. "
-                "In the current version, the process_bath task will sleep until there is any item in"
-                " the queue.",
-                stacklevel=2,
-            )
+        for argument in ("sleep_time", "buffering_time"):
+            if argument in kwargs:
+                kwargs.pop(argument)
+                warnings.warn(
+                    f"The '{argument}' has no effect and will be removed in a future version.",
+                    stacklevel=2,
+                )
         if "batch_size" in kwargs:
             warnings.warn(
                 "The 'batch_size' argument is deprecated and will be removed in a future version. "
@@ -72,6 +63,20 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 stacklevel=2,
             )
             max_batch_size = kwargs.pop("batch_size")
+        if kwargs:
+            raise TypeError(f"Unexpected arguments: {', '.join(sorted(kwargs))}")
+        for name, value in (("max_batch_size", max_batch_size), ("concurrency", concurrency)):
+            if isinstance(value, bool) or not isinstance(value, int) or (value != -1 and value < 1):
+                raise ValueError(f"{name} must be a positive integer or -1 for no limit")
+        if isinstance(max_queue_size, bool) or not isinstance(max_queue_size, int) or max_queue_size < -1:
+            raise ValueError("max_queue_size must be a nonnegative integer or -1 for no limit")
+        if (
+            not isinstance(max_queue_time, Real)
+            or isinstance(max_queue_time, bool)
+            or not math.isfinite(max_queue_time)
+            or max_queue_time < 0
+        ):
+            raise ValueError("max_queue_time must be a finite, nonnegative number")
         self.max_batch_size = max_batch_size
         self.max_queue_time = max_queue_time
         self.concurrency = concurrency
@@ -118,7 +123,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             return []
         if started_at is None:
             started_at = asyncio.get_event_loop().time()
-        while True:
+        while self.max_batch_size < 0 or len(batch) < self.max_batch_size:
             try:
                 max_wait = self.max_queue_time - (asyncio.get_running_loop().time() - started_at)
                 if max_wait > 0:
