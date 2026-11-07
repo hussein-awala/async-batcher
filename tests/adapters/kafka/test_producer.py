@@ -342,3 +342,45 @@ async def test_new_builder_failure_preserves_previously_acknowledged_batch(produ
     assert results[0].offset == 0
     assert results[1] is failure and results[2] is failure
     assert len(deliveries) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "fields, error_type, message",
+    [
+        ({"topic": ""}, ValueError, "topic must be a nonempty string"),
+        ({"topic": None}, ValueError, "topic must be a nonempty string"),
+        ({"partition": True}, ValueError, "partition must be a nonnegative integer"),
+        ({"partition": 0.5}, ValueError, "partition must be a nonnegative integer"),
+        ({"timestamp_ms": True}, TypeError, "timestamp_ms must be an integer or None"),
+        ({"timestamp_ms": 1.5}, TypeError, "timestamp_ms must be an integer or None"),
+        ({"timestamp_ms": "1000"}, TypeError, "timestamp_ms must be an integer or None"),
+        ({"headers": ((b"trace", b"value"),)}, TypeError, "headers must contain string keys"),
+    ],
+)
+async def test_invalid_routing_and_metadata_do_not_reach_native_batches(
+    producer_factory, fields, error_type, message
+):
+    producer, deliveries = producer_factory()
+    valid = KafkaRecord(topic="events", partition=0, value=b"valid", timestamp_ms=1000)
+    results = await AsyncKafkaBatcher(producer=producer).process_batch([replace(valid, **fields), valid])
+    assert isinstance(results[0], error_type)
+    assert message in str(results[0])
+    assert results[1].offset == 0
+    assert len(deliveries) == 1
+    assert [record.value for record in decoded(deliveries[0])] == [b"valid"]
+
+
+@pytest.mark.asyncio
+async def test_all_serializer_failures_do_not_enqueue_empty_native_batches(producer_factory):
+    def serialize(value):
+        raise ValueError(f"cannot serialize {value}")
+
+    producer, deliveries = producer_factory(value_serializer=serialize)
+    values = ("first", "second", "third")
+    results = await AsyncKafkaBatcher(producer=producer).process_batch(
+        [KafkaRecord(topic="events", partition=index % 2, value=value) for index, value in enumerate(values)]
+    )
+    assert all(isinstance(result, ValueError) for result in results)
+    assert [str(result) for result in results] == [f"cannot serialize {value}" for value in values]
+    assert not deliveries
