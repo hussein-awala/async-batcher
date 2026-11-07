@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import gc
 import inspect
 
 import pytest
@@ -305,3 +306,42 @@ def test_wrapper_cannot_move_event_loops():
     asyncio.run(first())
     with pytest.raises(RuntimeError, match="same event loop"):
         asyncio.run(joined.aclose())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("task", [False, True])
+async def test_invalid_borrowed_key_observes_late_failure_without_cancelling(harness, task):
+    errors = []
+    loop = asyncio.get_running_loop()
+    previous = loop.get_exception_handler()
+    loop.set_exception_handler(lambda loop, context: errors.append(context))
+    release = asyncio.Event()
+
+    async def fail_later():
+        await release.wait()
+        raise ValueError("borrowed callback failure")
+
+    borrowed = asyncio.create_task(fail_later()) if task else loop.create_future()
+    batcher = harness.create()
+    holder = [borrowed]
+    joined = CoalescingBatcher(batcher, key=lambda item: holder[0])
+    try:
+        with pytest.raises(TypeError, match="directly"):
+            await joined.process(1)
+        assert not borrowed.done()
+        if task:
+            release.set()
+            await wait_until(borrowed.done)
+        else:
+            borrowed.set_exception(ValueError("borrowed callback failure"))
+        await asyncio.sleep(0)
+        assert not borrowed.cancelled()
+        holder.clear()
+        del borrowed
+        gc.collect()
+        await asyncio.sleep(0)
+        assert errors == []
+    finally:
+        release.set()
+        await joined.aclose()
+        loop.set_exception_handler(previous)

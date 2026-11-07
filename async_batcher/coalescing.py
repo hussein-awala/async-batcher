@@ -103,6 +103,10 @@ class CoalescingBatcher(Generic[K, T, S]):
             if inspect.isawaitable(key):
                 if inspect.iscoroutine(key):
                     key.close()
+                elif isinstance(key, asyncio.Future):
+                    # A mistaken callback may return a borrowed task. Observe
+                    # late errors without cancelling it or driving an awaitable.
+                    key.add_done_callback(lambda done: None if done.cancelled() else done.exception())
                 raise TypeError("key must return a hashable key directly")
             hash(key)
             request = self._requests.get(key)

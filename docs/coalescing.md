@@ -28,7 +28,9 @@ asyncio.run(main())
 
 The first input for an in-flight key is submitted. Joiners receive the same result object or
 ordinary exception; inputs/results are not copied. Choose a synchronous, hashable key containing
-all relevant request options, destination and authorization context. Sharing a key is an explicit
+all relevant request options, destination and authorization context. Invalid awaitable keys are rejected. Native coroutines are closed; borrowed Futures/Tasks are
+left alive and their late failures observed. Custom awaitables remain callback-owned and are
+never driven by this wrapper. Sharing a key is an explicit
 claim that the requests may share one execution. This wrapper is not an authorization boundary,
 and it should not deduplicate writes that must each execute independently. Do not await a request
 for the same key from the processor already handling that key.
