@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from asyncio import current_task
 from typing import TYPE_CHECKING, Any, Literal
 
 from async_batcher.batcher import AsyncBatcher
 from sqlalchemy import Row, insert, update
-from sqlalchemy.ext.asyncio import async_scoped_session, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -27,14 +26,11 @@ class AsyncSqlalchemyWriteBatcher(AsyncBatcher[dict[str, Any], None]):
         super().__init__(**kwargs)
         self.model = model
         self.async_engine = async_engine
-        self.async_session_maker = async_scoped_session(
-            async_sessionmaker(
-                bind=async_engine,
-                autocommit=False,
-                autoflush=False,
-                expire_on_commit=False,
-            ),
-            scopefunc=current_task,
+        self.async_session_maker = async_sessionmaker(
+            bind=async_engine,
+            autocommit=False,
+            autoflush=False,
+            expire_on_commit=False,
         )
         self.operation = operation
         self.returning = returning
