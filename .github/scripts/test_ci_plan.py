@@ -30,7 +30,7 @@ class PlanTests(unittest.TestCase):
         )
 
     def test_adapter_changes_keep_linux_core_gate_without_macos_queue(self):
-        for suite in ("aws", "sqlalchemy", "scylla", "keras", "sklearn"):
+        for suite in ("aws", "sqlalchemy", "scylla", "keras", "sklearn", "pinecone"):
             with self.subTest(suite=suite):
                 result = plan("pull_request", {suite})
                 self.assertEqual(
@@ -64,7 +64,7 @@ class PlanTests(unittest.TestCase):
                     {row["os"] for row in result["core"]["include"]},
                     {"ubuntu-24.04", "macos-15", "macos-15-intel"},
                 )
-                self.assertEqual(len(result["adapters"]["include"]), 10)
+                self.assertEqual(len(result["adapters"]["include"]), 12)
                 self.assertEqual({row["python"] for row in result["adapters"]["include"]}, {"3.11", "3.15"})
                 self.assertEqual(
                     {row["suite"] for row in result["services"]["include"]},
