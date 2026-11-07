@@ -1,4 +1,23 @@
-# Historical benchmarks
+# Benchmarks
+
+## Current core benchmark
+
+The [service-free benchmark harness](benchmarks/README.md) measures direct operations and
+`AsyncBatcher` with controlled batch sizes, concurrency, and bounded outstanding requests.
+It records throughput, p50/p95/p99 latency, event-loop lag, a separate Python-memory sample,
+warmup/repetitions, and the exact environment and commit. Start with:
+
+```bash
+uv sync --locked --no-default-groups --python 3.12
+uv run --no-sync python -m benchmarks.core --output /tmp/async-batcher-core.json
+```
+
+Read its [method and interpretation limits](benchmarks/README.md#workload-and-baseline) before
+comparing results. Async sleeps and thread sleeps model a fixed-cost bulk operation; they do not
+predict the performance of a particular external service. No machine-dependent throughput gate
+is enforced in CI.
+
+## Historical application benchmarks
 
 These are archived measurements from February/March 2024, originally labelled v0.1.0 and v0.2.0.
 They are **not measurements of the current checkout**. The core implementation, dependency stack,
@@ -9,7 +28,7 @@ The original notes report a MacBook Pro with an Apple M2 Max (12 cores), Uvicorn
 and a TensorFlow model taking approximately 11 ms per single prediction or 13 ms per 200-item batch.
 Those model timings were not preserved as a separate reproducible microbenchmark.
 
-## Recorded report totals
+### Recorded report totals
 
 The table below uses aggregate values embedded in the saved Locust HTML reports. Failure percentage
 is `num_failures / num_requests * 100`; response times are whole-run aggregates, not the final
@@ -26,7 +45,7 @@ The v0.2.0 notes used a `ThreadPoolExecutor(max_workers=12)` with batcher `concu
 identical server/client settings. In particular, worker and thread counts multiply across server
 processes. The saved artifacts do not capture a complete environment or every invocation option.
 
-## Archived throughput graphs
+### Archived throughput graphs
 
 v0.1.0 direct endpoint:
 
@@ -40,7 +59,7 @@ v0.2.0 batched endpoint:
 
 ![Historical v0.2.0 batched endpoint throughput](assets/optimized_predict__total_requests_per_second_v0.2.0.png)
 
-## Measuring the current checkout
+### Measuring the current application example
 
 Follow the [FastAPI example](examples/keras/README.md#load-testing). Run the direct and batched
 endpoints separately with the same model, backend, worker count, inputs, client timeouts, and
