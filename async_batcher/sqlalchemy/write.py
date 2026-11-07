@@ -44,6 +44,10 @@ class AsyncSqlalchemyWriteBatcher(AsyncBatcher[dict[str, Any], Row[tuple[Any, ..
             raise ValueError("RETURNING is not supported for bulk UPDATE operations")
 
     async def process_batch(self, batch: list[dict[str, Any]]) -> Sequence[Row[tuple[Any, ...]]] | None:
+        if not batch:
+            if self.returning is None or (isinstance(self.returning, list | tuple) and not self.returning):
+                return None
+            return []
         session: AsyncSession
         async with self.async_session_maker() as session:
             if self.operation == "insert":
