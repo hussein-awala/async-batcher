@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import sys
 
 import pytest
 from async_batcher.exceptions import QueueFullException
 
 from tests.conftest import MockAsyncBatcher, SlowAsyncBatcher
+from tests.core_helpers import GatedBatcher
 
 
 class CallsMaker:
@@ -88,71 +88,27 @@ async def test_process_batch_with_short_buffering_time():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "concurrency, expected_execution_time",
-    [
-        # batch 1: from 0 to 1
-        # batch 2: from 1 to 2
-        # batch 3: from 2 to 3
-        # batch 4: from 3.2 to 4.2 (< max_batch_size, extra 0.4)
-        (1, 4.2),
-        # batch 1: from 0 to 1
-        # batch 2: from 0.25 to 1.25
-        # batch 3: from 1 to 2
-        # batch 4: from 1.25 to 2.25 (< max_batch_size, extra 0.4)
-        (2, 2.25),
-        # batch 1: from 0 to 1
-        # batch 2: from 0.25 to 1.25
-        # batch 3: from 0.4 to 1.4
-        # batch 4: from 1.2 to 2.2 (< max_batch_size, extra 0.4)
-        (3, 2.2),
-        # batch 1: from 0 to 1
-        # batch 2: from 0.25 to 1.25
-        # batch 3: from 0.4 to 1.4
-        # batch 4: from 0.6 to 1.6 (< max_batch_size, extra 0.4)
-        (-1, 1.6),
-    ],
-)
-async def test_concurrent_process_batch(concurrency, expected_execution_time):
-    batcher = SlowAsyncBatcher(
-        sleep_time=1,
-        max_batch_size=10,
-        max_queue_time=0.2,
-        concurrency=concurrency,
-    )
-    batcher.mock_batch_processor.reset_mock()
-    started_at = asyncio.get_running_loop().time()
-    calls_maker1 = CallsMaker(batcher, 0, 0, 5)
-    calls_maker2 = CallsMaker(batcher, 0.25, 5, 20)
-    calls_maker3 = CallsMaker(batcher, 0.4, 20, 30)
-    await asyncio.gather(calls_maker1.arun(), calls_maker2.arun(), calls_maker3.arun())
-    ended_at = asyncio.get_running_loop().time()
+@pytest.mark.parametrize("concurrency", [1, 2, 3, -1])
+async def test_concurrent_process_batch(harness, concurrency):
+    batcher = harness.create(GatedBatcher, max_batch_size=5, max_queue_time=60, concurrency=concurrency)
+    expected_batches = [list(range(start, start + 5)) for start in range(0, 20, 5)]
+    active_limit = len(expected_batches) if concurrency == -1 else concurrency
+    requests = harness.submit(batcher, *range(20))
 
-    # we add 0.4 seconds to the expected time to account for the sleep time
-    # for Python 3.12, we need to add 1 second to the expected time because there
-    # is a slowness in some asyncio functions
-    if sys.version_info >= (3, 12):
-        safe_time = 1
-    else:
-        safe_time = 0.4
-    assert expected_execution_time < ended_at - started_at
-    assert ended_at - started_at < expected_execution_time + safe_time
+    async with asyncio.timeout(3):
+        # Full batches can start together, but none can finish before this gate opens.
+        first_wave = [await batcher.started.get() for _ in range(active_limit)]
+        assert first_wave == expected_batches[:active_limit]
+        assert batcher.active == active_limit
+        assert all(not request.done() for request in requests)
+        batcher.release.set()
+        assert await asyncio.gather(*requests) == [item * 2 for item in range(20)]
+        await batcher.stop()
 
-    assert batcher.mock_batch_processor.call_count == 4
-    # the first range of size 5 should be processed in a single batch
-    assert batcher.mock_batch_processor.mock_calls[0].kwargs["batch"] == list(range(5))
-    # the second range of size 15 should be processed in 2 batches
-    assert batcher.mock_batch_processor.mock_calls[1].kwargs["batch"] == list(range(5, 15))
-    # the second part of the second range should be processed with 5 items from the third range
-    assert batcher.mock_batch_processor.mock_calls[2].kwargs["batch"] == list(range(15, 25))
-    # the last 5 items should be processed in a single batch
-    assert batcher.mock_batch_processor.mock_calls[3].kwargs["batch"] == list(range(25, 30))
-    # the results should be correct regardless the number of needed batches
-    assert calls_maker1.result == [i * 2 for i in range(5)]
-    assert calls_maker2.result == [i * 2 for i in range(5, 20)]
-    assert calls_maker3.result == [i * 2 for i in range(20, 30)]
-    await batcher.stop()
-    batcher.mock_batch_processor.reset_mock()
+    # Check the peak across every wave, including work scheduled after the gate opens.
+    assert batcher.max_active == active_limit
+    assert batcher.active == 0
+    assert batcher.batches == expected_batches
 
 
 @pytest.mark.asyncio
