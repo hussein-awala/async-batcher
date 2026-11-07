@@ -5,31 +5,39 @@ Please follow this guide when logging issues or making changes.
 
 ## Testing
 
-We use `pytest` for testing. To run the tests, you can use the following command:
+We use `pytest` for testing. Install the project and development dependencies with all adapter extras from the
+repository root:
 
 ```bash
-pytest
+poetry install --all-extras
+poetry run pytest
 ```
 
-For integration tests, we provide some `docker-compose` files to start the required services.
-You can use the following command to start the services:
+Integration tests are skipped by default. To work on the core batcher without the optional adapter extras,
+install the declared development dependencies and run only the core tests:
 
 ```bash
-docker compose -f docker-compose/dynamodb.yml -f docker-compose/scylladb.yml up -d
+poetry install
+poetry run pytest tests/test_batcher*.py
 ```
 
-And then run the tests with the following command:
+For integration tests, start the required services using the provided Compose files:
 
 ```bash
-pytest -m integration
+docker compose -f docker-compose/dynamodb.yml -f docker-compose/postgres.yml -f docker-compose/scylladb.yml up -d --wait
+poetry run pytest -m integration
 ```
 
-You can also select specific integration tests:
+You can also select individual integrations after starting the corresponding service:
 
 ```bash
-pytest -m integration_dynamodb
+poetry run pytest -m integration_dynamodb
+poetry run pytest -m integration_postgres
+poetry run pytest -m integration_scylladb
 ```
-or
+
+Run the formatting and lint checks before submitting a change:
+
 ```bash
-pytest -m integration_scylladb
+poetry run pre-commit run --all-files
 ```
