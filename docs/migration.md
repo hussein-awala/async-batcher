@@ -30,7 +30,7 @@ branch. For example, the following revision contains the feature set listed abov
 ```bash
 git clone https://github.com/hussein-awala/async-batcher.git
 cd async-batcher
-git checkout --detach 697891355ad845352303ed55292e14a3bcf181b6
+git checkout --detach aeeaa5630a0ad9d10ac8764cb9bf2ead1145f7f3
 uv sync --locked --no-default-groups --python 3.12
 uv run --no-sync python -c 'from async_batcher import AsyncBatcher; print(AsyncBatcher.from_callable)'
 ```
