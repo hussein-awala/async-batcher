@@ -227,9 +227,17 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 finally:
                     if semaphore_acquired:
                         self._concurrency_semaphore.release()
+            # A ready queue event can consume cancellation inside wait_for().
+            # Enforce forced shutdown even when the dispatcher exits normally.
+            if self._force_stopped:
+                for task in self._running_batches.values():
+                    task.cancel()
             if self._running_batches:
                 await asyncio.shield(asyncio.gather(*self._running_batches.values(), return_exceptions=True))
         except BaseException:
+            # A caller may cancel the public run() task directly. Later stop()
+            # calls must join this cleanup rather than cancel it a second time.
+            self._force_stopped = True
             self._stop.set()
             self._cancel_pending()
             for task in self._running_batches.values():
