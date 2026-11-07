@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import uuid4
+
 import pytest
 import pytest_asyncio
 from async_batcher.scylladb.update import AsyncScyllaDbWriteBatcher
@@ -8,71 +10,75 @@ from cassandra.cqlengine import columns, connection
 from cassandra.cqlengine.management import drop_table, sync_table
 from cassandra.cqlengine.models import Model
 
-TEST_KEYSPACE = "test_keyspace"
-
 
 @pytest_asyncio.fixture
 async def scylladb_write_batcher():
     write_batcher = AsyncScyllaDbWriteBatcher(max_queue_time=2)
     yield write_batcher
-    await write_batcher.stop()
+    await write_batcher.stop(force=True, timeout=10)
 
 
 @pytest.fixture
 def scylladb_session():
-    cluster = Cluster(["127.0.0.1"], port=9042)
+    cluster = Cluster(["127.0.0.1"], port=9042, connect_timeout=10, control_connection_timeout=10)
+    keyspace = f"batcher_{uuid4().hex}"
+    session = None
 
     try:
         session = cluster.connect()
+        session.default_timeout = 10
         session.execute(
-            f"CREATE KEYSPACE IF NOT EXISTS {TEST_KEYSPACE} "
+            f"CREATE KEYSPACE {keyspace} "
             "WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'replication_factor': 1}"
         )
-        session.execute(f"USE {TEST_KEYSPACE}")
+        session.set_keyspace(keyspace)
+        connection.register_connection(keyspace, session=session, default=True)
         yield session
     finally:
-        cluster.shutdown()
+        try:
+            if session is not None:
+                session.execute(f"DROP KEYSPACE IF EXISTS {keyspace}")
+        finally:
+            connection.unregister_connection(keyspace)
+            cluster.shutdown()
 
 
 @pytest.fixture
 def scylladb_tables(scylladb_session):
     class TestModel1(Model):
         __table_name__ = "test_table1"
-        __keyspace__ = TEST_KEYSPACE
+        __keyspace__ = scylladb_session.keyspace
         id = columns.UUID(primary_key=True)
         attr1 = columns.Text()
         attr2 = columns.Double()
 
     class TestModel2(Model):
         __table_name__ = "test_table2"
-        __keyspace__ = TEST_KEYSPACE
+        __keyspace__ = scylladb_session.keyspace
         id = columns.UUID(primary_key=True)
         attr1 = columns.Text()
         attr2 = columns.Double()
 
-    connection.register_connection("test_cluster", session=scylladb_session, default=True)
-    sync_table(TestModel1)
-    sync_table(TestModel2)
-    yield TestModel1, TestModel2
-    drop_table(TestModel1)
-    drop_table(TestModel2)
+    try:
+        sync_table(TestModel1)
+        sync_table(TestModel2)
+        yield TestModel1, TestModel2
+    finally:
+        drop_table(TestModel1)
+        drop_table(TestModel2)
 
 
 @pytest.fixture
 def scylladb_counter_table(scylladb_session):
     class CounterModel(Model):
         __table_name__ = "test_counters"
-        __keyspace__ = TEST_KEYSPACE
-        __connection__ = "counter_cluster"
+        __keyspace__ = scylladb_session.keyspace
+        __connection__ = scylladb_session.keyspace
         id = columns.UUID(primary_key=True)
         total = columns.Counter()
 
-    connection.register_connection("counter_cluster", session=scylladb_session)
     try:
         sync_table(CounterModel)
         yield CounterModel
     finally:
-        try:
-            drop_table(CounterModel)
-        finally:
-            connection.unregister_connection("counter_cluster")
+        drop_table(CounterModel)

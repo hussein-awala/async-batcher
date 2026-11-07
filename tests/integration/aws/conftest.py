@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import suppress
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 import aioboto3
 import pytest
@@ -31,7 +32,7 @@ async def get_batcher(dynamodb_aioboto3_session):
         max_queue_time=2,
     )
     yield batcher
-    await batcher.stop()
+    await batcher.stop(force=True, timeout=10)
 
 
 @pytest_asyncio.fixture
@@ -42,13 +43,13 @@ async def write_batcher(dynamodb_aioboto3_session):
         max_queue_time=2,
     )
     yield batcher
-    await batcher.stop()
+    await batcher.stop(force=True, timeout=10)
 
 
-@pytest.fixture
-def dynamodb_tables(dynamodb_aioboto3_session):
-    table1_name = "test_table1"
-    table2_name = "test_table2"
+@pytest_asyncio.fixture
+async def dynamodb_tables(dynamodb_aioboto3_session):
+    table1_name = f"batcher-{uuid4().hex}"
+    table2_name = f"batcher-{uuid4().hex}"
 
     async def _create_tables(_aioboto3_session):
         _dynamodb: DynamoDBServiceResource
@@ -56,7 +57,6 @@ def dynamodb_tables(dynamodb_aioboto3_session):
             "dynamodb",
             endpoint_url="http://localhost:8000",
         ) as _dynamodb:
-            await _delete_tables(_aioboto3_session)
             await _dynamodb.create_table(
                 TableName=table1_name,
                 KeySchema=[
@@ -93,6 +93,37 @@ def dynamodb_tables(dynamodb_aioboto3_session):
             with suppress(_dynamodb.meta.client.exceptions.ResourceNotFoundException):
                 await (await _dynamodb.Table(table2_name)).delete()
 
-    asyncio.run(_create_tables(dynamodb_aioboto3_session))
-    yield table1_name, table2_name
-    asyncio.run(_delete_tables(dynamodb_aioboto3_session))
+    try:
+        async with asyncio.timeout(30):
+            await _create_tables(dynamodb_aioboto3_session)
+        yield table1_name, table2_name
+    finally:
+        async with asyncio.timeout(15):
+            await _delete_tables(dynamodb_aioboto3_session)
+
+
+@pytest_asyncio.fixture
+async def dynamodb_binary_table(dynamodb_aioboto3_session):
+    name = f"batcher-binary-{uuid4().hex}"
+    async with dynamodb_aioboto3_session.resource("dynamodb", endpoint_url="http://localhost:8000") as db:
+        table = None
+        try:
+            async with asyncio.timeout(30):
+                table = await db.create_table(
+                    TableName=name,
+                    KeySchema=[
+                        {"AttributeName": "key", "KeyType": "HASH"},
+                        {"AttributeName": "version", "KeyType": "RANGE"},
+                    ],
+                    AttributeDefinitions=[
+                        {"AttributeName": "key", "AttributeType": "B"},
+                        {"AttributeName": "version", "AttributeType": "N"},
+                    ],
+                    BillingMode="PAY_PER_REQUEST",
+                )
+                await table.wait_until_exists()
+            yield name
+        finally:
+            if table is not None:
+                async with asyncio.timeout(15):
+                    await table.delete()

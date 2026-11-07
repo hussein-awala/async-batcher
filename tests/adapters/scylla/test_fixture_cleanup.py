@@ -19,17 +19,24 @@ async def test_batcher_fixture_awaits_cleanup(monkeypatch):
     batcher.stop.assert_not_called()
     with pytest.raises(StopAsyncIteration):
         await anext(fixture)
-    batcher.stop.assert_awaited_once_with()
+    batcher.stop.assert_awaited_once_with(force=True, timeout=10)
 
 
 def test_scylla_session_fixture_shuts_down_cluster(monkeypatch):
     cluster = Mock()
+    registry = Mock()
     monkeypatch.setattr(scylla_fixtures, "Cluster", Mock(return_value=cluster))
+    monkeypatch.setattr(scylla_fixtures, "connection", registry)
     fixture = scylla_fixtures.scylladb_session.__wrapped__()
 
     assert next(fixture) is cluster.connect.return_value
+    session = cluster.connect.return_value
+    keyspace = session.set_keyspace.call_args.args[0]
+    registry.register_connection.assert_called_once_with(keyspace, session=session, default=True)
     with pytest.raises(StopIteration):
         next(fixture)
+    session.execute.assert_any_call(f"DROP KEYSPACE IF EXISTS {keyspace}")
+    registry.unregister_connection.assert_called_once_with(keyspace)
     cluster.shutdown.assert_called_once_with()
 
 
