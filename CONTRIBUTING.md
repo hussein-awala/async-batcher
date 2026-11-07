@@ -228,3 +228,18 @@ baseline from the scanner output.
 OSV coverage is evidence about known advisories, not proof that a dependency has
 no vulnerabilities. This gate complements Dependabot and application-specific
 security review; it does not audit undeclared example requirements or system images.
+
+## Agent workflows
+
+[AGENTS.md](AGENTS.md) records repository-wide conventions, including signed commits and the
+boundary between PR work and tag-triggered publication. The repo-local skills provide focused workflows:
+
+- [async-batcher-navigate](.agents/skills/async-batcher-navigate/SKILL.md) maps a request to code,
+  ownership contracts, tests, and documentation.
+- [async-batcher-verify](.agents/skills/async-batcher-verify/SKILL.md) selects change-appropriate
+  tests, checks installed API/package behavior, and prepares PR validation evidence.
+
+In Codex, invoke `$async-batcher-navigate` or `$async-batcher-verify`, or let the task select the
+relevant skill. The skills live in the repository's discoverable `.agents/skills` directory;
+see the [official skills guide](https://learn.chatgpt.com/docs/build-skills). They can also be read
+as ordinary maintenance documentation. Keep their commands aligned with the workflows above.
