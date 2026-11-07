@@ -36,6 +36,7 @@ and the runnable [cookbook](cookbook.md) for focused examples.
 | `max_batch_cost` | `None` | Optional positive finite per-batch budget; requires `item_cost`. Count and cost limits both apply. |
 | `item_cost` | `None` | Synchronous nonnegative finite cost estimator, evaluated once per submission; requires `max_batch_cost`. |
 | `on_batch` | `None` | Fast synchronous observer receiving one payload-free `BatchEvent` per completed dispatched batch. |
+| `discard_cancelled` | `False` | Skip cancelled requests before dispatch; already dispatched work may still execute. Opt in for abandoned reads, retain the default for accepted writes. |
 | `log_exceptions` | `True` | Include exception messages and tracebacks in library error logs. `False` emits fixed messages; caller exceptions are unchanged. |
 | `processor_context` | `None` | Optional `contextvars.Context`, snapshotted at construction and copied for each dispatcher/worker. `None` inherits the initiating caller context. |
 | `executor` | `None` | Same-interpreter executor for synchronous processors; `None` uses asyncio's default thread executor. |
@@ -242,3 +243,21 @@ because cancelled executor awaits cannot prove their native functions have finis
 A flush started after cleanup with no remaining accepted work returns immediately.
 Calling flush from the batcher's processor or its active descendants raises instead of
 waiting on itself. Like processing and shutdown, flush binds the owning event loop.
+
+## Discard cancelled reads before dispatch
+
+Set `discard_cancelled=True` for reads or inference where an abandoned request should
+be omitted if it has not been dispatched. The default is `False`, preserving accepted
+write processing after caller cancellation. The dispatcher skips cancelled queue and
+cost-carryover entries, then checks the collected batch again before creating its
+worker. No empty processor call or batch event is emitted when every item is skipped.
+A partially collected batch can still wait for its collection deadline or a flush;
+skipped items can leave unused budget and do not trigger repacking.
+
+This policy does not cancel a running backend operation or retract side effects.
+Cancellation after dispatch may still reach the processor. Use application deadlines
+(such as `asyncio.timeout`) for the caller's response budget and a separate backend
+timeout for backend work. `flush()` treats skipped entries as completed cancelled work,
+while accepted/cancelled statistics retain them. Group managers and coalescing wrappers
+shield their owned child submissions, so cancelling a wrapper caller does not cancel
+that underlying request and does not activate this child policy by itself.

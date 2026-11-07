@@ -81,6 +81,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         processor_context: Optional service context, copied at construction and for
             every dispatcher and worker. None preserves the initiating caller context.
             Internal processor ancestry is always retained for shutdown safety.
+        discard_cancelled: Skip cancelled requests before dispatch. False preserves
+            accepted-write behavior. Does not interrupt already dispatched work.
         log_exceptions: Include exception messages and tracebacks in failure logs.
             False logs fixed messages only; caller exceptions remain unchanged.
     """
@@ -101,6 +103,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         on_batch: Callable[[BatchEvent], None] | None = None,
         processor_context: Context | None = None,
         log_exceptions: bool = True,
+        discard_cancelled: bool = False,
         **kwargs: Unpack[LegacyOptions],
     ) -> None:
         super().__init__()
@@ -161,6 +164,9 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         if not isinstance(log_exceptions, bool):
             raise TypeError("log_exceptions must be a boolean")
         self._log_exceptions = log_exceptions
+        if not isinstance(discard_cancelled, bool):
+            raise TypeError("discard_cancelled must be a boolean")
+        self._discard_cancelled = discard_cancelled
         if processor_context is not None and not isinstance(processor_context, Context):
             raise TypeError("processor_context must be a contextvars.Context or None")
         self._processor_context = processor_context.copy() if processor_context is not None else None
@@ -421,8 +427,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         """Enqueue an item and await its result, restarting after completed shutdown.
 
         Submissions during shutdown are rejected until the dispatcher and its
-        batch tasks finish cleanup. The first process(), run(), or stop() call
-        binds the batcher to its event loop; later calls from other loops fail
+        batch tasks finish cleanup. The first process(), run(), stop(), or flush()
+        call binds the batcher to its event loop; later calls from other loops fail
         before changing batcher state, including after shutdown.
 
         A full queue rejects immediately unless wait_for_space is true. An optional
@@ -526,6 +532,20 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                     except TimeoutError:
                         break
             else:
+                if self._discard_cancelled and item.future.cancelled():
+                    self._work_sequences.pop(item.future, None)
+                    self._work_changed.set()
+                    self._queue_space_available.set()
+                    continue
+                if batch and any(
+                    self._work_sequences.get(batch[0].future, math.inf)
+                    <= target
+                    < self._work_sequences.get(item.future, -math.inf)
+                    for target in self._flush_targets
+                ):
+                    # A cancelled boundary item may have been skipped above.
+                    self._next_batch_item = item
+                    break
                 if self.max_batch_cost is not None and batch_cost + item.cost > self.max_batch_cost:
                     # Keep this request ahead of the queue with its original age.
                     # It still counts toward queue capacity until collection resumes.
@@ -709,6 +729,15 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                     batch = await self._fill_batch_from_queue()
                     if self._force_stopped:
                         break
+                    if self._discard_cancelled:
+                        retained = []
+                        for item in batch:
+                            if item.future.cancelled():
+                                self._work_sequences.pop(item.future, None)
+                                self._work_changed.set()
+                            else:
+                                retained.append(item)
+                        batch = retained
                     if batch:
                         self._batches_dispatched += 1
                         self._in_flight_items += len(batch)
