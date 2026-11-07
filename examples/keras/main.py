@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import gc
 from typing import TYPE_CHECKING
 
@@ -34,8 +33,8 @@ async def startup_event():
 
 
 @app.on_event("shutdown")
-def shutdown_event():
-    asyncio.run(batcher.stop())
+async def shutdown_event():
+    await batcher.stop()
 
 
 @app.post("/predict")
