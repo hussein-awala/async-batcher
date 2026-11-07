@@ -14,7 +14,7 @@ class KerasAsyncBatcher(AsyncBatcher):
     """Batcher for dense Keras models on Python 3.11 and newer.
 
     The keras extra requires Keras 3.15.1 or newer and a separately installed
-    backend. Core batching remains available on Python 3.10.
+    backend. The package requires Python 3.11 or newer.
 
     Samples are combined along a new batch axis. List, tuple, and dictionary outputs
     retain their structure for each request. Override process_batch for models
