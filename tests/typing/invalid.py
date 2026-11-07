@@ -103,3 +103,6 @@ coalesced.waiting_callers = 9  # error: misc
 async def invalid_coalescing() -> None:
     await coalesced.process("bad")  # error: arg-type
     _wrong: int = await coalesced.process(1)  # error: assignment
+
+
+AsyncBatcher.from_callable(render, discard_cancelled="yes")  # error: call-overload

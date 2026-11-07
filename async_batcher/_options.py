@@ -33,6 +33,7 @@ class CoreOptions(LegacyOptions, Generic[T], total=False):
     on_batch: Callable[[BatchEvent], None] | None
     processor_context: Context | None
     log_exceptions: bool
+    discard_cancelled: bool
 
 
 class BatcherOptions(CoreOptions[T], total=False):

@@ -206,3 +206,6 @@ async def coalesced_requests() -> None:
         assert_type(entered, CoalescingBatcher[str, int, str])
         assert_type(await coalesced.process(1), str)
     assert_type(await coalesced.aclose(), None)
+
+
+cancelled_reads = AsyncDouble(discard_cancelled=True)
