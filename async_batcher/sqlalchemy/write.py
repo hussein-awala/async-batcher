@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal
 
-from async_batcher.batcher import AsyncBatcher
-from sqlalchemy import Row, insert, inspect, update
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import Mapper
+
+from async_batcher.batcher import AsyncBatcher
+from sqlalchemy import Row, insert, inspect, update
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

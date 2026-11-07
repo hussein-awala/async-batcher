@@ -141,7 +141,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                         break
                     try:
                         await asyncio.wait_for(self._queue_changed.wait(), timeout=remaining)
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         break
             else:
                 batch.append(item)

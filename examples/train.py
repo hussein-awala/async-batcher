@@ -6,6 +6,7 @@ The model can be one of the following:
 - Random Forest
 - TensorFlow
 """
+
 from __future__ import annotations
 
 import argparse

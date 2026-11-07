@@ -42,12 +42,7 @@ load tests with the new version, the new configuration, and a faster increase in
 from concurrent.futures import ThreadPoolExecutor
 
 executor = ThreadPoolExecutor(max_workers=12)
-batcher = MlBatcher(
-    model=model,
-    max_queue_time=0.01,
-    concurrency=12,
-    executor=executor
-)
+batcher = MlBatcher(model=model, max_queue_time=0.01, concurrency=12, executor=executor)
 ```
 And the results were impressive:
 

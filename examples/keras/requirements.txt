@@ -1,5 +1,6 @@
-tensorflow>=2.16.1
+tensorflow>=2.21,<3
 keras>=3.15.1,<4
-fastapi
-uvicorn
-locust
+numpy>=2.0,<3
+fastapi>=0.162,<1
+uvicorn>=0.54,<1
+locust>=2.47,<3
