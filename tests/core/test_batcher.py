@@ -5,7 +5,7 @@ import asyncio
 import pytest
 from async_batcher.exceptions import QueueFullException
 
-from tests.conftest import MockAsyncBatcher, SlowAsyncBatcher
+from tests.conftest import SlowAsyncBatcher
 from tests.core_helpers import GatedBatcher
 
 
@@ -60,31 +60,31 @@ async def test_process_batch_with_bigger_buffer(mock_async_batcher):
 
 
 @pytest.mark.asyncio
-async def test_process_batch_with_short_buffering_time():
-    batcher = MockAsyncBatcher(
-        max_batch_size=10,
-        max_queue_time=0.2,
-    )
+async def test_process_batch_with_short_buffering_time(harness):
+    batcher = harness.create(max_batch_size=10, max_queue_time=0.2)
 
-    calls_maker1 = CallsMaker(batcher, 0, 0, 5)
-    calls_maker2 = CallsMaker(batcher, 0.25, 5, 20)
-    calls_maker3 = CallsMaker(batcher, 0.4, 20, 30)
-    await asyncio.gather(calls_maker1.arun(), calls_maker2.arun(), calls_maker3.arun())
+    async with asyncio.timeout(3):
+        # Wait for the first partial batch to expire before submitting more work.
+        # Relative sleeps cannot reliably place arrivals before a later deadline
+        # on a busy event loop.
+        first = harness.submit(batcher, *range(5))
+        assert await asyncio.gather(*first) == [item * 2 for item in range(5)]
+        assert batcher.batches == [list(range(5))]
 
-    assert batcher.mock_batch_processor.call_count == 4
-    # the first range of size 5 should be processed in a single batch
-    assert batcher.mock_batch_processor.mock_calls[0].kwargs["batch"] == list(range(5))
-    # the second range of size 15 should be processed in 2 batches
-    assert batcher.mock_batch_processor.mock_calls[1].kwargs["batch"] == list(range(5, 15))
-    # the second part of the second range should be processed with 5 items from the third range
-    assert batcher.mock_batch_processor.mock_calls[2].kwargs["batch"] == list(range(15, 25))
-    # the last 5 items should be processed in a single batch
-    assert batcher.mock_batch_processor.mock_calls[3].kwargs["batch"] == list(range(25, 30))
-    # the results should be correct regardless the number of needed batches
-    assert calls_maker1.result == [i * 2 for i in range(5)]
-    assert calls_maker2.result == [i * 2 for i in range(5, 20)]
-    assert calls_maker3.result == [i * 2 for i in range(20, 30)]
-    await batcher.stop()
+        # Submit both producers without an intervening yield. Their requests must
+        # share full batches, and the remaining partial batch must also expire.
+        second = harness.submit(batcher, *range(5, 20))
+        third = harness.submit(batcher, *range(20, 30))
+        assert await asyncio.gather(*second) == [item * 2 for item in range(5, 20)]
+        assert await asyncio.gather(*third) == [item * 2 for item in range(20, 30)]
+        await batcher.stop()
+
+    assert batcher.batches == [
+        list(range(5)),
+        list(range(5, 15)),
+        list(range(15, 25)),
+        list(range(25, 30)),
+    ]
 
 
 @pytest.mark.asyncio
