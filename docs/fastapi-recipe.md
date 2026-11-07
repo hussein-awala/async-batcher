@@ -1,7 +1,8 @@
 # FastAPI lifespan, predictions, and SQLite writes
 
 [This runnable app](../examples/recipes/fastapi_app.py) creates one prediction batcher and one
-SQLite writer during FastAPI startup. The lifespan context drains both before shutdown finishes.
+SQLite writer during FastAPI startup. Lifespan closes intake before attempting graceful drain,
+with optional bounded escalation to force cleanup.
 It uses a deterministic weighted sum as a **demo predictor, not a trained model**, and real SQLite
 transactions for writes. No model download, server account, or credentials are needed.
 
@@ -95,9 +96,12 @@ producers. `max_queue_time` is a collection delay, not a handler deadline.
 When lifespan shutdown starts, the app rejects late submissions instead of restarting a drained
 child. It waits for accepted work to finish before clearing application state. Cancelling an HTTP
 handler does not retract a backend write; caller cancellation and shutdown are not rollback
-guarantees. The normal context exit is graceful and has no implicit timeout. Configure your server's
-shutdown budget and use an explicit application force policy when required; running synchronous
-functions cannot be interrupted by cancelling their asyncio tasks.
+guarantees. The CLI demo waits up to two seconds for each response (504 on expiry), then permits
+five seconds for graceful shutdown and one second for force cleanup. `create_app` defaults those
+three optional settings to `None`; choose explicit budgets for your application. A response timeout
+does not stop accepted backend work. A force-cleanup timeout is surfaced instead of silently ignored.
+See [operational deadlines](operations.md) for backend timeouts, server/supervisor budgets, and
+thread ownership: running synchronous functions cannot be interrupted by cancelling asyncio tasks.
 
 `create_app(database, prediction_processor=...)` can inject a real bulk function. Regular functions
 run in the thread executor; async functions must avoid blocking the event loop. Load application-owned

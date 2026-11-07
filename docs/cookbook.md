@@ -10,6 +10,8 @@ uv sync --locked --no-default-groups --python 3.12
 
 For an HTTP application, the separate [FastAPI recipe](fastapi-recipe.md) uses an optional development
 group and demonstrates lifespan-managed prediction and SQLite batchers with real HTTP tests.
+The [operational recipes](operations.md) add separate response/backend/deployment deadlines,
+shared capacity across groups, caller-owned thread cleanup, and bounded telemetry export.
 
 ## Import a file or async stream into SQLite
 
