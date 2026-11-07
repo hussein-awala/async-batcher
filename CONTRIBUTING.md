@@ -3,6 +3,18 @@
 We welcome contributions from the community and are happy to have them.
 Please follow this guide when logging issues or making changes.
 
+## Development tools
+
+Run `pre-commit` in a Python 3.11 or newer environment. The patched `filelock`
+release used by the development tools requires Python 3.11; the library and its
+tests continue to support Python 3.10. Poetry omits the lint environment tools
+when installing development dependencies on Python 3.10.
+
+```bash
+poetry install
+poetry run pre-commit run --all-files
+```
+
 ## Testing
 
 We use `pytest` for testing. Install the project and development dependencies with all adapter extras from the

@@ -41,7 +41,9 @@ sqlalchemy = ["sqlalchemy"]
 mock = "^5.1.0"
 pytest = "^8"
 pytest-asyncio = "^0.23.5"
-pre-commit = "^3"
+pre-commit = {version = "^3", python = ">=3.11"}
+virtualenv = {version = ">=21.14.9 <22", python = ">=3.11"}
+filelock = {version = ">=4.2.1 <5", python = ">=3.11"}
 types-aioboto3 = {version = "^13.1", extras = ["dynamodb"]}
 aiosqlite = "^0.20"
 asyncpg = "^0.29"
