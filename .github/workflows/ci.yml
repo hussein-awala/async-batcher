@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
+    types: [opened, reopened, synchronize]
   push:
     branches: [main]
   schedule:
@@ -23,7 +23,6 @@ defaults:
     shell: bash
 
 env:
-  PIP_DISABLE_PIP_VERSION_CHECK: '1'
   PYTHONUNBUFFERED: '1'
 
 jobs:
@@ -72,7 +71,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Run the core gate without optional dependencies
-        run: poetry run python -m pytest tests/core -ra
+        run: uv run --no-sync python -m pytest tests/core -ra
 
   adapters:
     name: Adapter (${{ matrix.suite }}, Python ${{ matrix.python }})
@@ -103,8 +102,8 @@ jobs:
           KERAS_BACKEND: jax
           KERAS_HOME: ${{ runner.temp }}/keras
         run: |
-          poetry run python .github/scripts/check_adapter.py "$TEST_SUITE"
-          poetry run python -m pytest "tests/adapters/$TEST_SUITE" -ra
+          uv run --no-sync python .github/scripts/check_adapter.py "$TEST_SUITE"
+          uv run --no-sync python -m pytest "tests/adapters/$TEST_SUITE" -ra
 
   services:
     name: Service (${{ matrix.suite }})
@@ -132,10 +131,10 @@ jobs:
         timeout-minutes: 6
         run: |
           docker compose up -d --wait --wait-timeout 180
-          poetry run python .github/scripts/wait_for_service.py "$TEST_SUITE"
+          uv run --no-sync python .github/scripts/wait_for_service.py "$TEST_SUITE"
       - name: Run integration tests
         timeout-minutes: 5
-        run: poetry run python -m pytest "tests/integration/$TEST_SUITE" -ra
+        run: uv run --no-sync python -m pytest "tests/integration/$TEST_SUITE" -ra
       - name: Capture service diagnostics
         if: ${{ always() }}
         run: |
@@ -167,22 +166,22 @@ jobs:
       - uses: ./.github/actions/setup-project
         with:
           python-version: '3.12'
-          groups: main,lint
+          groups: lint
       - name: Cache pre-commit hook environments
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ runner.arch }}-py312-${{ hashFiles('.pre-commit-config.yaml', 'poetry.lock') }}
+          key: pre-commit-${{ runner.os }}-${{ runner.arch }}-py312-${{ hashFiles('.pre-commit-config.yaml', 'uv.lock') }}
       - name: Check source formatting and lint
-        run: poetry run pre-commit run --all-files --show-diff-on-failure
+        run: uv run --no-sync pre-commit run --all-files --show-diff-on-failure
       - name: Validate workflow expressions and shell commands
         run: |
           bash .github/scripts/check-workflows.sh
-          python -m unittest discover -s .github/scripts -p 'test_*.py'
+          uv run --no-sync python -m unittest discover -s .github/scripts -p 'test_*.py'
       - name: Validate the lock and build both distributions
         run: |
-          poetry check --lock
-          poetry build
+          uv lock --check
+          uv build
 
   ci:
     name: CI passed

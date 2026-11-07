@@ -18,13 +18,16 @@ jobs:
       - uses: ./.github/actions/setup-project
         with:
           python-version: '3.12'
-          groups: main
+          groups: ''
       - name: Set the release version from the tag
         env:
           RELEASE_VERSION: ${{ github.ref_name }}
-        run: poetry version "$RELEASE_VERSION"
+        # Update the root package in uv.lock without installing development tools.
+        run: uv version --no-sync "$RELEASE_VERSION"
       - name: Build release distributions
-        run: poetry build
+        run: |
+          uv lock --check
+          uv build
       - name: Upload distributions
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

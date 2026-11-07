@@ -14,14 +14,14 @@ def plan(event: str, changed: set[str]) -> dict:
     adapters = []
     services = []
     for suite, groups in (
-        ("aws", "main,test"),
-        ("kafka", "main,test"),
-        ("sqlalchemy", "main,test,adapter-test"),
-        ("scylla", "main,test"),
-        ("mongodb", "main,test"),
-        ("keras", "main,test,ml-test"),
-        ("sklearn", "main,test"),
-        ("pinecone", "main,test"),
+        ("aws", "test"),
+        ("kafka", "test"),
+        ("sqlalchemy", "test adapter-test"),
+        ("scylla", "test"),
+        ("mongodb", "test"),
+        ("keras", "test ml-test"),
+        ("sklearn", "test"),
+        ("pinecone", "test"),
     ):
         if not full and suite not in changed:
             continue

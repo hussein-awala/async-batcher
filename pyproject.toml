@@ -9,6 +9,14 @@ keywords = ["python", "asyncio", "rest", "grpc", "fastapi"]
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 dependencies = []
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+]
 
 [project.urls]
 Repository = "https://github.com/hussein-awala/async-batcher"
@@ -30,49 +38,36 @@ sqlalchemy = ["sqlalchemy[asyncio]>=2.0.10,<3"]
 pinecone = ["pinecone>=10.3,<11"]
 mongodb = ["pymongo>=4.19,<5"]
 
-[tool.poetry]
-requires-poetry = ">=2.5.1,<3"
-packages = [{include = "async_batcher"}]
-
-[tool.poetry.group.test.dependencies]
-pytest = ">=9.0.3 <10"
-pytest-asyncio = ">=1.4.1.post1 <2"
-pygments = ">=2.20 <3"
-
-[tool.poetry.group.adapter-test]
-optional = true
-
-[tool.poetry.group.adapter-test.dependencies]
-aiosqlite = "^0.22.1"
-asyncpg = "^0.32"
-
-[tool.poetry.group.ml-test]
-optional = true
-
-[tool.poetry.group.ml-test.dependencies]
-jax = [
-    {version = ">=0.10.2 <0.11", python = ">=3.11,<3.12"},
-    {version = ">=0.12.0.1 <0.13", python = ">=3.12"}
+[dependency-groups]
+test = [
+    "pytest>=9.0.3,<10",
+    "pytest-asyncio>=1.4.1.post1,<2",
+    "pygments>=2.20,<3",
 ]
+adapter-test = ["aiosqlite>=0.22.1,<0.23", "asyncpg>=0.32,<0.33"]
+ml-test = [
+    "jax>=0.10.2,<0.11; python_version < '3.12'",
+    "jax>=0.12.0.1,<0.13; python_version >= '3.12'",
+]
+lint = [
+    "pre-commit>=4.7,<5",
+    "virtualenv>=21.14.9,<22",
+    "filelock>=4.2.1,<5",
+    "ruff==0.17.4",
+]
+typing = ["types-aioboto3[dynamodb]>=15.5,<16"]
 
-[tool.poetry.group.lint]
-optional = true
+[tool.uv]
+required-version = ">=0.13.7"
+default-groups = ["test"]
 
-[tool.poetry.group.lint.dependencies]
-pre-commit = "^4.7"
-virtualenv = ">=21.14.9 <22"
-filelock = ">=4.2.1 <5"
-ruff = "==0.17.4"
-
-[tool.poetry.group.typing]
-optional = true
-
-[tool.poetry.group.typing.dependencies]
-types-aioboto3 = {version = "^15.5", extras = ["dynamodb"]}
+[tool.uv.build-backend]
+module-name = "async_batcher"
+module-root = ""
 
 [build-system]
-requires = ["poetry-core>=2.5.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.13.7,<0.14"]
+build-backend = "uv_build"
 
 [tool.ruff]
 target-version = "py311"

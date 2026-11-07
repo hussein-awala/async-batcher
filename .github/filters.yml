@@ -2,7 +2,7 @@
 infrastructure: &infrastructure
   - '.github/**'
   - 'pyproject.toml'
-  - 'poetry.lock'
+  - 'uv.lock'
   - 'pytest.ini'
 # macOS core checks are needed when the core implementation or its test inputs change.
 core:
