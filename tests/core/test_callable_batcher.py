@@ -119,6 +119,9 @@ async def test_regular_function_returning_awaitable_is_awaited_on_the_event_loop
         def __await__(self):
             return self.coroutine.__await__()
 
+        def close(self):
+            self.coroutine.close()
+
     for factory in (compute, lambda items: Wrapped(compute(items))):
         async with AsyncBatcher.from_callable(
             lambda items, factory=factory: factory(items), max_queue_time=0
@@ -197,6 +200,9 @@ async def test_forced_stop_disposes_late_thread_result_without_starting_awaitabl
         def __await__(self):
             return self.coroutine.__await__()
 
+        def close(self):
+            self.coroutine.close()
+
     def processor(items):
         started.set()
         release.wait(2)
@@ -226,3 +232,27 @@ async def test_forced_stop_disposes_late_thread_result_without_starting_awaitabl
     gc.collect()
     assert ran == []
     assert not [warning for warning in recwarn if "never awaited" in str(warning.message)]
+
+
+@pytest.mark.asyncio
+async def test_late_custom_awaitable_is_not_started_and_cleanup_failure_is_logged(caplog):
+    from async_batcher.callable import _discard_late_result
+
+    effects = []
+
+    class Awaitable:
+        def __await__(self):
+            effects.append("started")
+            raise ValueError("must never start")
+
+    class BrokenCleanup(Awaitable):
+        def close(self):
+            effects.append("cleanup")
+            raise ValueError("cleanup failed")
+
+    for result in (Awaitable(), BrokenCleanup()):
+        future = asyncio.get_running_loop().create_future()
+        future.set_result(result)
+        _discard_late_result(future)
+    assert effects == ["cleanup"]
+    assert "Error closing a late callable result" in caplog.text

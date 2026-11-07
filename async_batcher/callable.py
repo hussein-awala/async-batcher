@@ -54,13 +54,19 @@ def _discard_late_result(future: asyncio.Future) -> None:
         result = future.result()
     except BaseException:
         return
-    if inspect.iscoroutine(result):
-        result.close()
-    elif inspect.isawaitable(result) and not isinstance(result, asyncio.Future):
-        iterator = result.__await__()
-        close = getattr(iterator, "close", None)
-        if callable(close):
-            close()
+    try:
+        if inspect.iscoroutine(result):
+            result.close()
+        elif not isinstance(result, asyncio.Future):
+            # __await__ can execute arbitrary work. Only an explicit cleanup
+            # method is safe to request after cancellation; never start waiting.
+            close = getattr(result, "close", None)
+            if callable(close) and not inspect.iscoroutinefunction(close):
+                returned = close()
+                if inspect.iscoroutine(returned):
+                    returned.close()
+    except Exception:
+        AsyncBatcher.logger.error("Error closing a late callable result", exc_info=True)
 
 
 def create_batcher(processor, **kwargs):

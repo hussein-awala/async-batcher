@@ -29,6 +29,9 @@ with the same context propagation as synchronous subclass processors. If a regul
 function returns an awaitable (for example, a decorator wraps an async function),
 the wrapper awaits that result on the event loop. Async generators are not supported. Forced shutdown cannot interrupt a running thread;
 a fresh coroutine returned after cancellation is closed without being executed.
+A custom awaitable can provide a synchronous `close()` method for this cleanup.
+Other custom awaitables and already-running tasks remain processor-owned after
+cancellation: the wrapper does not invoke `__await__` or cancel borrowed tasks.
 
 Return one result per input in order, or `None` for a write-only operation. Existing
 [error and result rules](api.md#results-and-errors) apply, including per-item exceptions.
