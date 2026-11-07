@@ -32,14 +32,35 @@ class _SyncCallableBatcher(AsyncBatcher[T, S]):
 
     async def process_batch(self, batch: list[T]) -> Sequence[S] | None:
         loop = asyncio.get_running_loop()
-        results = await loop.run_in_executor(
+        future = loop.run_in_executor(
             self.executor, copy_context().run, _run_sync_batch, self._processor, batch
         )
+        try:
+            results = await asyncio.shield(future)
+        except asyncio.CancelledError:
+            # Python cannot interrupt the thread. Observe its eventual result
+            # and dispose a fresh coroutine instead of starting it after stop.
+            future.add_done_callback(_discard_late_result)
+            raise
         # Decorators and regular callable objects can return awaitables without
         # being recognized as coroutine functions. Await them on the event loop.
         if inspect.isawaitable(results):
             return await results
         return results
+
+
+def _discard_late_result(future: asyncio.Future) -> None:
+    try:
+        result = future.result()
+    except BaseException:
+        return
+    if inspect.iscoroutine(result):
+        result.close()
+    elif inspect.isawaitable(result) and not isinstance(result, asyncio.Future):
+        iterator = result.__await__()
+        close = getattr(iterator, "close", None)
+        if callable(close):
+            close()
 
 
 def create_batcher(processor, **kwargs):

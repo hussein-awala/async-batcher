@@ -27,7 +27,8 @@ methods, partials of async functions, and objects with an async `__call__` execu
 on the event loop. Regular functions execute in the configured thread executor,
 with the same context propagation as synchronous subclass processors. If a regular
 function returns an awaitable (for example, a decorator wraps an async function),
-the wrapper awaits that result on the event loop. Async generators are not supported.
+the wrapper awaits that result on the event loop. Async generators are not supported. Forced shutdown cannot interrupt a running thread;
+a fresh coroutine returned after cancellation is closed without being executed.
 
 Return one result per input in order, or `None` for a write-only operation. Existing
 [error and result rules](api.md#results-and-errors) apply, including per-item exceptions.

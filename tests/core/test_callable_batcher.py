@@ -174,3 +174,55 @@ async def test_context_with_no_submissions_does_not_start_dispatcher(harness):
     async with batcher:
         assert not await batcher.is_running()
     assert batcher._current_task is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("outcome", ["coroutine", "wrapped", "error", "value"])
+async def test_forced_stop_disposes_late_thread_result_without_starting_awaitable(outcome, recwarn):
+    import gc
+
+    started = threading.Event()
+    release = threading.Event()
+    returned = threading.Event()
+    ran = []
+
+    async def compute():
+        ran.append(True)
+        return [1]
+
+    class Wrapped:
+        def __init__(self, coroutine):
+            self.coroutine = coroutine
+
+        def __await__(self):
+            return self.coroutine.__await__()
+
+    def processor(items):
+        started.set()
+        release.wait(2)
+        returned.set()
+        if outcome == "error":
+            raise ValueError("late error")
+        if outcome == "coroutine":
+            return compute()
+        if outcome == "wrapped":
+            return Wrapped(compute())
+        return items
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        batcher = AsyncBatcher.from_callable(processor, executor=executor, max_queue_time=0)
+        request = asyncio.create_task(batcher.process(1))
+        try:
+            await asyncio.wait_for(wait_until(started.is_set), 1)
+            await batcher.stop(force=True)
+            with pytest.raises(asyncio.CancelledError):
+                await request
+        finally:
+            release.set()
+        await asyncio.wait_for(wait_until(returned.is_set), 1)
+    # Let the executor result and its disposal callback reach the loop.
+    for _ in range(5):
+        await asyncio.sleep(0)
+    gc.collect()
+    assert ran == []
+    assert not [warning for warning in recwarn if "never awaited" in str(warning.message)]
