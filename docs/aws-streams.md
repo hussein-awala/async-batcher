@@ -61,6 +61,11 @@ The deprecated `batch_size` alias still warns and overrides `max_batch_size`; th
 limit applies to its effective value.
 `max_retries` defaults to 5 retries after the initial request; zero disables
 record retries. Exponential backoff starts at 0.1 seconds and caps at 5 seconds.
+Set `retry_jitter=True` to choose each delay uniformly between zero and that backoff
+limit, spreading concurrent clients' retry attempts. It defaults to `False`, preserving
+the deterministic delays. Jitter changes only the waiting interval; retry counts, eligible
+error codes, and cancellation behavior are unchanged. This follows AWS's
+[backoff and jitter guidance](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/).
 Only explicitly rejected records with retryable service error codes are retried.
 Successful records are never deliberately resent by the batcher. Exhausted or
 nonretryable record errors raise `RecordBatchError` for that caller, with `code`,
