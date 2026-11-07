@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import aioboto3
+from boto3.dynamodb.types import Binary
 
 from async_batcher.aws.dynamodb._retry import batch_responses, validate_max_retries
 from async_batcher.batcher import AsyncBatcher
@@ -20,7 +21,7 @@ class GetItem:
     key: dict[str, TableAttributeValueTypeDef]
 
 
-class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any]]):
+class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any] | None]):
     """Batcher for DynamoDB GetItem operation. It uses aioboto3 to interact with DynamoDB.
 
     Args:
@@ -68,10 +69,22 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any]]):
         self.config = config
         self.aioboto3_session = aioboto3_session or aioboto3.Session()
 
-    async def process_batch(self, batch: list[GetItem]) -> list[dict[str, TableAttributeValueTypeDef]]:
+    @staticmethod
+    def _item_key(table: str, item: dict, key_names: list[str]) -> tuple:
+        values = []
+        for key in key_names:
+            value = item[key]
+            if isinstance(value, Binary):
+                value = value.value
+            if isinstance(value, bytearray):
+                value = bytes(value)
+            values.append(value)
+        return (table, *values)
+
+    async def process_batch(self, batch: list[GetItem]) -> list[dict[str, TableAttributeValueTypeDef] | None]:
         if not batch:
             return []
-        indexed_items: dict[tuple, int] = {}
+        indexed_items: dict[tuple, list[int]] = {}
         request_items = {}
         tables_keys = {}
         for ind, item in enumerate(batch):
@@ -79,8 +92,11 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any]]):
                 request_items[item.table_name] = {"Keys": []}
                 tables_keys[item.table_name] = sorted(item.key.keys())
             # TODO: support ProjectionExpression and ConsistentRead
-            request_items[item.table_name]["Keys"].append(item.key)
-            indexed_items[(item.table_name, *[item.key[key] for key in tables_keys[item.table_name]])] = ind
+            key = self._item_key(item.table_name, item.key, tables_keys[item.table_name])
+            if key not in indexed_items:
+                request_items[item.table_name]["Keys"].append(item.key)
+                indexed_items[key] = []
+            indexed_items[key].append(ind)
 
         dynamodb: DynamoDBServiceResource
         async with self.aioboto3_session.resource(
@@ -101,6 +117,7 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any]]):
             ):
                 for table, items in response.get("Responses", {}).items():
                     for item in items:
-                        index = indexed_items[(table, *[item[key] for key in tables_keys[table]])]
-                        result[index] = item
+                        key = self._item_key(table, item, tables_keys[table])
+                        for index in indexed_items[key]:
+                            result[index] = item
             return result
