@@ -43,6 +43,25 @@ jobs:
               - "tests/integration/**"
               - "poetry.lock"
 
+  core-tests:
+    needs: changed-files
+    if: ${{ needs.changed-files.outputs.should_run_unit_tests == 'true' || github.event.action == 'reopened' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install core and test dependencies without adapter extras
+        run: pip install -e . "pytest>=8,<9" "pytest-asyncio>=0.23.5,<0.24"
+
+      - name: Run core tests
+        run: python -m pytest tests/test_batcher*.py
+
   unit-tests:
     needs: changed-files
     if: ${{ needs.changed-files.outputs.should_run_unit_tests == 'true' || github.event.action == 'reopened' }}

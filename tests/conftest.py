@@ -6,9 +6,6 @@ from unittest import mock
 import pytest
 from async_batcher.batcher import AsyncBatcher
 
-from sqlalchemy import String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
 
 def pytest_runtest_setup(item):
     def _has_marker(item, marker_name: str) -> bool:
@@ -46,15 +43,3 @@ def mock_async_batcher():
     yield batcher
     asyncio.get_event_loop().run_until_complete(batcher.stop())
     batcher.mock_batch_processor.reset_mock()
-
-
-class BaseModel(DeclarativeBase):
-    pass
-
-
-class _TestModel(BaseModel):
-    __tablename__ = "test_table"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(30))
-    age: Mapped[int] = mapped_column()
