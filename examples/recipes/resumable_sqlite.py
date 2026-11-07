@@ -17,7 +17,7 @@ from functools import partial
 from pathlib import Path
 
 from async_batcher import AsyncBatcher
-from examples.recipes.support import BatchMeasurements, Document
+from examples.recipes.support import BatchMeasurements, Document, JSONLRecordError
 
 
 class SourceChanged(ValueError):
@@ -85,15 +85,17 @@ def read_chunk(source: Source, offset: int, *, chunk_size: int = 32, max_line_by
             if not line:
                 break
             if len(line) > max_line_bytes:
-                raise ValueError(f"JSONL record at byte {start} exceeds the line limit")
+                raise JSONLRecordError(source.path, start, "JSONL record exceeds the line limit")
             try:
                 value = json.loads(line.decode("utf-8"))
-            except (ValueError, UnicodeError) as error:
-                raise ValueError(f"Invalid UTF-8 JSON record at byte {start}") from error
+            except (ValueError, UnicodeError):
+                raise JSONLRecordError(source.path, start, "Invalid UTF-8 JSON record") from None
             if not isinstance(value, dict) or set(value) != {"id", "text"}:
-                raise ValueError(f"Record at byte {start} must contain exactly id and text")
+                raise JSONLRecordError(source.path, start, "Record must contain exactly id and text")
             if not isinstance(value["id"], str) or not value["id"] or not isinstance(value["text"], str):
-                raise ValueError(f"Record at byte {start} needs a nonempty string id and string text")
+                raise JSONLRecordError(
+                    source.path, start, "Record needs a nonempty string id and string text"
+                )
             records.append(Record(start, stream.tell(), Document(**value)))
         if _stamp(os.fstat(stream.fileno())) != source.stamp:
             raise SourceChanged("Source changed while reading")

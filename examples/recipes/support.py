@@ -19,6 +19,14 @@ class Document:
     text: str
 
 
+class JSONLRecordError(ValueError):
+    """A payload-free failure at the beginning of a record (zero-based byte offset)."""
+
+    def __init__(self, path: Path, offset: int, reason: str):
+        self.path, self.offset, self.reason = path, offset, reason
+        super().__init__(f"{path}: byte {offset}: {reason}")
+
+
 @dataclass
 class BatchMeasurements:
     # Sizes are bounded by the count/pending limits; no per-item data is retained.
@@ -41,16 +49,22 @@ def _read_chunk(path: Path, offset: int, chunk_size: int, max_line_bytes: int):
     with path.open("rb") as stream:
         stream.seek(offset)
         for _ in range(chunk_size):
+            start = stream.tell()
             line = stream.readline(max_line_bytes + 1)
             if not line:
                 break
             if len(line) > max_line_bytes:
-                raise ValueError(f"JSONL record exceeds {max_line_bytes} bytes")
-            value = json.loads(line)
+                raise JSONLRecordError(path, start, f"JSONL record exceeds {max_line_bytes} bytes")
+            try:
+                value = json.loads(line.decode("utf-8"))
+            except (ValueError, UnicodeError):
+                # Decoder exceptions may retain or display source contents. Do not
+                # expose them through the normal exception traceback chain.
+                raise JSONLRecordError(path, start, "Invalid UTF-8 JSON record") from None
             if not isinstance(value, dict) or set(value) != {"id", "text"}:
-                raise ValueError("Each JSONL record must contain exactly id and text")
+                raise JSONLRecordError(path, start, "Each JSONL record must contain exactly id and text")
             if not isinstance(value["id"], str) or not isinstance(value["text"], str):
-                raise ValueError("JSONL id and text must be strings")
+                raise JSONLRecordError(path, start, "JSONL id and text must be strings")
             documents.append(Document(**value))
         return documents, stream.tell()
 
