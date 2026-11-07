@@ -82,6 +82,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self._queue_changed = asyncio.Event()
         self._current_task: asyncio.Task | None = None
         self._running_batches: dict[int, asyncio.Task] = {}
+        self._processing_tasks: set[asyncio.Task] = set()
         self._pending_futures: set[asyncio.Future] = set()
         self._concurrency_semaphore = asyncio.Semaphore(concurrency) if concurrency > 0 else None
         self._stop = asyncio.Event()
@@ -144,6 +145,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
     async def _batch_run(self, batch: list[QueueItem]):
         if self._force_stopped:
             return
+        task = asyncio.current_task()
+        self._processing_tasks.add(task)
         loop = asyncio.get_running_loop()
         started_at = loop.time()
         try:
@@ -170,6 +173,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 else:
                     q_item.future.set_result(result)
         finally:
+            self._processing_tasks.discard(task)
             self.logger.debug(
                 "Processed batch of %s elements in %s seconds.", len(batch), loop.time() - started_at
             )
@@ -252,6 +256,10 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         pending results and awaits task cleanup. Running executor functions cannot
         be interrupted and may finish after forced shutdown returns.
         """
+        if asyncio.current_task() in self._processing_tasks:
+            raise RuntimeError(
+                "stop() cannot be awaited from process_batch; call it from outside the processor"
+            )
         self._stop.set()
         self._queue_changed.set()
         if force and not self._force_stopped:

@@ -139,7 +139,7 @@ asyncio.run(main())
 - Each processor returns one result per input, in the same order. Returning `None` resolves every item with `None`.
   An exception raised by the processor fails the entire batch; an exception in the result list fails only that item.
 - A batcher belongs to one event loop and cannot be restarted after stopping. Prefer `try/finally` to ensure
-  `await batcher.stop()` runs before closing application resources.
+  `await batcher.stop()` runs before closing application resources. Call `stop()` from outside `process_batch`.
   Invalid limits and unknown options raise during construction rather than being silently accepted.
 
 ## Benchmark
