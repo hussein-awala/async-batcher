@@ -78,7 +78,8 @@ the same scheduled instant, then wait `burst_size / rate` seconds; a final burst
 Offered counts are bounded at 250,000 per trial. One seeded key sequence is shared across
 implementations: key 0 gets `hot_fraction`, and remaining keys split the rest randomly.
 
-The clock schedule never moves because requests are slow. If the event loop falls behind,
+The driver rechecks each deadline after waking, so an early asyncio timer callback does not
+emit an early arrival or shorten the arrival window. The clock schedule never moves because requests are slow. If the event loop falls behind,
 the generator catches up and retains each original timestamp; it yields every 64 overdue
 arrivals so generation itself cannot monopolize the loop indefinitely. Launch lateness is
 recorded for **all** arrivals, including rejected ones. Large lateness means the local load
