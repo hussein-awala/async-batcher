@@ -41,6 +41,8 @@ class AsyncScyllaDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
     Invalid operations return an error in their result position and are not
     submitted. Valid operations still execute when other items fail validation.
     Empty batches and batches containing only invalid operations create no query.
+    All valid operations must use the same model connection; a mixed-connection
+    batch fails before any writes are submitted.
     """
 
     def process_batch(self, batch: list[WriteOperation]) -> list[None | Exception]:
@@ -51,7 +53,11 @@ class AsyncScyllaDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
         if not valid_ops:
             return results
 
-        with BatchQuery() as b:
+        connections = {getattr(op.model, "__connection__", None) for op in valid_ops}
+        if len(connections) != 1:
+            raise ValueError("All operations in a batch must use the same connection")
+
+        with BatchQuery(connection=connections.pop()) as b:
             for op in valid_ops:
                 if op.operation == "INSERT":
                     op.model.batch(b).create(**op.data)
