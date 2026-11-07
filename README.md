@@ -78,6 +78,7 @@ Existing [subclasses](docs/api.md) and adapters support the same managed lifecyc
 - [Cost budgets](docs/cost-aware-batching.md): byte, token, or work limits alongside batch counts.
 - [Operational visibility](docs/observability.md): snapshots and payload-free completion events.
 - [Grouped batching](docs/grouped-batching.md): isolate compatible requests with bounded child ownership.
+- [In-flight coalescing](docs/coalescing.md): share equivalent concurrent requests with bounded ownership.
 - [Cookbook](docs/cookbook.md): runnable SQLite imports, embedding pipelines, and measured batch sizes.
 - [FastAPI recipe](docs/fastapi-recipe.md): lifespan-managed predictions, SQLite writes, and HTTP overload handling.
 - [Operational recipes](docs/operations.md): separate deadlines, shared backend capacity, thread lifetime, and bounded telemetry.

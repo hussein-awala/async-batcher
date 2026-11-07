@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from async_batcher import AsyncBatcher, BatchEvent, GroupedBatcher
+from async_batcher import AsyncBatcher, BatchEvent, CoalescingBatcher, GroupedBatcher
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -92,3 +92,13 @@ async def invalid_grouped_streams() -> None:
 
 GroupedBatcher(factory, group_key=key, max_pending_items="many")  # error: arg-type
 grouped.pending_items = 9  # error: misc
+
+
+coalesced = CoalescingBatcher(batcher, key=key)
+CoalescingBatcher(batcher, key=key, max_keys="many")  # error: arg-type
+coalesced.waiting_callers = 9  # error: misc
+
+
+async def invalid_coalescing() -> None:
+    await coalesced.process("bad")  # error: arg-type
+    _wrong: int = await coalesced.process(1)  # error: assignment
