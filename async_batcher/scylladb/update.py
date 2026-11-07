@@ -19,31 +19,44 @@ class WriteOperation:
     data: dict[str, Any] | None = None
 
 
+def _validate_operation(op: WriteOperation) -> ValueError | None:
+    """Validate a write operation before executing it.
+
+    Returns None if valid, or a ValueError describing the issue.
+    """
+    if op.operation not in {"INSERT", "UPDATE", "DELETE"}:
+        return ValueError(f"Invalid operation: {op.operation}")
+    if op.operation == "INSERT" and op.data is None:
+        return ValueError("data must be provided for INSERT operations")
+    if op.operation == "UPDATE" and (op.key is None or op.data is None):
+        return ValueError("key and data must be provided for UPDATE operations")
+    if op.operation == "DELETE" and op.key is None:
+        return ValueError("key must be provided for DELETE operations")
+    return None
+
+
 class AsyncScyllaDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
-    """Batcher for ScyllaDB write operations."""
+    """Batch ScyllaDB writes after validating each operation.
+
+    Invalid operations return an error in their result position and are not
+    submitted. Valid operations still execute when other items fail validation.
+    Empty batches and batches containing only invalid operations create no query.
+    """
 
     def process_batch(self, batch: list[WriteOperation]) -> list[None | Exception]:
-        results = []
+        # Validate all operations before executing any
+        results: list[None | Exception] = [_validate_operation(op) for op in batch]
+        valid_ops = [op for op, error in zip(batch, results, strict=True) if error is None]
+
+        if not valid_ops:
+            return results
+
         with BatchQuery() as b:
-            for op in batch:
+            for op in valid_ops:
                 if op.operation == "INSERT":
-                    if op.data is None:
-                        results.append(ValueError("data must be provided for INSERT operations"))
-                    else:
-                        op.model.batch(b).create(**op.data)
-                        results.append(None)
+                    op.model.batch(b).create(**op.data)
                 elif op.operation == "UPDATE":
-                    if op.key is None or op.data is None:
-                        results.append(ValueError("key and data must be provided for UPDATE operations"))
-                    else:
-                        op.model.objects(**op.key).batch(b).update(**op.data)
-                        results.append(None)
+                    op.model.objects(**op.key).batch(b).update(**op.data)
                 elif op.operation == "DELETE":
-                    if op.key is None:
-                        results.append(ValueError("key must be provided for DELETE operations"))
-                    else:
-                        op.model.objects(**op.key).batch(b).delete()
-                        results.append(None)
-                else:
-                    results.append(ValueError(f"Invalid operation: {op.operation}"))
+                    op.model.objects(**op.key).batch(b).delete()
         return results
