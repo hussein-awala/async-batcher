@@ -9,6 +9,7 @@ MODULES = {
     "aws": ("aioboto3",),
     "sqlalchemy": ("sqlalchemy", "aiosqlite"),
     "scylla": ("cassandra.cluster",),
+    "mongodb": ("pymongo",),
     "keras": ("jax", "keras"),
     "sklearn": ("sklearn",),
     "pinecone": ("pinecone",),

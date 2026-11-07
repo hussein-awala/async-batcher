@@ -17,6 +17,7 @@ def plan(event: str, changed: set[str]) -> dict:
         ("aws", "main,test"),
         ("sqlalchemy", "main,test,adapter-test"),
         ("scylla", "main,test"),
+        ("mongodb", "main,test"),
         ("keras", "main,test,ml-test"),
         ("sklearn", "main,test"),
         ("pinecone", "main,test"),
@@ -25,13 +26,18 @@ def plan(event: str, changed: set[str]) -> dict:
             continue
         for version in ["3.11", "3.15"] if full else ["3.12"]:
             adapters.append({"suite": suite, "python": version, "groups": groups})
-        if suite in {"aws", "sqlalchemy", "scylla"}:
+        if suite in {"aws", "sqlalchemy", "scylla", "mongodb"}:
             services.append(
                 {
                     "suite": "scylladb" if suite == "scylla" else suite,
                     "extra": suite,
                     "groups": groups,
-                    "compose": {"aws": "dynamodb", "sqlalchemy": "postgres", "scylla": "scylladb"}[suite],
+                    "compose": {
+                        "aws": "dynamodb",
+                        "sqlalchemy": "postgres",
+                        "scylla": "scylladb",
+                        "mongodb": "mongodb",
+                    }[suite],
                 }
             )
     return {
