@@ -22,6 +22,7 @@ aws = [
     "urllib3>=2.8.0,<3",
     "idna>=3.15,<4",
 ]
+kafka = ["aiokafka>=0.15.0,<1"]
 scylla = ["scylla-driver>=3.29.13,<4"]
 keras = ["keras>=3.15.1,<4", "pygments>=2.20,<3"]
 sklearn = ["scikit-learn>=1.9.1,<2"]

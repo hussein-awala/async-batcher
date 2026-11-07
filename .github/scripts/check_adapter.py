@@ -6,6 +6,7 @@ import sys
 # Fail explicitly when a selected extra or Keras backend is absent. Otherwise
 # importorskip could make an incorrectly provisioned adapter job appear green.
 MODULES = {
+    "kafka": ("aiokafka",),
     "aws": ("aioboto3",),
     "sqlalchemy": ("sqlalchemy", "aiosqlite"),
     "scylla": ("cassandra.cluster",),
