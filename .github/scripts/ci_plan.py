@@ -25,8 +25,9 @@ def plan(event: str, changed: set[str]) -> dict:
     ):
         if not full and suite not in changed:
             continue
+        adapter_groups = f"{groups} typecheck" if suite in {"aws", "kafka"} else groups
         for version in ["3.11", "3.15"] if full else ["3.12"]:
-            adapters.append({"suite": suite, "python": version, "groups": groups})
+            adapters.append({"suite": suite, "python": version, "groups": adapter_groups})
         if suite in {"aws", "sqlalchemy", "scylla", "mongodb", "kafka"}:
             services.append(
                 {

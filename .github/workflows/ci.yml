@@ -140,6 +140,12 @@ jobs:
           uv run --no-sync python .github/scripts/check_adapter.py "$TEST_SUITE"
           uv run --no-sync python -m coverage run --parallel-mode -m pytest "tests/adapters/$TEST_SUITE" -ra
 
+      - name: Check installed Kafka and Kinesis type contracts
+        if: ${{ matrix.suite == 'aws' || matrix.suite == 'kafka' }}
+        env:
+          TEST_SUITE: ${{ matrix.suite }}
+        run: uv run --no-sync python .github/scripts/check_public_typing.py --adapter "$TEST_SUITE"
+
       - name: Upload coverage data
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

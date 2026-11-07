@@ -104,6 +104,8 @@ class PlanTests(unittest.TestCase):
                 expected.add("adapter-test")
             elif suite == "keras":
                 expected.add("ml-test")
+            if "extra" not in row and suite in {"aws", "kafka"}:
+                expected.add("typecheck")
             with self.subTest(suite=suite):
                 self.assertEqual(set(row["groups"].split()), expected)
 

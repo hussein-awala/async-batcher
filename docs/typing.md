@@ -70,6 +70,28 @@ unknown options, and mutation of immutable snapshots. Removing the installed `py
 must also make the positive example fail. Distribution checks independently verify the marker
 in the direct wheel and the wheel rebuilt from the source distribution.
 
-This gate covers the public core, callable, streaming, grouping, and observability APIs. It
-does not claim strict checking of every private implementation or optional SDK adapter. The
-checker is a development dependency; installing the core library adds no runtime dependencies.
+The core gate covers public callable, streaming, grouping, and observability APIs. Kafka and
+Kinesis have additional installed-wheel consumer checks, run in their adapter CI jobs:
+
+```bash
+uv run --no-sync python .github/scripts/check_public_typing.py --adapter kafka
+uv run --no-sync python .github/scripts/check_public_typing.py --adapter aws
+```
+
+After syncing the `typecheck` group above, these commands export the selected extra from
+`uv.lock` and install its exact, hash-checked dependencies into a separate temporary environment.
+The AWS check also installs the existing locked `typing` stub group. The main environment and
+core-only CI jobs remain free of optional SDKs.
+
+These checks verify record inputs, core keyword options, callback types, mapped results, and
+SDK metadata. Kafka results are `RecordMetadata | None`, preserving the producer's `acks=0`
+behavior. The gate reads aiokafka's inline annotations using mypy's narrowly scoped
+[`follow_untyped_imports`](https://mypy.readthedocs.io/en/stable/config_file.html#confval-follow_untyped_imports)
+option because the locked SDK does not ship a `py.typed` marker; metadata field assertions
+prevent an unnoticed fallback to `Any`. Kinesis acknowledgements keep the existing
+`dict[str, Any]` contract for service response fields. Unknown keywords and incompatible input
+or result types must produce exact diagnostics; no missing-import errors are suppressed.
+
+This does not claim strict checking of every private implementation or other optional SDK
+adapter. The checker remains a development dependency; installing the core library adds no
+runtime dependencies.

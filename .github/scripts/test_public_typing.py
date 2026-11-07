@@ -7,7 +7,13 @@ import unittest
 from collections import Counter
 from pathlib import Path
 
-from check_public_typing import diagnostics, expected_errors, verify_fixture
+from check_public_typing import (
+    checker_config,
+    dependency_export,
+    diagnostics,
+    expected_errors,
+    verify_fixture,
+)
 
 
 class PublicTypingValidationTests(unittest.TestCase):
@@ -81,6 +87,31 @@ class PublicTypingValidationTests(unittest.TestCase):
         result = self.result([self.error(severity="note")], code=0)
         result.stdout += "\n\n"
         self.assertEqual(diagnostics(result, self.fixture), Counter())
+
+    def test_sdk_exports_preserve_lock_hashes_and_select_only_required_groups(self):
+        for adapter in ("aws", "kafka"):
+            with self.subTest(adapter=adapter):
+                command = dependency_export("uv", self.fixture.parent, self.fixture, adapter)
+                self.assertIn("--locked", command)
+                self.assertIn("--no-default-groups", command)
+                self.assertIn("--no-emit-project", command)
+                self.assertNotIn("--no-hashes", command)
+                self.assertNotIn("--all-extras", command)
+                self.assertEqual(command[command.index("--extra") + 1], adapter)
+                self.assertEqual("--group" in command, adapter == "aws")
+        with self.assertRaisesRegex(ValueError, "Unsupported"):
+            dependency_export("uv", self.fixture.parent, self.fixture, "unknown")
+
+    def test_kafka_analyzes_unmarked_sdk_instead_of_ignoring_imports(self):
+        for adapter in (None, "aws", "kafka"):
+            with self.subTest(adapter=adapter):
+                config = checker_config(adapter)
+                self.assertIn("strict = True", config)
+                self.assertNotIn("ignore", config)
+                self.assertNotIn("skip", config)
+                self.assertEqual("follow_untyped_imports = True" in config, adapter == "kafka")
+                if adapter == "kafka":
+                    self.assertIn("[mypy-aiokafka.*]", config)
 
 
 if __name__ == "__main__":
