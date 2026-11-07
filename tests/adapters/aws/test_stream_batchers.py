@@ -346,3 +346,21 @@ async def test_kinesis_prevalidates_before_any_write():
                 KinesisRecord(data="invalid", partition_key="p"),
             ]
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("code", [[], {}, 1, None, ""])
+async def test_malformed_error_with_ack_fields_preserves_prior_chunk_success(stream, monkeypatch, code):
+    acknowledgement = stream["successes"][0]
+    malformed = {**acknowledgement, "ErrorCode": code}
+    call = AsyncMock(
+        side_effect=[
+            {stream["key"]: [acknowledgement] * 500},
+            {stream["key"]: [malformed]},
+        ]
+    )
+    monkeypatch.setattr(stream["client"], stream["method"], call)
+    results = await stream["batcher"].process_batch([stream["inputs"][0]] * 501)
+    assert results[:500] == [acknowledgement] * 500
+    assert isinstance(results[500], ValueError)
+    assert call.await_count == 2

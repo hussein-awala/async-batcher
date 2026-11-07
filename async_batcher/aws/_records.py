@@ -61,10 +61,16 @@ async def send_records(
                 if not isinstance(entries, list) or len(entries) != len(pending):
                     raise ValueError(f"{response_key} must contain one result per submitted record")
                 for entry in entries:
-                    if not isinstance(entry, dict) or (
-                        not isinstance(entry.get("ErrorCode"), str)
-                        and not all(isinstance(entry.get(key), str) and entry[key] for key in success_keys)
-                    ):
+                    if not isinstance(entry, dict):
+                        raise ValueError("record response must be a mapping")
+                    if "ErrorCode" in entry:
+                        if (
+                            not isinstance(entry["ErrorCode"], str)
+                            or not entry["ErrorCode"]
+                            or not isinstance(entry.get("ErrorMessage", ""), str)
+                        ):
+                            raise ValueError("record response contains an invalid error code or message")
+                    elif not all(isinstance(entry.get(key), str) and entry[key] for key in success_keys):
                         raise ValueError("record response lacks an acknowledgement or error code")
             except Exception as error:
                 # An earlier response may already have acknowledged other records.
