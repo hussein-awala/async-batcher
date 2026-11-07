@@ -12,7 +12,7 @@ from pathlib import Path
 
 from check_adapter import MODULES
 from ci_plan import plan
-from report_coverage import ADAPTER_PATHS, artifact_files, planned_artifacts, source_scope
+from report_coverage import ADAPTER_PATHS, artifact_files, planned_artifacts, recipe_sources, source_scope
 
 SCRIPT = Path(__file__).with_name("report_coverage.py").resolve()
 
@@ -59,6 +59,33 @@ class CoveragePlanTests(unittest.TestCase):
                 "coverage-data-service-kafka",
             },
         )
+
+    def test_selected_recipe_suites_require_both_interpreter_artifacts(self):
+        result = plan("pull_request", set())
+        base, _ = planned_artifacts(result["core"], result["adapters"], result["services"])
+        for http, provider in itertools.product((False, True), repeat=2):
+            with self.subTest(http=http, provider=provider):
+                names, _ = planned_artifacts(
+                    result["core"],
+                    result["adapters"],
+                    result["services"],
+                    examples=http,
+                    provider_recipes=provider,
+                )
+                expected = set(base)
+                for suite, selected in (("examples", http), ("provider-recipes", provider)):
+                    if selected:
+                        expected.update(f"coverage-data-{suite}-py{version}" for version in ("3.11", "3.15"))
+                self.assertEqual(set(names), expected)
+
+    def test_recipe_scope_keeps_unexecuted_modules(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaisesRegex(ValueError, "No recipe"):
+                recipe_sources(root)
+            (root / "examples/recipes").mkdir(parents=True)
+            (root / "examples/recipes/unused.py").touch()
+            self.assertEqual(recipe_sources(root), ["examples/recipes/unused.py"])
 
     def test_invalid_plan_cannot_silently_remove_required_collection(self):
         empty = {"include": []}
@@ -141,9 +168,14 @@ class CoverageReportTests(unittest.TestCase):
         (self.root / "pyproject.toml").write_text(
             '[tool.coverage.run]\nbranch=true\nrelative_files=true\nsource=["async_batcher"]\n'
         )
+        recipes = self.root / "examples/recipes"
+        recipes.mkdir(parents=True)
+        (recipes / "untouched.py").write_text("first = 1\nsecond = 2\n")
         self.plan = plan("pull_request", set())
         self.names, _ = planned_artifacts(self.plan["core"], self.plan["adapters"], self.plan["services"])
-        self.env = os.environ | matrices_env(self.plan)
+        self.env = (
+            os.environ | matrices_env(self.plan) | {"HAS_EXAMPLES": "false", "HAS_PROVIDER_RECIPES": "false"}
+        )
         # Parent collection settings must not redirect this isolated fixture's data.
         self.env.pop("COVERAGE_FILE", None)
         self.env.pop("PYTHONPATH", None)
@@ -181,6 +213,37 @@ class CoverageReportTests(unittest.TestCase):
         self.assertEqual((output / "summary.md").read_text(), (self.root / "step-summary.md").read_text())
         # Parallel input files remain available for diagnosing a failed collection.
         self.assertEqual(len(artifact_files(self.root / "coverage-data", self.names)), 2)
+
+    def test_recipe_denominator_is_separate_and_does_not_lower_package_gate(self):
+        self.collect()
+        result = self.report()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        output = self.root / "coverage-report"
+        package = json.loads((output / "coverage.json").read_text())
+        recipes = json.loads((output / "recipes/coverage.json").read_text())
+        self.assertEqual(package["totals"]["percent_covered"], 100)
+        self.assertEqual(recipes["files"]["examples/recipes/untouched.py"]["missing_lines"], [1, 2])
+        self.assertEqual(recipes["totals"]["percent_covered"], 0)
+        self.assertTrue((output / "recipes/html/index.html").is_file())
+        self.assertIn("Child-process", (output / "summary.md").read_text())
+        self.assertIn("selected recipe test suites: core.", result.stdout)
+
+    def test_missing_selected_recipe_artifact_fails_even_with_complete_core_data(self):
+        self.collect()
+        for flag, suite in (("HAS_EXAMPLES", "examples"), ("HAS_PROVIDER_RECIPES", "provider-recipes")):
+            with self.subTest(flag=flag):
+                self.env[flag] = "true"
+                result = self.report()
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                self.assertIn(f"coverage-data-{suite}-py3.11", result.stdout)
+                self.env[flag] = "false"
+
+    def test_invalid_recipe_selection_cannot_silently_skip_artifact_validation(self):
+        self.collect()
+        self.env["HAS_EXAMPLES"] = "yes"
+        result = self.report()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("must be true or false", result.stdout)
 
     def test_windows_relative_paths_contribute_branches_to_the_linux_report(self):
         from coverage import CoverageData

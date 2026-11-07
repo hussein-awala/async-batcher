@@ -18,13 +18,18 @@ ADAPTER_PATHS = {
 }
 
 
-def planned_artifacts(core: dict, adapters: dict, services: dict) -> tuple[list[str], set[str]]:
+def planned_artifacts(
+    core: dict, adapters: dict, services: dict, *, examples: bool = False, provider_recipes: bool = False
+) -> tuple[list[str], set[str]]:
     """Use the exact test matrix, including each OS/interpreter and live service."""
     if not core["include"]:
         raise ValueError("The coverage plan must include the core gate")
     names = [f"coverage-data-core-{row['os']}-py{row['python']}" for row in core["include"]]
     names += [f"coverage-data-adapter-{row['suite']}-py{row['python']}" for row in adapters["include"]]
     names += [f"coverage-data-service-{row['suite']}" for row in services["include"]]
+    for suite, selected in (("examples", examples), ("provider-recipes", provider_recipes)):
+        if selected:
+            names.extend(f"coverage-data-{suite}-py{version}" for version in ("3.11", "3.15"))
     if len(names) != len(set(names)):
         raise ValueError("Duplicate coverage artifact names in the test matrix")
     suites = {row["suite"] for row in adapters["include"]} | {row["extra"] for row in services["include"]}
@@ -87,6 +92,20 @@ def combine_and_report(files: list[Path], sources: list[str], output: Path) -> t
     return total, report.getvalue()
 
 
+def selected_flag(name: str) -> bool:
+    value = os.environ.get(name, "false")
+    if value not in {"true", "false"}:
+        raise ValueError(f"{name} must be true or false")
+    return value == "true"
+
+
+def recipe_sources(root: Path) -> list[str]:
+    sources = sorted(path.relative_to(root).as_posix() for path in (root / "examples/recipes").rglob("*.py"))
+    if not sources:
+        raise ValueError("No recipe source files found")
+    return sources
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Combine every planned CI test job's coverage data")
     parser.add_argument("--data-dir", type=Path, default=Path("coverage-data"))
@@ -98,7 +117,9 @@ def main() -> int:
         if not 0 <= args.fail_under <= 100:
             raise ValueError("Coverage threshold must be between 0 and 100")
         expected, suites = planned_artifacts(
-            *(json.loads(os.environ[name]) for name in ("CORE_MATRIX", "ADAPTER_MATRIX", "SERVICE_MATRIX"))
+            *(json.loads(os.environ[name]) for name in ("CORE_MATRIX", "ADAPTER_MATRIX", "SERVICE_MATRIX")),
+            examples=selected_flag("HAS_EXAMPLES"),
+            provider_recipes=selected_flag("HAS_PROVIDER_RECIPES"),
         )
         files = artifact_files(args.data_dir, expected)
         sources, scope = source_scope(Path.cwd(), suites)
@@ -109,6 +130,28 @@ def main() -> int:
             f"Combined statements and branches: **{total:.2f}%**; required: **{args.fail_under:g}%**.\n\n"
             f"```text\n{report}```\n"
         )
+        recipe_output = args.output_dir / "recipes"
+        recipe_output.mkdir(exist_ok=True)
+        recipe_total, recipe_report = combine_and_report(files, recipe_sources(Path.cwd()), recipe_output)
+        recipe_totals = json.loads((recipe_output / "coverage.json").read_text())["totals"]
+        selected = ["core"]
+        if selected_flag("HAS_EXAMPLES"):
+            selected.append("HTTP")
+        if selected_flag("HAS_PROVIDER_RECIPES"):
+            selected.append("provider")
+        recipe_summary = (
+            "## Recipe coverage (separate from the package gate)\n\n"
+            f"All examples/recipes Python sources; selected recipe test suites: {', '.join(selected)}. "
+            "Unselected suites can leave sources unexecuted. "
+            "Child-process crash/replay execution is not instrumented by this report.\n\n"
+            f"Statements: **{recipe_totals['percent_statements_covered']:.2f}%**; "
+            f"branches: **{recipe_totals['percent_branches_covered']:.2f}%**; "
+            f"combined: **{recipe_total:.2f}%**. "
+            "This diagnostic report has no percentage gate and does not change the package threshold.\n\n"
+            f"```text\n{recipe_report}```\n"
+        )
+        (recipe_output / "summary.md").write_text(recipe_summary)
+        summary += "\n" + recipe_summary
         result = 0 if total >= args.fail_under else 1
     except Exception as error:
         summary = f"## Coverage incomplete\n\n{type(error).__name__}: {error}\n"
