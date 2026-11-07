@@ -44,6 +44,12 @@ scylla:
   - 'tests/adapters/scylla/**'
   - 'tests/integration/scylladb/**'
   - 'docker-compose/scylladb.yml'
+mongodb:
+  - *shared
+  - 'async_batcher/mongodb/**'
+  - 'tests/adapters/mongodb/**'
+  - 'tests/integration/mongodb/**'
+  - 'docker-compose/mongodb.yml'
 keras:
   - *shared
   - 'async_batcher/ml/*.py'

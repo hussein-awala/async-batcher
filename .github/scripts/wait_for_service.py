@@ -22,6 +22,14 @@ async def probe(service: str) -> None:
             await connection.execute("SELECT 1")
         finally:
             await connection.close()
+    elif service == "mongodb":
+        from pymongo import AsyncMongoClient
+
+        client = AsyncMongoClient("mongodb://127.0.0.1:27017", serverSelectionTimeoutMS=5000)
+        try:
+            await client.admin.command("ping")
+        finally:
+            await client.close()
     elif service == "scylladb":
         from cassandra.cluster import Cluster
 

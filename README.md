@@ -257,6 +257,53 @@ in a subsequent fetch or query, and deletion success does not establish that an 
 The caller owns the index and must keep it open until every batcher using it has stopped.
 The adapters never create, enter, or close the index.
 
+### MongoDB ordered writes
+
+Install the `mongodb` extra to use `AsyncMongoDbWriteBatcher` with **PyMongo 4.19+
+and MongoDB Server 8.0+**. It uses PyMongo's native async client; Motor is not required.
+Pass native `InsertOne`, `UpdateOne`, `UpdateMany`, `DeleteOne`, `DeleteMany`, or
+`ReplaceOne` operations with a `namespace` such as `"app.items"`. A batch can target
+multiple collections. Each caller receives its own `InsertOneResult`, `UpdateResult`,
+or `DeleteResult`, including inserted IDs, upsert IDs, and matched/modified/deleted counts.
+
+```python
+import asyncio
+
+from async_batcher.mongodb import AsyncMongoDbWriteBatcher
+from pymongo import AsyncMongoClient, InsertOne, UpdateOne
+
+
+async def main():
+    client = AsyncMongoClient("mongodb://localhost:27017")
+    batcher = AsyncMongoDbWriteBatcher(client=client, max_batch_size=100)
+    try:
+        inserted, updated = await asyncio.gather(
+            batcher.process(InsertOne({"_id": 1, "value": 0}, namespace="app.items")),
+            batcher.process(UpdateOne({"_id": 1}, {"$set": {"value": 1}}, namespace="app.items")),
+        )
+        print(inserted.inserted_id, updated.modified_count)
+    finally:
+        await batcher.stop()
+        await client.close()
+```
+
+Writes execute in order within each batch. Keep the default `concurrency=1` to
+serialize batches. On a write error, earlier successful requests retain their results,
+the failing request raises a PyMongo write error, and later requests in that batch
+raise `MongoDbNotExecutedError`. Subsequent batches can continue. Ordered batches
+are not transactions: earlier writes are not rolled back.
+
+Network and write-concern errors fail the whole batch because individual outcomes
+may be uncertain. The adapter adds no retries; PyMongo retains its own retry policy.
+Unacknowledged writes (`w=0`) are rejected. The client belongs to the caller and must
+be used on the batcher's event loop, then closed after stopping the batcher.
+
+The [client bulk-write API](https://www.mongodb.com/docs/languages/python/pymongo-driver/current/crud/bulk-write/)
+provides the per-operation results used here; older collection bulk writes only expose
+aggregate counts. Run the live tests with `docker compose -f docker-compose/mongodb.yml up -d --wait`
+and `pytest tests/integration/mongodb`; stop the service with
+`docker compose -f docker-compose/mongodb.yml down --volumes`.
+
 ## Configuration and results
 
 - `max_batch_size` accepts a positive integer (including `1`) or `-1` for no limit.
