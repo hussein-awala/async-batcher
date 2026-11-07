@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import importlib.util
 import unittest
+from fnmatch import fnmatchcase
+from pathlib import Path
 
 from check_adapter import MODULES
 from ci_plan import plan
@@ -110,6 +113,37 @@ class PlanTests(unittest.TestCase):
                 expected.add("typecheck")
             with self.subTest(suite=suite):
                 self.assertEqual(set(row["groups"].split()), expected)
+
+    @unittest.skipUnless(importlib.util.find_spec("yaml"), "Filter parsing uses lint's pre-commit dependency")
+    def test_adapter_typing_fixtures_select_their_installed_sdk_gate(self):
+        import yaml
+
+        root = Path(__file__).resolve().parents[2]
+        filters = yaml.safe_load((root / ".github/filters.yml").read_text())
+
+        def paths(entries):
+            for entry in entries:
+                if isinstance(entry, list):  # YAML aliases expand to nested lists.
+                    yield from paths(entry)
+                else:
+                    self.assertIsInstance(entry, str)
+                    yield entry
+
+        for suite in ("aws", "kafka"):
+            fixtures = sorted((root / "tests/typing").glob(f"{suite}_*.py"))
+            self.assertTrue(fixtures)
+            for fixture in fixtures:
+                with self.subTest(path=fixture.name):
+                    relative = fixture.relative_to(root).as_posix()
+                    changed = {
+                        name
+                        for name, entries in filters.items()
+                        if any(fnmatchcase(relative, pattern) for pattern in paths(entries))
+                    }
+                    self.assertEqual(changed, {suite})
+                    result = plan("pull_request", changed)
+                    self.assertEqual([row["suite"] for row in result["adapters"]["include"]], [suite])
+                    self.assertIn("typecheck", result["adapters"]["include"][0]["groups"].split())
 
     def test_main_expands_core_without_unrelated_service_jobs(self):
         result = plan("push", {"keras"})
