@@ -17,6 +17,9 @@ collation, attention masks, conservative padding budgets, and output restoration
 
 ## Import a file or async stream into SQLite
 
+For restartable file jobs, the [resumable import recipe](resumable-import.md) commits each batch's
+rows and byte checkpoint together and rejects changed source contents.
+
 [The SQLite recipe](../examples/recipes/sqlite_stream.py) wraps a synchronous bulk writer with
 `AsyncBatcher.from_callable`, then consumes results from `map()` without retaining a result for
 every input. Each batch uses a real SQLite transaction and a connection created and closed inside
