@@ -250,7 +250,11 @@ async def test_late_custom_awaitable_is_not_started_and_cleanup_failure_is_logge
             effects.append("cleanup")
             raise ValueError("cleanup failed")
 
-    for result in (Awaitable(), BrokenCleanup()):
+    class BorrowedResults(list):
+        def close(self):
+            effects.append("must not close ordinary results")
+
+    for result in (Awaitable(), BrokenCleanup(), BorrowedResults([1])):
         future = asyncio.get_running_loop().create_future()
         future.set_result(result)
         _discard_late_result(future)

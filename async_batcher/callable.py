@@ -57,7 +57,7 @@ def _discard_late_result(future: asyncio.Future) -> None:
     try:
         if inspect.iscoroutine(result):
             result.close()
-        elif not isinstance(result, asyncio.Future):
+        elif inspect.isawaitable(result) and not isinstance(result, asyncio.Future):
             # __await__ can execute arbitrary work. Only an explicit cleanup
             # method is safe to request after cancellation; never start waiting.
             close = getattr(result, "close", None)
