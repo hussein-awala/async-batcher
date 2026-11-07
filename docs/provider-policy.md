@@ -61,8 +61,8 @@ async def bulk_call(client, payload, estimated_tokens):
 
 This snippet borrows an already configured client; the endpoint/payload and response-to-input mapping
 remain application-specific. Do not treat every 429 from an arbitrary service as proof that no billable
-work or side effect occurred. For saved embeddings and replayable vector writes, see the separate
-durable handoff recipe when available; ambiguous writes still need backend-specific recovery.
+work or side effect occurred. For saved embeddings and replayable vector writes, see the
+[durable handoff recipe](durable-embeddings.md); ambiguous writes still need backend-specific recovery.
 
 `max_attempts` includes the first call. Missing or invalid `Retry-After` uses exponential full jitter,
 with a ceiling of `max_delay`. A valid integer-seconds or HTTP-date header supplies a minimum delay,

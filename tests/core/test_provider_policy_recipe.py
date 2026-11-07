@@ -199,7 +199,14 @@ async def test_last_throttled_attempt_still_defers_other_shared_calls(clock):
 
     with pytest.raises(policy.Throttled):
         await limiter.run(throttled)
-    await gate.acquire()
+    peer = policy.ProviderPolicy(gate)
+
+    async def healthy():
+        return "peer result"
+
+    assert await peer.run(healthy) == "peer result"
+    assert peer.attempts == 1 and peer.retry_attempts == 0
+    assert limiter.attempts == 1 and limiter.retry_attempts == 0
     assert now[0] == 2
 
 
@@ -226,3 +233,27 @@ async def test_invalid_estimated_work_never_calls_provider(units):
     with pytest.raises(ValueError, match="units"):
         await limiter.run(None, units=units)
     assert limiter.attempts == 0
+
+
+@pytest.mark.asyncio
+async def test_immediate_throttling_still_yields_to_cancellation_at_extreme_rates():
+    limiter = policy.ProviderPolicy(
+        policy.Pacer(requests_per_second=1e300),
+        max_attempts=10000,
+        base_delay=1e-300,
+        max_delay=1e-300,
+    )
+    calls = 0
+
+    async def immediately_rejected():
+        nonlocal calls
+        calls += 1
+        if calls == 5:
+            asyncio.get_running_loop().call_soon(asyncio.current_task().cancel)
+        raise policy.Throttled("0")
+
+    task = asyncio.create_task(limiter.run(immediately_rejected))
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert calls == 5
+    assert limiter.attempts == 5 and limiter.retry_attempts == 4

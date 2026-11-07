@@ -105,6 +105,9 @@ class ProviderPolicy:
         positive("total_timeout", total_timeout)
         async with asyncio.timeout(total_timeout):
             for attempt in range(self.max_attempts):
+                # At extreme rates an uncontended lock and a failing async callback
+                # can both finish inline. Yield so deadlines/cancellation still run.
+                await asyncio.sleep(0)
                 await self.pacer.acquire(units)
                 self.attempts += 1
                 self.retry_attempts += attempt > 0
