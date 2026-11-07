@@ -4,8 +4,8 @@ import asyncio
 
 import pytest
 from async_batcher.sqlalchemy.write import AsyncSqlalchemyWriteBatcher
-
 from sqlalchemy import select
+
 from tests.adapters.sqlalchemy.models import _TestModel
 
 

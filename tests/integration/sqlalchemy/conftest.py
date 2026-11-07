@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest_asyncio
-
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+
 from tests.adapters.sqlalchemy.models import _TestModel
 
 if TYPE_CHECKING:

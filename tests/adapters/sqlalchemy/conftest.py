@@ -9,6 +9,7 @@ pytest.importorskip("sqlalchemy")
 pytest.importorskip("aiosqlite")
 
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine  # noqa: E402
+
 from tests.adapters.sqlalchemy.models import _TestModel  # noqa: E402
 
 if TYPE_CHECKING:
