@@ -99,8 +99,8 @@ async def test_process_batch_with_short_buffering_time():
         # batch 1: from 0 to 1
         # batch 2: from 0.25 to 1.25
         # batch 3: from 1 to 2
-        # batch 4: from 1.45 to 2.45 (< max_batch_size, extra 0.4)
-        (2, 2.45),
+        # batch 4: from 1.25 to 2.25 (< max_batch_size, extra 0.4)
+        (2, 2.25),
         # batch 1: from 0 to 1
         # batch 2: from 0.25 to 1.25
         # batch 3: from 0.4 to 1.4
