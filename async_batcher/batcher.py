@@ -13,13 +13,15 @@ from contextvars import ContextVar, copy_context
 from functools import partial
 from itertools import islice
 from numbers import Real
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, Self, TypeVar
 from weakref import ref
 
 from async_batcher.exceptions import QueueFullException
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable, Sequence
     from concurrent.futures import Executor
+    from types import TracebackType
 
 T = TypeVar("T")
 S = TypeVar("S")
@@ -122,9 +124,48 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self._stop = asyncio.Event()
         self._is_running = asyncio.Event()
         self._force_stopped = False
+        self._context_entered = False
+
+    @staticmethod
+    def from_callable(
+        processor: Callable[[list[T]], Sequence[S] | Awaitable[Sequence[S] | None] | None],
+        **kwargs,
+    ) -> AsyncBatcher[T, S]:
+        """Wrap a bulk function using the same options and lifecycle as a subclass.
+
+        Async functions and objects with an async __call__ run on the event loop.
+        Regular functions run in the configured thread executor. The function
+        receives the input list as one positional argument.
+        """
+        from async_batcher.callable import create_batcher
+
+        return create_batcher(processor, **kwargs)
+
+    async def __aenter__(self) -> Self:
+        self._get_loop()
+        if self._context_entered:
+            raise RuntimeError("Batcher context is already entered")
+        if self._stop.is_set() and (
+            (self._current_task is not None and not self._current_task.done()) or self._running_batches
+        ):
+            raise RuntimeError("Batcher is stopping")
+        self._context_entered = True
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        """Drain accepted work even when the body fails; leave caller resources open."""
+        try:
+            await self.stop()
+        finally:
+            self._context_entered = False
 
     @abc.abstractmethod
-    async def process_batch(self, batch: list[T]) -> list[S] | None:
+    def process_batch(self, batch: list[T]) -> Sequence[S] | Awaitable[Sequence[S] | None] | None:
         """Return one result per item in an ordered, sized collection, or None.
 
         Results must follow input order. Mappings, sets, and text/byte containers

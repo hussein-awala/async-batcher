@@ -57,6 +57,7 @@ automatically. Stop the batcher before closing its clients, model resources, or 
 
 ## Guides
 
+- [Batch an existing function](docs/functions.md): callable processors and managed cleanup.
 - [Core API and lifecycle](docs/api.md): limits, result mapping, errors, shutdown, restart, and executors.
 - [Contributing](CONTRIBUTING.md): locked development environments, test selection, integration services, and CI.
 - [Benchmarks](BENCHMARK.md): reproducible core measurements and archived application results.
