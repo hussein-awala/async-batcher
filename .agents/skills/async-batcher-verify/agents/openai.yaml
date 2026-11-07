@@ -1,0 +1,4 @@
+interface:
+  display_name: "Async Batcher change verification"
+  short_description: "Select tests and prepare a supported pull request"
+  default_prompt: "Use $async-batcher-verify to test this change and prepare its pull request."

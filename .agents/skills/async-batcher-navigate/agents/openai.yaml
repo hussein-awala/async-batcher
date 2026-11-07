@@ -1,0 +1,4 @@
+interface:
+  display_name: "Async Batcher repository guide"
+  short_description: "Find the right code, tests, and public contracts"
+  default_prompt: "Use $async-batcher-navigate to locate the implementation, tests, and documentation for this change."
