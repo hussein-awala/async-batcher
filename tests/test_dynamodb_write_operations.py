@@ -29,7 +29,7 @@ async def test_invalid_operation_fails_before_sending_a_batch(operation):
 async def test_valid_operation_request_shape_is_preserved(operation, request_key, data_key):
     session = MagicMock()
     resource = MagicMock()
-    resource.batch_write_item = AsyncMock()
+    resource.batch_write_item = AsyncMock(return_value={"UnprocessedItems": {}})
     session.resource.return_value.__aenter__ = AsyncMock(return_value=resource)
     session.resource.return_value.__aexit__ = AsyncMock(return_value=False)
     batcher = write_module.AsyncDynamoDbWriteBatcher(aioboto3_session=session)
