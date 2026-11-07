@@ -79,6 +79,8 @@ class AsyncDynamoDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
                 request["PutRequest"] = {"Item": operation.data}
             elif operation.operation == "DELETE":
                 request["DeleteRequest"] = {"Key": operation.data}
+            else:
+                raise ValueError(f"Invalid operation: {operation.operation}")
             request_items[operation.table_name].append(request)
 
         dynamodb: DynamoDBServiceResource
