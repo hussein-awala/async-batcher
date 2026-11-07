@@ -36,12 +36,17 @@ def _validate_operation(op: WriteOperation) -> ValueError | None:
 
 
 class AsyncScyllaDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
-    """Batcher for ScyllaDB write operations."""
+    """Batch ScyllaDB writes after validating each operation.
+
+    Invalid operations return an error in their result position and are not
+    submitted. Valid operations still execute when other items fail validation.
+    Empty batches and batches containing only invalid operations create no query.
+    """
 
     def process_batch(self, batch: list[WriteOperation]) -> list[None | Exception]:
         # Validate all operations before executing any
         results: list[None | Exception] = [_validate_operation(op) for op in batch]
-        valid_ops = [op for op, error in zip(batch, results) if error is None]
+        valid_ops = [op for op, error in zip(batch, results, strict=True) if error is None]
 
         if not valid_ops:
             return results
