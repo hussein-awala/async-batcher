@@ -4,7 +4,7 @@ infrastructure: &infrastructure
   - 'pyproject.toml'
   - 'uv.lock'
   - 'pytest.ini'
-# macOS core checks are needed when the core implementation or its test inputs change.
+# macOS and Windows core checks are needed when the core implementation or its test inputs change.
 core:
   - *infrastructure
   - 'async_batcher/*.py'
@@ -47,6 +47,7 @@ aws:
   - *shared
   - 'async_batcher/aws/**'
   - 'tests/adapters/aws/**'
+  - 'tests/typing/aws_*.py'
   - 'tests/integration/aws/**'
   - 'examples/dynamodb/**'
   - 'docker-compose/dynamodb.yml'
@@ -92,5 +93,6 @@ kafka:
   - *shared
   - 'async_batcher/kafka/**'
   - 'tests/adapters/kafka/**'
+  - 'tests/typing/kafka_*.py'
   - 'tests/integration/kafka/**'
   - 'docker-compose/kafka.yml'

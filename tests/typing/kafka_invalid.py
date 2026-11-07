@@ -21,6 +21,7 @@ def invalid_constructor(producer: AIOKafkaProducer) -> None:
     AsyncKafkaBatcher(producer=producer, on_batch=async_observer)  # error: arg-type
     AsyncKafkaBatcher(producer=producer, max_bacth_size=10)  # error: call-arg
     AsyncKafkaBatcher(producer=producer, log_exceptions="yes")  # error: arg-type
+    AsyncKafkaBatcher(producer=producer, discard_cancelled="yes")  # error: arg-type
     KafkaRecord(topic="events", partition="zero", value=b"data")  # error: arg-type
     KafkaRecord(topic="events", partition=0, headers=(("key", "text"),))  # error: arg-type
 
