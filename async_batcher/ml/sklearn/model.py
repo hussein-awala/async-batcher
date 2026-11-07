@@ -29,6 +29,9 @@ class SklearnAsyncBatcher(AsyncBatcher):
         max_queue_size (int, optional): Maximum queued inputs. -1 and 0 mean no limit. Defaults to -1.
         executor (Executor, optional): The executor to use to process the batch.
             If None, it will use the default asyncio executor. Defaults to None.
+        **kwargs: Additional core batcher options, including max_batch_cost, item_cost,
+            and on_batch. Costs are evaluated on each original input sample before
+            dense or sparse samples are combined. Hooks run on the event loop.
     """
 
     def __init__(
@@ -40,6 +43,7 @@ class SklearnAsyncBatcher(AsyncBatcher):
         concurrency: int = 1,
         max_queue_size: int = -1,
         executor: Executor | None = None,
+        **kwargs,
     ):
         super().__init__(
             max_batch_size=max_batch_size,
@@ -47,6 +51,7 @@ class SklearnAsyncBatcher(AsyncBatcher):
             concurrency=concurrency,
             max_queue_size=max_queue_size,
             executor=executor,
+            **kwargs,
         )
         self.model = model
 
