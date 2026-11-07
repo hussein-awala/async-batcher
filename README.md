@@ -303,6 +303,8 @@ provides the per-operation results used here; older collection bulk writes only 
 aggregate counts. Run the live tests with `docker compose -f docker-compose/mongodb.yml up -d --wait`
 and `pytest tests/integration/mongodb`; stop the service with
 `docker compose -f docker-compose/mongodb.yml down --volumes`.
+The test service pins MongoDB 9.0.4, which includes the
+[Ubuntu kernel detection fix](https://jira.mongodb.org/browse/SERVER-131779) required by hosted CI runners.
 
 ## Configuration and results
 

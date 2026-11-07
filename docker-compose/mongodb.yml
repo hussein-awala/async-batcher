@@ -1,6 +1,7 @@
 services:
   mongodb:
-    image: mongo:8.0.34-noble@sha256:3c64937121b9437095921c4bb2569911084c05f7b88e4a263d62a8959d2b2399
+    # 9.0.4 includes the Ubuntu kernel detection fix in MongoDB SERVER-131779.
+    image: mongo:9.0.4-resolute@sha256:714cc3db1e396e5a464b8443ccde50e53283368809401f53f1997b684ddb5be0
     command: ["mongod", "--bind_ip_all", "--wiredTigerCacheSizeGB", "0.25"]
     ports:
       - "127.0.0.1:27017:27017"
