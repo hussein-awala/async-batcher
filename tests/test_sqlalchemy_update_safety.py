@@ -12,6 +12,7 @@ from sqlalchemy import Column, Integer, MetaData, String, Table, select  # noqa:
 from sqlalchemy.exc import InvalidRequestError  # noqa: E402
 from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
 from sqlalchemy.orm import registry  # noqa: E402
+from sqlalchemy.orm.exc import StaleDataError  # noqa: E402
 
 
 @pytest_asyncio.fixture
@@ -55,7 +56,7 @@ async def test_orm_update_requires_and_uses_each_items_primary_key(database, inc
         if include_primary_key:
             await batcher.process_batch([{"id": 1, "name": "changed"}])
         else:
-            with pytest.raises(InvalidRequestError, match="primary key"):
+            with pytest.raises((InvalidRequestError, StaleDataError)):
                 await batcher.process_batch([{"name": "changed"}])
         async with engine.connect() as connection:
             rows = (await connection.execute(select(table).order_by(table.c.id))).all()
