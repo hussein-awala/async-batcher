@@ -25,9 +25,9 @@ asyncio.run(main())
 The function receives one positional list argument. Async functions, bound async
 methods, partials of async functions, and objects with an async `__call__` execute
 on the event loop. Regular functions execute in the configured thread executor,
-with the same context propagation as synchronous subclass processors. A regular
-function must return results directly; use `async def` when awaiting another function.
-Async generators are not supported.
+with the same context propagation as synchronous subclass processors. If a regular
+function returns an awaitable (for example, a decorator wraps an async function),
+the wrapper awaits that result on the event loop. Async generators are not supported.
 
 Return one result per input in order, or `None` for a write-only operation. Existing
 [error and result rules](api.md#results-and-errors) apply, including per-item exceptions.

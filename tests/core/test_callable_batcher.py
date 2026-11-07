@@ -105,13 +105,25 @@ def test_async_generators_rejected(callable_object):
 
 
 @pytest.mark.asyncio
-async def test_regular_function_returning_coroutine_has_clear_error_without_warning():
+async def test_regular_function_returning_awaitable_is_awaited_on_the_event_loop():
+    event_loop_thread = threading.get_ident()
+
     async def compute(items):
+        assert threading.get_ident() == event_loop_thread
         return items
 
-    async with AsyncBatcher.from_callable(lambda items: compute(items), max_queue_time=0) as batcher:
-        with pytest.raises(TypeError, match="use async def"):
-            await batcher.process(1)
+    class Wrapped:
+        def __init__(self, coroutine):
+            self.coroutine = coroutine
+
+        def __await__(self):
+            return self.coroutine.__await__()
+
+    for factory in (compute, lambda items: Wrapped(compute(items))):
+        async with AsyncBatcher.from_callable(
+            lambda items, factory=factory: factory(items), max_queue_time=0
+        ) as batcher:
+            assert await batcher.process(1) == 1
 
 
 @pytest.mark.asyncio
