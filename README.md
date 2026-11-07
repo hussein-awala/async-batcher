@@ -163,6 +163,21 @@ logging.basicConfig(level=logging.DEBUG)
 asyncio.run(main())
 ```
 
+### DynamoDB read consistency
+
+`AsyncDynamoDbGetBatcher` uses eventually consistent reads by default. Set
+`consistent_read=True` when each batch should use strongly consistent reads for all
+requested tables. Retries of unprocessed keys preserve this setting.
+
+```python
+from async_batcher.aws.dynamodb.get import AsyncDynamoDbGetBatcher
+
+batcher = AsyncDynamoDbGetBatcher(region_name="us-west-2", consistent_read=True)
+```
+
+Strongly consistent reads use more read capacity than eventual reads; see the
+[DynamoDB read consistency guide](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadConsistency.html).
+
 ## Configuration and results
 
 - `max_batch_size` accepts a positive integer (including `1`) or `-1` for no limit.
