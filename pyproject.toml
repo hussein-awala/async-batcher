@@ -57,6 +57,7 @@ lint = [
     "ruff==0.17.4",
 ]
 typing = ["types-aioboto3[dynamodb]>=15.5,<16"]
+typecheck = ["mypy==2.4.1"]
 
 [tool.uv]
 required-version = ">=0.13.7"

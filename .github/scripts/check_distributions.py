@@ -74,13 +74,21 @@ def validate_wheel(wheel: Path, root: Path, project: dict) -> None:
         path.relative_to(root).as_posix(): path.read_bytes()
         for path in (root / "async_batcher").rglob("*.py")
     }
+    marker = root / "async_batcher" / "py.typed"
+    if not marker.is_file():
+        raise ValueError("Source package is missing its py.typed marker")
+    expected["async_batcher/py.typed"] = marker.read_bytes()
     with ZipFile(wheel) as archive:
         names = archive.namelist()
         metadata_files = [name for name in names if name.endswith(".dist-info/METADATA")]
         if len(metadata_files) != 1:
             raise ValueError("Wheel must contain exactly one distribution metadata file")
         validate_metadata(BytesParser().parsebytes(archive.read(metadata_files[0])), project)
-        packaged = {name for name in names if name.startswith("async_batcher/") and name.endswith(".py")}
+        packaged = {
+            name
+            for name in names
+            if name.startswith("async_batcher/") and name.endswith((".py", "/py.typed"))
+        }
         if packaged != expected.keys():
             raise ValueError(f"Wheel package files differ from source: {sorted(packaged ^ expected.keys())}")
         for name, contents in expected.items():
@@ -138,6 +146,9 @@ def probe(expectations: Path, adapter: str | None) -> None:
             if not hasattr(module, symbol):
                 raise ValueError(f"Missing public import: {module.__name__}.{symbol}")
     asyncio.run(batching_probe())
+    package = importlib.import_module("async_batcher")
+    if not (Path(package.__file__).parent / "py.typed").is_file():
+        raise ValueError("Installed package is missing its py.typed marker")
     site_packages = Path(sysconfig.get_path("purelib"))
     for name, module in list(sys.modules.items()):
         if name == "async_batcher" or name.startswith("async_batcher."):

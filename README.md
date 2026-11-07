@@ -66,6 +66,7 @@ Existing [subclasses](docs/api.md) and adapters support the same managed lifecyc
 - [Contributing](CONTRIBUTING.md): locked development environments, test selection, integration services, and CI.
 - [Benchmarks](BENCHMARK.md): reproducible core measurements and archived application results.
 - [Operational statistics](docs/observability.md): immutable snapshots, batch events, and optional monitoring recipes.
+- [Public type contracts](docs/typing.md): inferred results, typed options, and installed-package checks.
 - [Security reporting](SECURITY.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Optional adapters

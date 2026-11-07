@@ -13,7 +13,7 @@ from contextvars import ContextVar, copy_context
 from functools import partial
 from itertools import islice
 from numbers import Real
-from typing import TYPE_CHECKING, Generic, Self, TypeVar
+from typing import TYPE_CHECKING, Generic, Self, TypeVar, Unpack, overload
 from weakref import ref
 
 from async_batcher.exceptions import QueueFullException
@@ -21,12 +21,23 @@ from async_batcher.map import map_items
 from async_batcher.observability import BatcherStats, BatchEvent, _BatchTiming
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, AsyncIterable, Awaitable, Callable, Iterable, Sequence
+    from collections.abc import AsyncGenerator, AsyncIterable, Awaitable, Callable, Iterable, Iterator
     from concurrent.futures import Executor
     from types import TracebackType
+    from typing import Protocol
+
+    from async_batcher._options import BatcherOptions, LegacyOptions
 
 T = TypeVar("T")
-S = TypeVar("S")
+S = TypeVar("S", covariant=True)
+
+if TYPE_CHECKING:
+
+    class _BatchResults(Protocol[S]):
+        def __len__(self) -> int: ...
+
+        def __iter__(self) -> Iterator[S | Exception | asyncio.CancelledError]: ...
+
 
 # Child tasks inherit this context, but must not keep completed processors alive.
 _processing_ancestors: ContextVar[tuple[ref[asyncio.Task], ...]] = ContextVar(
@@ -79,12 +90,12 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         max_queue_time: float = 0.01,
         concurrency: int = 1,
         max_queue_size: int = -1,
-        max_batch_cost: Real | None = None,
-        item_cost: Callable[[T], Real] | None = None,
+        max_batch_cost: float | Real | None = None,
+        item_cost: Callable[[T], float | Real] | None = None,
         executor: Executor | None = None,
         on_batch: Callable[[BatchEvent], None] | None = None,
-        **kwargs,
-    ):
+        **kwargs: Unpack[LegacyOptions],
+    ) -> None:
         super().__init__()
         for argument in ("sleep_time", "buffering_time"):
             if argument in kwargs:
@@ -172,10 +183,31 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self._batches_completed = 0
 
     @staticmethod
+    @overload
     def from_callable(
-        processor: Callable[[list[T]], Sequence[S] | Awaitable[Sequence[S] | None] | None],
-        **kwargs,
-    ) -> AsyncBatcher[T, S]:
+        processor: Callable[[list[T]], _BatchResults[S] | Awaitable[_BatchResults[S]]],
+        **kwargs: Unpack[BatcherOptions[T]],
+    ) -> AsyncBatcher[T, S]: ...
+
+    @staticmethod
+    @overload
+    def from_callable(
+        processor: Callable[[list[T]], None | Awaitable[None]],
+        **kwargs: Unpack[BatcherOptions[T]],
+    ) -> AsyncBatcher[T, None]: ...
+
+    @staticmethod
+    @overload
+    def from_callable(
+        processor: Callable[[list[T]], _BatchResults[S] | Awaitable[_BatchResults[S] | None] | None],
+        **kwargs: Unpack[BatcherOptions[T]],
+    ) -> AsyncBatcher[T, S | None]: ...
+
+    @staticmethod
+    def from_callable(
+        processor: Callable[[list[T]], _BatchResults[S] | Awaitable[_BatchResults[S] | None] | None],
+        **kwargs: Unpack[BatcherOptions[T]],
+    ) -> AsyncBatcher[T, S | None]:
         """Wrap a bulk function using the same options and lifecycle as a subclass.
 
         Async functions and objects with an async __call__ run on the event loop.
@@ -268,7 +300,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         )
 
     @abc.abstractmethod
-    def process_batch(self, batch: list[T]) -> Sequence[S] | Awaitable[Sequence[S] | None] | None:
+    def process_batch(self, batch: list[T]) -> _BatchResults[S] | Awaitable[_BatchResults[S] | None] | None:
         """Return one result per item in an ordered, sized collection, or None.
 
         Results must follow input order. Mappings, sets, and text/byte containers
@@ -565,7 +597,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             self._queue.get_nowait()
         self._next_batch_item = None
 
-    async def run(self):
+    async def run(self) -> None:
         """Start a dispatcher and wait until all accepted work has finished.
 
         Processing starts a dispatcher automatically. Only one may run. The
@@ -639,11 +671,11 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
     def _should_stop(self):
         return self._stop.is_set() and self._queued_count() == 0
 
-    async def is_running(self):
+    async def is_running(self) -> bool:
         """Return whether the dispatcher is running or draining active batches."""
         return self._is_running.is_set()
 
-    async def stop(self, force: bool = False, timeout: float | None = None):
+    async def stop(self, force: bool = False, timeout: float | None = None) -> None:
         """Reject new work while waiting for shutdown.
 
         Graceful shutdown flushes the queue and waits for active batches. A timeout
