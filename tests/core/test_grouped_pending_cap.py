@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 
 import pytest
 from async_batcher import AsyncBatcher, GroupedBatcher, GroupLimitError, QueueFullException
@@ -235,4 +236,35 @@ async def test_aggregate_rejection_is_an_indexed_stream_outcome():
     finally:
         release.set()
         await busy
+        await grouped.stop()
+
+
+@pytest.mark.asyncio
+async def test_rejecting_task_factory_closes_unstarted_child_and_returns_reservation():
+    loop = asyncio.get_running_loop()
+    previous = loop.get_task_factory()
+    rejected = []
+
+    def reject(loop, coroutine, **kwargs):
+        rejected.append(coroutine)
+        raise RuntimeError("task creation refused")
+
+    grouped = GroupedBatcher(
+        lambda key: AsyncBatcher.from_callable(lambda batch: batch, max_batch_size=1),
+        group_key=lambda item: item,
+        max_pending_items=1,
+    )
+    try:
+        loop.set_task_factory(reject)
+        with pytest.raises(RuntimeError, match="creation refused"):
+            await grouped.process(1)
+        assert grouped.pending_items == 0
+        assert len(rejected) == 1
+        assert inspect.getcoroutinestate(rejected[0]) == inspect.CORO_CLOSED
+    finally:
+        loop.set_task_factory(previous)
+    try:
+        assert await grouped.process(1) == 1
+        assert grouped.pending_items == 0
+    finally:
         await grouped.stop()

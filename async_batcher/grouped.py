@@ -237,9 +237,14 @@ class GroupedBatcher(Generic[K, T, S]):
                 raise TypeError("group_key must return a hashable key directly")
             hash(key)
             group = await self._get_group(key)
-            task = asyncio.create_task(
-                group.batcher.process(item, wait_for_space=wait_for_space, enqueue_timeout=enqueue_timeout)
+            coroutine = group.batcher.process(
+                item, wait_for_space=wait_for_space, enqueue_timeout=enqueue_timeout
             )
+            try:
+                task = asyncio.create_task(coroutine)
+            except BaseException:
+                coroutine.close()
+                raise
             group.pending.add(task)
             task.add_done_callback(lambda completed: self._request_done(group, completed))
         except BaseException:
