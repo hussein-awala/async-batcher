@@ -26,7 +26,7 @@ def scylladb_session():
         session = cluster.connect()
         session.execute(
             f"CREATE KEYSPACE IF NOT EXISTS {TEST_KEYSPACE} "
-            "WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}"
+            "WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'replication_factor': 1}"
         )
         session.execute(f"USE {TEST_KEYSPACE}")
         yield session
