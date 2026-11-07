@@ -13,7 +13,8 @@ if TYPE_CHECKING:
 class KerasAsyncBatcher(AsyncBatcher):
     """Batcher for Keras models with one dense input per sample.
 
-    Samples are combined along a new batch axis. Override process_batch for models
+    Samples are combined along a new batch axis. List, tuple, and dictionary outputs
+    retain their structure for each request. Override process_batch for models
     with multiple inputs or custom/ragged input structures.
 
     Args:
@@ -52,4 +53,22 @@ class KerasAsyncBatcher(AsyncBatcher):
     def process_batch(self, batch):
         import numpy as np
 
-        return self.model.predict(np.asarray(batch), batch_size=len(batch))
+        predictions = self.model.predict(np.asarray(batch), batch_size=len(batch))
+        return self._split_predictions(predictions, len(batch))
+
+    @classmethod
+    def _split_predictions(cls, predictions, batch_size):
+        if isinstance(predictions, dict):
+            outputs = {name: cls._split_predictions(value, batch_size) for name, value in predictions.items()}
+            return [{name: value[index] for name, value in outputs.items()} for index in range(batch_size)]
+        if isinstance(predictions, list | tuple):
+            outputs = [cls._split_predictions(value, batch_size) for value in predictions]
+            container = tuple if isinstance(predictions, tuple) else list
+            return [container(value[index] for value in outputs) for index in range(batch_size)]
+        try:
+            result_count = len(predictions)
+        except TypeError as error:
+            raise ValueError("Each Keras output must have a leading batch dimension") from error
+        if result_count != batch_size:
+            raise ValueError(f"Expected {batch_size} predictions in each Keras output, got {result_count}")
+        return predictions
