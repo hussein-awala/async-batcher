@@ -126,7 +126,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
 
         Subclasses may implement this as a synchronous method. Exceptions raised
         by the processor fail the entire batch; exception objects in the result
-        list fail only their corresponding requests. StopIteration becomes RuntimeError
+        list fail only their corresponding requests. A returned asyncio.CancelledError
+        cancels only its corresponding request. StopIteration becomes RuntimeError
         with the original exception as its cause. Synchronous processors receive
         a copy of the batch worker's context.
         """
@@ -212,7 +213,9 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             for q_item, result in zip(batch, results, strict=True):
                 if q_item.future.done():
                     continue
-                if isinstance(result, StopIteration):
+                if isinstance(result, asyncio.CancelledError):
+                    q_item.future.cancel(str(result) if result.args else None)
+                elif isinstance(result, StopIteration):
                     error = RuntimeError("process_batch returned StopIteration")
                     error.__cause__ = result
                     q_item.future.set_exception(error)
