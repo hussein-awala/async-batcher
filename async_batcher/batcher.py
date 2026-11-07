@@ -109,6 +109,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self.max_queue_time = max_queue_time
         self.concurrency = concurrency
         self.executor = executor
+        self._loop: asyncio.AbstractEventLoop | None = None
         self._queue = asyncio.Queue(maxsize=max_queue_size)
         self._queue_changed = asyncio.Event()
         self._current_task: asyncio.Task | None = None
@@ -131,12 +132,23 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         a copy of the batch worker's context.
         """
 
+    def _get_loop(self) -> asyncio.AbstractEventLoop:
+        loop = asyncio.get_running_loop()
+        if self._loop is None:
+            self._loop = loop
+        elif self._loop is not loop:
+            raise RuntimeError("Batcher must be used from the same event loop")
+        return loop
+
     async def process(self, item: T) -> S:
         """Enqueue an item and await its result, restarting after completed shutdown.
 
         Submissions during shutdown are rejected until the dispatcher and its
-        batch tasks finish cleanup. Reuse must stay on the same event loop.
+        batch tasks finish cleanup. The first process(), run(), or stop() call
+        binds the batcher to its event loop; later calls from other loops fail
+        before changing batcher state, including after shutdown.
         """
+        loop = self._get_loop()
         if self._stop.is_set():
             if (self._current_task is not None and not self._current_task.done()) or self._running_batches:
                 raise RuntimeError("Batcher is stopping")
@@ -145,7 +157,6 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             self._current_task = None
         if self._queue.full():
             raise QueueFullException("The queue is full, cannot process more items at the moment.")
-        loop = asyncio.get_running_loop()
         future = loop.create_future()
         self._pending_futures.add(future)
         future.add_done_callback(self._pending_futures.discard)
@@ -251,6 +262,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
 
         Processing starts this task automatically. Only one dispatcher may run.
         """
+        self._get_loop()
         current_task = asyncio.current_task()
         if self._current_task is not None and self._current_task is not current_task:
             raise RuntimeError("Batcher already has a dispatcher")
@@ -316,6 +328,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         A processor or its child tasks cannot await shutdown while that processor
         is active, because shutdown must wait for the processor itself.
         """
+        self._get_loop()
         if asyncio.current_task() in self._processing_tasks or any(
             ancestor() in self._processing_tasks for ancestor in _processing_ancestors.get()
         ):
