@@ -97,10 +97,10 @@ async def test_native_batches_deliver_exact_records_offsets_and_broker_timestamp
                 assert isinstance(result, RecordMetadata)
                 assert (result.topic, result.partition, result.offset) == (topic, index % 2, index // 2)
                 stored = received[result.partition, result.offset]
-                assert (stored.key, stored.value, stored.headers) == (
+                assert (stored.key, stored.value, tuple(stored.headers)) == (
                     record.key,
                     record.value,
-                    list(record.headers),
+                    record.headers,
                 )
                 assert result.timestamp == stored.timestamp
                 assert result.timestamp_type == stored.timestamp_type == (timestamp_type == "LogAppendTime")
