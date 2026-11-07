@@ -13,6 +13,9 @@ on:
 jobs:
   changed-files:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       should_run_unit_tests: ${{ steps.check-unit-tests.outputs.src }}
       should_run_integration_tests: ${{ steps.check-integration-tests.outputs.src }}
@@ -28,7 +31,9 @@ jobs:
             src:
               - "async_batcher/**"
               - "tests/**"
+              - "pyproject.toml"
               - "poetry.lock"
+              - "pytest.ini"
               - ".github/workflows/ci.yml"
 
       - id: check-integration-tests
@@ -37,11 +42,13 @@ jobs:
         with:
           filters: |
             src:
-              - "async_batcher/aws/**"
-              - "async_batcher/scylladb/**"
-              - "async_batcher/sqlalchemy/**"
-              - "tests/integration/**"
+              - "async_batcher/**"
+              - "tests/**"
+              - "pyproject.toml"
               - "poetry.lock"
+              - "pytest.ini"
+              - "docker-compose/**"
+              - ".github/workflows/ci.yml"
 
   core-tests:
     needs: changed-files
@@ -165,7 +172,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          key: venv-${{ runner.os }}-${{ runner.arch }}-ubuntu-latest-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
