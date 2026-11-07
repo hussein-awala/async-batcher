@@ -66,6 +66,7 @@ async def strings() -> AsyncIterator[str]:
 
 
 async def consume() -> None:
+    await batcher.flush(timeout="bad")  # error: arg-type
     await batcher.process("bad")  # error: arg-type
     await batcher.process(1, enqueue_timeout="soon")  # error: arg-type
     batcher.map(["bad"])  # error: list-item
