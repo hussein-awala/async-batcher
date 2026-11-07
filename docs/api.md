@@ -106,6 +106,8 @@ Adapter failures can occur after external side effects; a failed batch is not an
   binding the loop or resetting counters. Counters survive stop/restart; gauges describe current work.
 - `await run()` explicitly starts a dispatcher and waits until shutdown. It is optional and is not
   a start-and-return call. A batcher cannot have two dispatchers; use `process()` for automatic restart.
+  Cancelling its caller forces shutdown, including before the dispatcher starts. If dispatcher task
+  creation fails, the triggering `process()` request is not accepted or replayed by a later submission.
 - `await is_running()` reports whether the dispatcher is running or draining active batches.
 - `await stop()` rejects new submissions during shutdown, flushes a partial batch, and waits for
   queued and active batch work. It does not wait for unrelated work a caller performs afterward.
