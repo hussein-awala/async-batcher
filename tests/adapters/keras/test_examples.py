@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import runpy
 import sys
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -46,3 +47,34 @@ async def test_examples_load_legacy_model_and_predict_dense_inputs(monkeypatch, 
             assert await namespace["predict"](inputs[0]) == pytest.approx(expected[0, 0])
     finally:
         await batcher.stop()
+
+
+@pytest.mark.asyncio
+async def test_unbatched_prediction_keeps_the_event_loop_responsive(monkeypatch):
+    monkeypatch.setitem(sys.modules, "fastapi", SimpleNamespace(FastAPI=ExampleApp))
+    namespace = runpy.run_path(str(Path(__file__).resolve().parents[3] / "examples" / "keras" / "main.py"))
+    started = asyncio.Event()
+    release = threading.Event()
+    loop = asyncio.get_running_loop()
+
+    def slow_prediction(samples, *, verbose):
+        loop.call_soon_threadsafe(started.set)
+        if not release.wait(timeout=5):
+            raise TimeoutError("The event loop could not release the prediction worker")
+        assert samples.shape == (1, 10)
+        assert samples.dtype == np.float32
+        assert verbose == 0
+        return np.asarray([[42.0]])
+
+    monkeypatch.setattr(namespace["model"], "predict", slow_prediction)
+    request = asyncio.create_task(namespace["predict"]([0.0] * 10))
+    try:
+        await asyncio.wait_for(started.wait(), timeout=5)
+        # Another task can run while the synchronous model is still predicting.
+        assert not request.done()
+        release.set()
+        assert await asyncio.wait_for(request, timeout=5) == 42.0
+    finally:
+        release.set()
+        await asyncio.gather(request, return_exceptions=True)
+        await namespace["batcher"].stop()
