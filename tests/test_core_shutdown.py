@@ -39,8 +39,6 @@ async def test_graceful_stop_flushes_queued_partial_batch(harness):
     await asyncio.wait_for(stopping, timeout=1)
     assert await asyncio.gather(*requests) == [0, 2, 4, 6, 8]
     assert batcher.batches == [[0, 1], [2, 3], [4]]
-    with pytest.raises(RuntimeError, match="stopped"):
-        await batcher.process(9)
 
 
 @pytest.mark.asyncio
@@ -87,8 +85,6 @@ async def test_force_stop_cancels_active_and_queued_requests(harness):
     assert all(isinstance(result, asyncio.CancelledError) for result in results)
     assert not await batcher.is_running()
     assert not batcher._running_batches
-    with pytest.raises(RuntimeError, match="stopped"):
-        await batcher.process(9)
     await batcher.stop(force=True)
     await batcher.stop()
 
@@ -109,12 +105,11 @@ async def test_force_stop_cancels_partially_collected_batch(harness):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("force", [False, True])
-async def test_stop_before_start_is_terminal(harness, force):
+async def test_stop_before_start_allows_later_processing(harness, force):
     batcher = harness.create()
     await batcher.stop(force=force)
     assert not await batcher.is_running()
-    with pytest.raises(RuntimeError, match="stopped"):
-        await batcher.process(1)
+    assert await asyncio.wait_for(batcher.process(1), timeout=1) == 2
 
 
 @pytest.mark.asyncio

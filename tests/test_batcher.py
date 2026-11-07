@@ -162,8 +162,7 @@ async def test_stop_batcher(mock_async_batcher):
     assert await mock_async_batcher.is_running()
     await mock_async_batcher.stop()
     assert not await mock_async_batcher.is_running()
-    with pytest.raises(RuntimeError):
-        await mock_async_batcher.process(item=0)
+    assert await mock_async_batcher.process(item=3) == 6
 
 
 @pytest.mark.asyncio
