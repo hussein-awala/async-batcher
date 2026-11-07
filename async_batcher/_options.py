@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Generic, TypedDict, TypeVar
 if TYPE_CHECKING:
     from collections.abc import Callable
     from concurrent.futures import Executor
+    from contextvars import Context
     from numbers import Real
 
     from async_batcher.observability import BatchEvent
@@ -29,3 +30,4 @@ class BatcherOptions(LegacyOptions, Generic[T], total=False):
     item_cost: Callable[[T], float | Real] | None
     executor: Executor | None
     on_batch: Callable[[BatchEvent], None] | None
+    processor_context: Context | None

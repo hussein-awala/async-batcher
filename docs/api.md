@@ -36,6 +36,7 @@ and the runnable [cookbook](cookbook.md) for focused examples.
 | `max_batch_cost` | `None` | Optional positive finite per-batch budget; requires `item_cost`. Count and cost limits both apply. |
 | `item_cost` | `None` | Synchronous nonnegative finite cost estimator, evaluated once per submission; requires `max_batch_cost`. |
 | `on_batch` | `None` | Fast synchronous observer receiving one payload-free `BatchEvent` per completed dispatched batch. |
+| `processor_context` | `None` | Optional `contextvars.Context`, snapshotted at construction and copied for each dispatcher/worker. `None` inherits the initiating caller context. |
 | `executor` | `None` | Same-interpreter executor for synchronous processors; `None` uses asyncio's default thread executor. |
 
 A full queue raises `QueueFullException` immediately by default. Use
@@ -194,3 +195,23 @@ sequenceDiagram
         end
     end
 ```
+
+## Processor context and request metadata
+
+By default, the dispatcher inherits the context of the caller that starts it. Later
+batches inherit that dispatcher context, including when submitted by different callers.
+A request ID or tenant stored in a `ContextVar` is therefore not per-item metadata.
+The same rule applies to synchronous processors and batch observers.
+
+Pass `processor_context=contextvars.Context()` for an empty service context, or a
+context prepared during application startup for explicit service-level values. The
+batcher snapshots it at construction and copies it for each worker; changing the
+original context later or rebinding a value inside one worker does not affect another.
+Context copies do not deep-copy their values; mutable objects remain caller-owned.
+Internal ancestry used to reject self-shutdown remains intact. Admission callbacks
+such as `item_cost` still execute in their caller's context.
+
+Carry request-specific identity and tracing data explicitly in input records. Build
+compatibility keys from authenticated server-side identity and processing options;
+grouping does not authenticate a caller. Snapshot mutable nested input values before
+submission when later mutation could change routing or invalidate a cached cost.

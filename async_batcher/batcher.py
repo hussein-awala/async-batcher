@@ -9,7 +9,7 @@ import warnings
 from collections import namedtuple
 from collections.abc import Mapping, Set
 from concurrent import futures
-from contextvars import ContextVar, copy_context
+from contextvars import Context, ContextVar, copy_context
 from functools import partial
 from itertools import islice
 from numbers import Real
@@ -78,6 +78,9 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             after each dispatched batch finishes cleanup. It must return quickly
             without blocking the event loop. Ordinary callback errors are logged
             and do not change request outcomes.
+        processor_context: Optional service context, copied at construction and for
+            every dispatcher and worker. None preserves the initiating caller context.
+            Internal processor ancestry is always retained for shutdown safety.
     """
 
     logger = logging.getLogger(__name__)
@@ -94,6 +97,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         item_cost: Callable[[T], float | Real] | None = None,
         executor: Executor | None = None,
         on_batch: Callable[[BatchEvent], None] | None = None,
+        processor_context: Context | None = None,
         **kwargs: Unpack[LegacyOptions],
     ) -> None:
         super().__init__()
@@ -151,6 +155,9 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 or inspect.isasyncgenfunction(callback)
             ):
                 raise TypeError("on_batch must be a synchronous callable")
+        if processor_context is not None and not isinstance(processor_context, Context):
+            raise TypeError("processor_context must be a contextvars.Context or None")
+        self._processor_context = processor_context.copy() if processor_context is not None else None
         self.max_batch_size = max_batch_size
         self.max_queue_time = max_queue_time
         self.max_batch_cost = max_batch_cost
@@ -240,6 +247,14 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             await self.stop()
         finally:
             self._context_entered = False
+
+    def _task_options(self):
+        if self._processor_context is None:
+            return {}
+        context = self._processor_context.copy()
+        # Service context must not erase nested-batcher shutdown ownership.
+        context.run(_processing_ancestors.set, _processing_ancestors.get())
+        return {"context": context}
 
     @staticmethod
     def _validate_cost(value, name, *, positive=False):
@@ -422,7 +437,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self._accepted += 1
         self._queue_changed.set()
         if self._current_task is None:
-            self._current_task = loop.create_task(self._run())
+            self._current_task = loop.create_task(self._run(), **self._task_options())
         return await future
 
     async def _fill_batch_from_queue(self) -> list[QueueItem]:
@@ -607,7 +622,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         loop = self._get_loop()
         if self._current_task is not None:
             raise RuntimeError("Batcher already has a dispatcher")
-        self._current_task = loop.create_task(self._run())
+        self._current_task = loop.create_task(self._run(), **self._task_options())
         await self._current_task
 
     async def _run(self):
@@ -633,7 +648,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                         timing = _BatchTiming(self._batches_dispatched)
                         worker = self._batch_run(batch, timing)
                         try:
-                            task = asyncio.create_task(worker)
+                            task = asyncio.create_task(worker, **self._task_options())
                         except BaseException:
                             worker.close()
                             self._batches_dispatched -= 1
