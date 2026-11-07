@@ -73,7 +73,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Run the core gate without optional dependencies
-        run: uv run --no-sync python -m coverage run --parallel-mode -m pytest tests/core -ra
+        run: uv run --no-sync python -m coverage run --parallel-mode --source=async_batcher,examples/recipes -m pytest tests/core -ra
 
       - name: Upload coverage data
         if: ${{ always() }}
@@ -107,7 +107,17 @@ jobs:
       - name: Check the installed example dependencies
         run: uv run --no-sync python -c 'import fastapi, httpx2, uvicorn; from fastapi.testclient import TestClient'
       - name: Run real HTTP and lifespan checks
-        run: uv run --no-sync python -m pytest tests/examples -ra
+        run: uv run --no-sync python -m coverage run --parallel-mode --source=async_batcher,examples/recipes -m pytest tests/examples -ra
+      - name: Upload recipe coverage data
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-data-examples-py${{ matrix.python }}
+          path: .coverage.*
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
 
   provider-recipes:
     name: Provider recipes (Python ${{ matrix.python }})
@@ -131,7 +141,17 @@ jobs:
       - name: Require the real provider clients
         run: uv run --no-sync python -c 'import httpx2; from pinecone import AsyncIndex, Vector'
       - name: Validate provider boundaries against local HTTP servers
-        run: uv run --no-sync python -m pytest tests/provider_recipes -ra
+        run: uv run --no-sync python -m coverage run --parallel-mode --source=async_batcher,examples/recipes -m pytest tests/provider_recipes -ra
+      - name: Upload recipe coverage data
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-data-provider-recipes-py${{ matrix.python }}
+          path: .coverage.*
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
 
   adapters:
     name: Adapter (${{ matrix.suite }}, Python ${{ matrix.python }})
@@ -283,7 +303,7 @@ jobs:
 
   coverage:
     name: Combined coverage
-    needs: [plan, core, adapters, services]
+    needs: [plan, core, examples, provider-recipes, adapters, services]
     if: ${{ always() && needs.plan.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -308,6 +328,8 @@ jobs:
           CORE_MATRIX: ${{ needs.plan.outputs.core }}
           ADAPTER_MATRIX: ${{ needs.plan.outputs.adapters }}
           SERVICE_MATRIX: ${{ needs.plan.outputs.services }}
+          HAS_EXAMPLES: ${{ needs.plan.outputs.has_examples }}
+          HAS_PROVIDER_RECIPES: ${{ needs.plan.outputs.has_provider_recipes }}
         run: uv run --no-sync python .github/scripts/report_coverage.py --fail-under 95
       - name: Upload coverage reports
         if: ${{ always() }}

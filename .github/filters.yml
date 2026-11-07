@@ -29,8 +29,8 @@ provider_recipes:
   - *infrastructure
   - 'async_batcher/*.py'
   - 'async_batcher/pinecone/**'
-  - 'examples/recipes/cohere_pinecone.py'
-  - 'examples/recipes/support.py'
+  # Provider recipes may compose any of the shared recipe modules.
+  - 'examples/recipes/**'
   - 'tests/provider_recipes/**'
   - 'tests/conftest.py'
   - 'tests/core_helpers.py'

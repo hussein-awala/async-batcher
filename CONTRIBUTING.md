@@ -247,3 +247,24 @@ verified publication plan; that does not authorize pushing a tag or posting an a
 The skills live in the repository's discoverable `.agents/skills` directory;
 see the [official skills guide](https://learn.chatgpt.com/docs/build-skills). They can also be read
 as ordinary maintenance documentation. Keep their commands aligned with the workflows above.
+
+## Recipe coverage
+
+CI instruments core, HTTP, and provider recipe runs and includes every selected job's coverage
+artifact in the combined report. `coverage-report/recipes/` contains separate JSON, XML, HTML,
+and text summaries for all `examples/recipes` Python sources. The summary names the selected
+suites; unselected suites can leave modules unexecuted. Execution inside crash/replay child
+processes is not instrumented by this report. These application examples have a diagnostic
+coverage report, while the package's 95% combined statement-and-branch gate stays unchanged.
+A missing selected recipe artifact fails the report rather than silently inflating its percentage.
+
+For a complete local recipe measurement, install the `test` and `example-test` groups
+plus the `pinecone` extra in an isolated environment, then run from the repository root:
+
+```bash
+uv run --no-sync python -m coverage run --branch --source=examples/recipes -m pytest \
+  tests/core tests/examples tests/provider_recipes -ra
+uv run --no-sync python -m coverage report --show-missing
+```
+
+This intentionally measures recipes separately; it is not a full-package or live-service report.
