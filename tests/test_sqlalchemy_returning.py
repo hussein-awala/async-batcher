@@ -10,6 +10,7 @@ from async_batcher.sqlalchemy.write import AsyncSqlalchemyWriteBatcher  # noqa: 
 
 from sqlalchemy import Column, Integer, MetaData, String, Table  # noqa: E402
 from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
+from sqlalchemy.orm import registry  # noqa: E402
 
 
 @pytest_asyncio.fixture
@@ -44,5 +45,16 @@ async def test_returning_preserves_input_order(database, container):
 
 def test_bulk_update_rejects_returning_before_execution():
     table = Table("records", MetaData(), Column("id", Integer, primary_key=True))
-    with pytest.raises(ValueError, match="RETURNING is not supported for bulk UPDATE"):
-        AsyncSqlalchemyWriteBatcher(model=table, async_engine=None, operation="update", returning=table.c.id)
+
+    class Record:
+        pass
+
+    mapper_registry = registry()
+    mapper_registry.map_imperatively(Record, table)
+    try:
+        with pytest.raises(ValueError, match="RETURNING is not supported for bulk UPDATE"):
+            AsyncSqlalchemyWriteBatcher(
+                model=Record, async_engine=None, operation="update", returning=Record.id
+            )
+    finally:
+        mapper_registry.dispose()
