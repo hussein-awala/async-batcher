@@ -32,6 +32,7 @@ def create(client: AioBaseClient) -> AsyncKinesisBatcher:
         on_batch=observe,
         processor_context=Context(),
         log_exceptions=False,
+        discard_cancelled=True,
     )
 
 
