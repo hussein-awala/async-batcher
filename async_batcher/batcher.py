@@ -50,6 +50,11 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             its oldest item's arrival. A busy processor can delay dispatch beyond
             this limit. Defaults to 0.01.
         max_queue_size: Maximum queued items, or -1/0 for no limit. Defaults to -1.
+        max_batch_cost: Optional positive, finite budget for each batch. Requires
+            item_cost. Both count and cost limits apply when configured.
+        item_cost: Synchronous function returning a nonnegative, finite real cost.
+            Called once per submission. Items exceeding max_batch_cost are rejected
+            before enqueueing. Requires max_batch_cost.
         concurrency: Maximum concurrent batches, or -1 for no limit. Defaults to 1.
         executor: Same-interpreter executor for synchronous processors, such as
             ThreadPoolExecutor or a custom executor. None uses asyncio's default
@@ -59,7 +64,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
     """
 
     logger = logging.getLogger(__name__)
-    QueueItem = namedtuple("QueueItem", ["item", "future", "enqueued_at"])
+    QueueItem = namedtuple("QueueItem", ["item", "future", "enqueued_at", "cost"], defaults=[0])
 
     def __init__(
         self,
@@ -68,6 +73,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         max_queue_time: float = 0.01,
         concurrency: int = 1,
         max_queue_size: int = -1,
+        max_batch_cost: Real | None = None,
+        item_cost: Callable[[T], Real] | None = None,
         executor: Executor | None = None,
         **kwargs,
     ):
@@ -100,6 +107,12 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             or max_queue_time < 0
         ):
             raise ValueError("max_queue_time must be a finite, nonnegative number")
+        if (max_batch_cost is None) != (item_cost is None):
+            raise ValueError("max_batch_cost and item_cost must be configured together")
+        if max_batch_cost is not None:
+            self._validate_cost(max_batch_cost, "max_batch_cost", positive=True)
+            if not callable(item_cost) or inspect.iscoroutinefunction(item_cost):
+                raise TypeError("item_cost must be a synchronous callable")
         if executor is not None:
             unsupported_executors = (futures.ProcessPoolExecutor,)
             interpreter_executor = getattr(futures, "InterpreterPoolExecutor", None)
@@ -111,10 +124,13 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 )
         self.max_batch_size = max_batch_size
         self.max_queue_time = max_queue_time
+        self.max_batch_cost = max_batch_cost
+        self.item_cost = item_cost
         self.concurrency = concurrency
         self.executor = executor
         self._loop: asyncio.AbstractEventLoop | None = None
         self._queue = asyncio.Queue(maxsize=max_queue_size)
+        self._next_batch_item: AsyncBatcher.QueueItem | None = None
         self._queue_changed = asyncio.Event()
         self._current_task: asyncio.Task | None = None
         self._running_batches: dict[int, asyncio.Task] = {}
@@ -164,6 +180,24 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         finally:
             self._context_entered = False
 
+    @staticmethod
+    def _validate_cost(value, name, *, positive=False):
+        valid = isinstance(value, Real) and not isinstance(value, bool)
+        if valid:
+            try:
+                valid = math.isfinite(value) and (value > 0 if positive else value >= 0)
+            except OverflowError:
+                valid = False
+        if not valid:
+            sign = "positive" if positive else "nonnegative"
+            raise ValueError(f"{name} must be a finite, {sign} real number")
+
+    def _queued_count(self):
+        return self._queue.qsize() + (self._next_batch_item is not None)
+
+    def _queue_is_full(self):
+        return self._queue.maxsize > 0 and self._queued_count() >= self._queue.maxsize
+
     @abc.abstractmethod
     def process_batch(self, batch: list[T]) -> Sequence[S] | Awaitable[Sequence[S] | None] | None:
         """Return one result per item in an ordered, sized collection, or None.
@@ -197,18 +231,27 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         before changing batcher state, including after shutdown.
         """
         loop = self._get_loop()
+        cost = 0
+        if self.item_cost is not None:
+            cost = self.item_cost(item)
+            # A mistakenly async callback must not leak an unawaited coroutine.
+            if inspect.iscoroutine(cost):
+                cost.close()
+            self._validate_cost(cost, "item_cost result")
+            if cost > self.max_batch_cost:
+                raise ValueError("item_cost result exceeds max_batch_cost")
         if self._stop.is_set():
             if (self._current_task is not None and not self._current_task.done()) or self._running_batches:
                 raise RuntimeError("Batcher is stopping")
             self._stop.clear()
             self._force_stopped = False
             self._current_task = None
-        if self._queue.full():
+        if self._queue_is_full():
             raise QueueFullException("The queue is full, cannot process more items at the moment.")
         future = loop.create_future()
         self._pending_futures.add(future)
         future.add_done_callback(self._pending_futures.discard)
-        self._queue.put_nowait(self.QueueItem(item, future, loop.time()))
+        self._queue.put_nowait(self.QueueItem(item, future, loop.time(), cost))
         self._queue_changed.set()
         if self._current_task is None:
             self._current_task = loop.create_task(self._run())
@@ -216,11 +259,16 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
 
     async def _fill_batch_from_queue(self) -> list[QueueItem]:
         batch = []
+        batch_cost = 0
         loop = asyncio.get_running_loop()
         deadline = None
         while self.max_batch_size < 0 or len(batch) < self.max_batch_size:
             try:
-                item = self._queue.get_nowait()
+                if self._next_batch_item is not None:
+                    item = self._next_batch_item
+                    self._next_batch_item = None
+                else:
+                    item = self._queue.get_nowait()
             except asyncio.QueueEmpty:
                 if self._stop.is_set():
                     break
@@ -236,9 +284,17 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                     except TimeoutError:
                         break
             else:
+                if self.max_batch_cost is not None and batch_cost + item.cost > self.max_batch_cost:
+                    # Keep this request ahead of the queue with its original age.
+                    # It still counts toward queue capacity until collection resumes.
+                    self._next_batch_item = item
+                    break
                 batch.append(item)
+                batch_cost += item.cost
                 if deadline is None:
                     deadline = item.enqueued_at + self.max_queue_time
+                if self.max_batch_cost is not None and batch_cost >= self.max_batch_cost:
+                    break
         return batch
 
     async def _batch_run(self, batch: list[QueueItem]):
@@ -317,6 +373,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             future.cancel()
         while not self._queue.empty():
             self._queue.get_nowait()
+        self._next_batch_item = None
 
     async def run(self):
         """Start a dispatcher and wait until all accepted work has finished.
@@ -380,7 +437,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             self._is_running.clear()
 
     def _should_stop(self):
-        return self._stop.is_set() and self._queue.empty()
+        return self._stop.is_set() and self._queued_count() == 0
 
     async def is_running(self):
         """Return whether the dispatcher is running or draining active batches."""
