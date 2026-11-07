@@ -41,13 +41,14 @@ async def topic_with_config(**config):
             await admin.close()
 
 
-async def consume(topic, count):
+async def consume(topic, count, *, isolation_level="read_uncommitted"):
     consumer = AIOKafkaConsumer(
         bootstrap_servers=BOOTSTRAP,
         group_id=None,
         enable_auto_commit=False,
         auto_offset_reset="earliest",
         request_timeout_ms=10000,
+        isolation_level=isolation_level,
     )
     try:
         await consumer.start()
@@ -134,4 +135,101 @@ async def test_broker_rejects_oversized_record_without_losing_neighboring_batche
             assert [record.value for record in await consume(topic, 2)] == [b"first", b"last"]
         finally:
             await batcher.stop(force=True)
+            await producer.stop()
+
+
+async def test_cross_topic_serializers_tombstones_headers_and_producer_ownership():
+    def serialize(value):
+        return None if value is None else value.encode()
+
+    async with topic_with_config() as first, topic_with_config() as second:
+        producer = AIOKafkaProducer(
+            bootstrap_servers=BOOTSTRAP,
+            key_serializer=serialize,
+            value_serializer=serialize,
+            request_timeout_ms=10000,
+        )
+        records = [
+            KafkaRecord(topic=first, partition=0, key="key", value="", headers=(("trace", None),)),
+            KafkaRecord(topic=second, partition=1, key="key", value="other"),
+            KafkaRecord(topic=first, partition=0, key="key", value=None),
+            KafkaRecord(topic=second, partition=0, value="last", headers=(("same", b"1"), ("same", b"2"))),
+        ]
+        batcher = AsyncKafkaBatcher(producer=producer, max_batch_size=len(records))
+        try:
+            await producer.start()
+            async with asyncio.timeout(30):
+                results = await asyncio.gather(*(batcher.process(record) for record in records))
+                await batcher.stop(timeout=10)
+                direct = await producer.send_and_wait(first, key="owner", value="still open", partition=1)
+            received = {
+                (row.topic, row.partition, row.offset): row
+                for row in [*(await consume(first, 3)), *(await consume(second, 2))]
+            }
+            for record, result in zip(records, results, strict=True):
+                assert isinstance(result, RecordMetadata)
+                row = received[result.topic, result.partition, result.offset]
+                assert (row.topic, row.partition) == (record.topic, record.partition)
+                assert (row.key, row.value, tuple(row.headers)) == (
+                    serialize(record.key),
+                    serialize(record.value),
+                    record.headers,
+                )
+            assert received[direct.topic, direct.partition, direct.offset].value == b"still open"
+        finally:
+            await batcher.stop(force=True, timeout=10)
+            await producer.stop()
+
+
+async def test_transaction_abort_hides_records_and_commit_exposes_them_to_read_committed_consumers():
+    async with topic_with_config() as topic:
+        producer = AIOKafkaProducer(
+            bootstrap_servers=BOOTSTRAP,
+            transactional_id=f"batcher-transaction-{uuid.uuid4().hex}",
+            request_timeout_ms=10000,
+        )
+        batcher = AsyncKafkaBatcher(producer=producer, max_batch_size=2)
+        try:
+            async with asyncio.timeout(45):
+                await producer.start()
+                await producer.begin_transaction()
+                aborted = await asyncio.gather(
+                    *(
+                        batcher.process(KafkaRecord(topic=topic, partition=0, value=value))
+                        for value in (b"abort-1", b"abort-2")
+                    )
+                )
+                assert all(isinstance(result, RecordMetadata) for result in aborted)
+                await producer.abort_transaction()
+                async with producer.transaction():
+                    committed = await asyncio.gather(
+                        *(
+                            batcher.process(KafkaRecord(topic=topic, partition=0, value=value))
+                            for value in (b"commit-1", b"commit-2")
+                        )
+                    )
+                assert all(isinstance(result, RecordMetadata) for result in committed)
+                await batcher.stop(timeout=10)
+                # Transaction ownership remains with the caller after the batcher stops.
+                async with producer.transaction():
+                    await producer.send_and_wait(topic, b"owner-commit", partition=0)
+            committed_records = await consume(topic, 3, isolation_level="read_committed")
+            assert [record.value for record in committed_records] == [
+                b"commit-1",
+                b"commit-2",
+                b"owner-commit",
+            ]
+            assert [record.offset for record in committed_records[:2]] == [
+                result.offset for result in committed
+            ]
+            all_records = await consume(topic, 5)
+            assert [record.value for record in all_records] == [
+                b"abort-1",
+                b"abort-2",
+                b"commit-1",
+                b"commit-2",
+                b"owner-commit",
+            ]
+        finally:
+            await batcher.stop(force=True, timeout=10)
             await producer.stop()
