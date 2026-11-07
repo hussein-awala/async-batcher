@@ -76,9 +76,11 @@ The pre-commit Ruff version and the locked Ruff version must agree. GitHub Actio
 commit SHAs; keep their version comments current when updating them. Dependabot checks Python
 packages and Actions weekly.
 
-CI runs a fast core gate for pull requests, selects adapter suites by changed paths, and runs broader
-Python coverage for changes to the workflow or dependencies. Scheduled and manual runs exercise
-the full matrix. Superseded runs on the same PR or on `main` are cancelled; separate PRs and
+Every pull request runs the Linux core gate on Python 3.11 and 3.15, with adapter suites selected
+by changed paths. Core implementation, core test, shared core fixture, and infrastructure changes
+also run macOS ARM and Intel core checks. Every main push retains all supported core interpreters
+and both macOS architectures. Workflow or dependency changes, scheduled runs, and manual runs
+exercise the full matrix. Superseded runs on the same PR or on `main` are cancelled; separate PRs and
 scheduled/manual runs remain independent.
 
 ## Locked dependency security audit
