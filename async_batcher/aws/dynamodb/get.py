@@ -69,6 +69,8 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any]]):
         self.aioboto3_session = aioboto3_session or aioboto3.Session()
 
     async def process_batch(self, batch: list[GetItem]) -> list[dict[str, TableAttributeValueTypeDef]]:
+        if not batch:
+            return []
         indexed_items: dict[tuple, int] = {}
         request_items = {}
         tables_keys = {}
