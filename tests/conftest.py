@@ -21,7 +21,9 @@ def pytest_runtest_setup(item):
 
 
 class MockAsyncBatcher(AsyncBatcher):
-    mock_batch_processor = mock.AsyncMock(side_effect=lambda batch: [i * 2 for i in batch])
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.mock_batch_processor = mock.AsyncMock(side_effect=lambda batch: [i * 2 for i in batch])
 
     async def process_batch(self, *args, **kwargs):
         return await self.mock_batch_processor(*args, **kwargs)
