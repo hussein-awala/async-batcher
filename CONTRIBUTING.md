@@ -80,3 +80,36 @@ CI runs a fast core gate for pull requests, selects adapter suites by changed pa
 Python coverage for changes to the workflow or dependencies. Scheduled and manual runs exercise
 the full matrix. Superseded runs on the same PR or on `main` are cancelled; separate PRs and
 scheduled/manual runs remain independent.
+
+## Locked dependency security audit
+
+The `Locked dependency audit` workflow queries [OSV](https://osv.dev/) weekly,
+on demand, and when its inputs or `poetry.lock` change. It checks every exact
+package version in the lockfile, including optional groups and alternative
+versions selected on other Python interpreters. It does not install packages.
+A known-vulnerable Keras version is queried as a positive control, never installed.
+
+Run the same check with Python 3.11 or newer:
+
+```bash
+python .github/scripts/audit_lock.py
+```
+
+The check exits with `0` for a completed audit without unaccepted findings, `1`
+for vulnerable locked versions, and `2` when the audit is incomplete. Network
+errors, malformed or incomplete responses, failed positive controls, unsupported
+package sources, and pagination errors fail the check. The JSON report is saved
+as `lock-audit.json` and uploaded by CI even when the audit fails.
+
+There is currently no accepted advisory debt. New findings fail by default.
+Prefer updating the affected dependency; if remediation cannot be completed yet,
+a reviewed entry in `.github/lock-audit-exceptions.json` must name the exact
+package, locked version, OSV advisory ID, reason, and expiry date (`YYYY-MM-DD`).
+Exceptions expire at the start of that UTC date. They do not cover other package
+versions or newly published advisories. Accepted findings remain visible in the
+report, and unused exceptions are reported for removal. Do not generate a blanket
+baseline from the scanner output.
+
+OSV coverage is evidence about known advisories, not proof that a dependency has
+no vulnerabilities. This gate complements Dependabot and application-specific
+security review; it does not audit undeclared example requirements or system images.

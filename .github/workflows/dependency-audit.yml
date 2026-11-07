@@ -1,0 +1,53 @@
+name: Locked dependency audit
+
+on:
+  pull_request:
+    paths:
+      - poetry.lock
+      - .github/scripts/audit_lock.py
+      - .github/scripts/test_audit_lock.py
+      - .github/lock-audit-exceptions.json
+      - .github/workflows/dependency-audit.yml
+  push:
+    branches: [main]
+    paths:
+      - poetry.lock
+      - .github/scripts/audit_lock.py
+      - .github/scripts/test_audit_lock.py
+      - .github/lock-audit-exceptions.json
+      - .github/workflows/dependency-audit.yml
+  schedule:
+    - cron: '41 5 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-audit-${{ github.event_name }}-${{ github.event.pull_request.number || (github.event_name == 'push' && github.ref) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+
+jobs:
+  audit:
+    name: Audit every locked version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Verify audit failure handling
+        run: python -m unittest discover -s .github/scripts -p test_audit_lock.py
+      - name: Query current OSV advisories for the complete lockfile
+        run: python .github/scripts/audit_lock.py
+      - name: Preserve audit results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: locked-dependency-audit
+          path: lock-audit.json
+          if-no-files-found: warn
+          retention-days: 30
