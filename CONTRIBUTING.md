@@ -1,18 +1,22 @@
 # Contributing Guidelines
 
-Use Python 3.11 or newer and Poetry 2.5.1. The core library has no runtime dependencies.
-Optional adapters and development tools are installed separately.
+Use Python 3.11 or newer and [uv 0.13.7](https://docs.astral.sh/uv/getting-started/installation/).
+The core library has no runtime dependencies. Optional adapters and development tools are installed separately.
 
 ## Core development
 
-From the repository root, select your interpreter and install the locked test and lint tools:
+From the repository root, select your interpreter and install the locked test and lint tools into `.venv`:
 
 ```bash
-poetry env use python3.12
-poetry sync --only main,test,lint
-poetry run pytest tests/core
-poetry run pre-commit run --all-files
+uv sync --locked --python 3.12 --group lint
+uv run --no-sync python -m pytest tests/core
+uv run --no-sync pre-commit run --all-files
 ```
+
+The `test` dependency group is enabled by default. `uv sync --locked` checks that `uv.lock`
+matches `pyproject.toml` and installs the selected dependencies without changing the lockfile.
+Use `uv run --no-sync` after syncing to reuse that environment, including any selected adapter
+extras. Repeat the appropriate sync command when you change dependencies or switch test suites.
 
 The core tests include cancellation, shutdown, restart, queue limits, and example lifecycle checks.
 They do not require database drivers or ML backends. Python 3.11 is the minimum supported version;
@@ -21,17 +25,18 @@ CI also checks the current stable Python releases through 3.15.
 ## Adapter tests
 
 Install only the extra and test group needed for the adapter you are changing. Each command
-replaces the current environment's selected dependencies with the specified locked groups.
+syncs `.venv` to the specified locked groups and extra, removing packages outside that selection.
 
 | Adapter | Install | Run |
 | --- | --- | --- |
-| Kafka | `poetry sync --only main,test -E kafka` | `poetry run pytest tests/adapters/kafka` |
-| AWS | `poetry sync --only main,test -E aws` | `poetry run pytest tests/adapters/aws` |
-| SQLAlchemy | `poetry sync --only main,test,adapter-test -E sqlalchemy` | `poetry run pytest tests/adapters/sqlalchemy` |
-| ScyllaDB | `poetry sync --only main,test -E scylla` | `poetry run pytest tests/adapters/scylla` |
-| Keras | `poetry sync --only main,test,ml-test -E keras` | `KERAS_BACKEND=jax poetry run pytest tests/adapters/keras` |
-| scikit-learn | `poetry sync --only main,test -E sklearn` | `poetry run pytest tests/adapters/sklearn` |
-| Pinecone | `poetry sync --only main,test -E pinecone` | `poetry run pytest tests/adapters/pinecone` |
+| Kafka | `uv sync --locked --no-default-groups --group test --extra kafka` | `uv run --no-sync python -m pytest tests/adapters/kafka` |
+| AWS | `uv sync --locked --no-default-groups --group test --extra aws` | `uv run --no-sync python -m pytest tests/adapters/aws` |
+| SQLAlchemy | `uv sync --locked --no-default-groups --group test --group adapter-test --extra sqlalchemy` | `uv run --no-sync python -m pytest tests/adapters/sqlalchemy` |
+| ScyllaDB | `uv sync --locked --no-default-groups --group test --extra scylla` | `uv run --no-sync python -m pytest tests/adapters/scylla` |
+| Keras | `uv sync --locked --no-default-groups --group test --group ml-test --extra keras` | `KERAS_BACKEND=jax uv run --no-sync python -m pytest tests/adapters/keras` |
+| scikit-learn | `uv sync --locked --no-default-groups --group test --extra sklearn` | `uv run --no-sync python -m pytest tests/adapters/sklearn` |
+| MongoDB | `uv sync --locked --no-default-groups --group test --extra mongodb` | `uv run --no-sync python -m pytest tests/adapters/mongodb` |
+| Pinecone | `uv sync --locked --no-default-groups --group test --extra pinecone` | `uv run --no-sync python -m pytest tests/adapters/pinecone` |
 
 Pinecone tests use real SDK types and a local HTTP endpoint. They do not need live credentials
 and do not verify server-side persistence or eventual consistency.
@@ -39,12 +44,12 @@ and do not verify server-side persistence or eventual consistency.
 To install every adapter and run all unit tests:
 
 ```bash
-poetry sync --only main,test,adapter-test,ml-test --all-extras
-KERAS_BACKEND=jax poetry run pytest
+uv sync --locked --no-default-groups --group test --group adapter-test --group ml-test --all-extras
+KERAS_BACKEND=jax uv run --no-sync python -m pytest
 ```
 
-Plain `pytest` discovers `tests/core` and `tests/adapters`. Missing optional dependencies produce
-explicit skips. CI installs each adapter's dependencies before testing it. Integration tests are
+`uv run --no-sync python -m pytest` discovers `tests/core` and `tests/adapters`. Missing optional
+dependencies produce explicit skips. CI installs each adapter's dependencies before testing it. Integration tests are
 outside default discovery, so collecting core tests never imports service fixtures.
 
 Async tests and fixtures use function-scoped event loops by default. Shared SQLAlchemy fixtures
@@ -56,7 +61,7 @@ Install the corresponding adapter first, then start its service and select its i
 
 ```bash
 docker compose -f docker-compose/dynamodb.yml up -d --wait
-poetry run pytest tests/integration/aws
+uv run --no-sync python -m pytest tests/integration/aws
 docker compose -f docker-compose/dynamodb.yml down --volumes
 ```
 
@@ -65,7 +70,11 @@ For PostgreSQL, use `docker-compose/postgres.yml` and `tests/integration/sqlalch
 `tests/integration/scylladb` with the `scylla` extra. Stop services after testing; CI collects service
 logs on failure and tears services down even if tests fail.
 
-For Kafka, use `poetry sync --only main,test -E kafka`, `docker-compose/kafka.yml`, and
+For MongoDB, use `docker-compose/mongodb.yml` and `tests/integration/mongodb` with the `mongodb`
+extra. Tests use PyMongo's native async client and verify write results, ordered partial failures,
+and validation before writes reach the local service.
+
+For Kafka, use `uv sync --locked --no-default-groups --group test --extra kafka`, `docker-compose/kafka.yml`, and
 `tests/integration/kafka`. The development broker is a single-node KRaft server on `127.0.0.1:9092`.
 The integration suite verifies native batches, per-record offsets, both timestamp modes, and a
 broker-rejected oversized record alongside successful records. Unit tests use the actual aiokafka
@@ -74,14 +83,20 @@ producer and batch builder, replacing only the broker enqueue/delivery boundary.
 ## Dependency and CI maintenance
 
 `pyproject.toml` declares the public extras and separate `test`, `adapter-test`, `ml-test`, `lint`,
-and `typing` groups. `poetry.lock` records their resolved versions. Update both declarations and
-lockfile when changing dependency requirements, then validate the affected suites:
+and `typing` dependency groups. `uv.lock` records their resolved versions across supported
+interpreters and extras. After changing dependency requirements, refresh and check the lock, then
+validate the affected suites and build both distributions:
 
 ```bash
-poetry update
-poetry check --lock
-poetry build
+uv lock
+uv lock --check
+uv build
 ```
+
+`uv lock` preserves compatible locked versions. Use `uv lock --upgrade` for an intentional
+refresh, or `uv lock --upgrade-package PACKAGE` for a targeted update. Commit `pyproject.toml`
+and `uv.lock` together when requirements change. `uv build` uses the native `uv_build` backend
+and writes the wheel and source distribution to `dist/`.
 
 The pre-commit Ruff version and the locked Ruff version must agree. GitHub Actions are pinned to
 commit SHAs; keep their version comments current when updating them. Dependabot checks Python
@@ -97,7 +112,7 @@ scheduled/manual runs remain independent.
 ## Locked dependency security audit
 
 The `Locked dependency audit` workflow queries [OSV](https://osv.dev/) weekly,
-on demand, and when its inputs or `poetry.lock` change. It checks every exact
+on demand, and when its inputs or `uv.lock` change. It checks every exact
 package version in the lockfile, including optional groups and alternative
 versions selected on other Python interpreters. It does not install packages.
 A known-vulnerable Keras version is queried as a positive control, never installed.

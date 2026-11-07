@@ -120,6 +120,17 @@ The library requires Python 3.11 or newer. Install it in your environment with p
 pip install async-batcher
 ```
 
+For repository development, use uv 0.13.7 with the committed `uv.lock`:
+
+```bash
+uv sync --locked --group lint
+uv run --no-sync python -m pytest tests/core
+```
+
+This creates a project-local `.venv` with the default test group and lint tools. The core package
+has no runtime dependencies. See [Contributing](CONTRIBUTING.md) for optional adapter environments,
+integration services, and dependency updates.
+
 ### Keras optional dependency
 
 The library and its optional adapters require Python 3.11 or newer. The `keras` extra requires
