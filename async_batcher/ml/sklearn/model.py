@@ -23,6 +23,7 @@ class SklearnAsyncBatcher(AsyncBatcher):
             is less than the concurrency. Defaults to 0.01.
         concurrency (int, optional): The max number of concurrent batches to process.
             Defaults to 1. If -1, it will process all batches concurrently.
+        max_queue_size (int, optional): The maximum number of queued inputs. Defaults to -1 (no limit).
         executor (Executor, optional): The executor to use to process the batch.
             If None, it will use the default asyncio executor. Defaults to None.
     """
@@ -34,12 +35,14 @@ class SklearnAsyncBatcher(AsyncBatcher):
         max_batch_size: int = -1,
         max_queue_time: float = 0.01,
         concurrency: int = 1,
+        max_queue_size: int = -1,
         executor: Executor | None = None,
     ):
         super().__init__(
             max_batch_size=max_batch_size,
             max_queue_time=max_queue_time,
             concurrency=concurrency,
+            max_queue_size=max_queue_size,
             executor=executor,
         )
         self.model = model
