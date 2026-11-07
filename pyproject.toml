@@ -98,6 +98,7 @@ select = [
 docstring-code-format = true
 
 [tool.ruff.lint.isort]
+known-third-party = ["sqlalchemy"]
 required-imports = ["from __future__ import annotations"]
 combine-as-imports = true
 
