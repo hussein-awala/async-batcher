@@ -33,6 +33,7 @@ async def async_hook(event: BatchEvent) -> None:
 
 batcher = AsyncBatcher.from_callable(render)
 Double(max_batch_size="ten")  # error: arg-type
+Double(processor_context={})  # error: arg-type
 Double(on_batch=wrong_hook)  # error: arg-type
 Double(item_cost=wrong_cost)  # error: arg-type
 Double(on_batch=async_hook)  # error: arg-type

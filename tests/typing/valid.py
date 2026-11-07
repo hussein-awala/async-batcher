@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Iterator
+from contextvars import Context
 from fractions import Fraction
 from typing import assert_type
 
@@ -97,7 +98,9 @@ def fractional_cost(item: int) -> Fraction:
     return Fraction(item, 2)
 
 
-sync_batcher = AsyncBatcher.from_callable(render, max_batch_size=16, on_batch=on_batch)
+sync_batcher = AsyncBatcher.from_callable(
+    render, max_batch_size=16, on_batch=on_batch, processor_context=Context()
+)
 async_batcher = AsyncBatcher.from_callable(async_render)
 wrapped_batcher = AsyncBatcher.from_callable(wrapped)
 object_batcher = AsyncBatcher.from_callable(AsyncRenderer())
