@@ -80,8 +80,20 @@ class PlanTests(unittest.TestCase):
         self.assertEqual([row["suite"] for row in result["adapters"]["include"]], ["kafka"])
         self.assertEqual(
             result["services"]["include"],
-            [{"suite": "kafka", "extra": "kafka", "groups": "main,test", "compose": "kafka"}],
+            [{"suite": "kafka", "extra": "kafka", "groups": "test", "compose": "kafka"}],
         )
+
+    def test_adapter_groups_only_include_their_test_requirements(self):
+        result = plan("schedule", set())
+        for row in [*result["adapters"]["include"], *result["services"]["include"]]:
+            suite = row.get("extra", row["suite"])
+            expected = {"test"}
+            if suite == "sqlalchemy":
+                expected.add("adapter-test")
+            elif suite == "keras":
+                expected.add("ml-test")
+            with self.subTest(suite=suite):
+                self.assertEqual(set(row["groups"].split()), expected)
 
     def test_main_expands_core_without_unrelated_service_jobs(self):
         result = plan("push", {"keras"})

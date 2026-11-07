@@ -1,12 +1,12 @@
 name: Set up the locked project environment
-description: Install isolated Poetry tooling and only the requested dependency groups and extras.
+description: Install uv and only the requested locked dependency groups and extras.
 inputs:
   python-version:
     description: Python interpreter for the project tests
     required: true
   groups:
-    description: Comma-separated Poetry dependency groups
-    default: main,test
+    description: Space-separated dependency groups; empty installs only the project
+    default: test
   extras:
     description: Space-separated project extras
     default: ''
@@ -17,14 +17,6 @@ runs:
       id: python
       with:
         python-version: ${{ inputs.python-version }}
-    # Keep packaging tools on a mature interpreter with wheels. Project tests
-    # still use the exact interpreter selected above via `poetry env use`.
-    - name: Set up the Poetry interpreter
-      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-      with:
-        python-version: '3.12'
-        cache: pip
-        cache-dependency-path: .github/actions/setup-project/action.yml
     - name: Identify the dependency selection
       id: dependencies
       shell: bash
@@ -32,24 +24,18 @@ runs:
         DEPENDENCY_GROUPS: ${{ inputs.groups }}
         PROJECT_EXTRAS: ${{ inputs.extras }}
       run: |
-        # Cache keys cannot contain the commas used by Poetry's group selector.
-        scope="${DEPENDENCY_GROUPS//,/+}-${PROJECT_EXTRAS// /+}"
+        scope="${DEPENDENCY_GROUPS// /+}-${PROJECT_EXTRAS// /+}"
         printf 'scope=%s\n' "$scope" >> "$GITHUB_OUTPUT"
-    - name: Cache downloaded Poetry packages
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+    - name: Install uv and restore its package cache
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       with:
-        path: ${{ runner.temp }}/poetry-cache/artifacts
-        key: poetry-artifacts-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', '.github/actions/setup-project/action.yml') }}-${{ steps.dependencies.outputs.scope }}
-        restore-keys: |
-          poetry-artifacts-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', '.github/actions/setup-project/action.yml') }}-
-    - name: Install Poetry independently from project dependencies
-      shell: bash
-      run: |
-        python -m venv "$RUNNER_TEMP/poetry-cli"
-        "$RUNNER_TEMP/poetry-cli/bin/python" -m pip install --disable-pip-version-check 'poetry==2.5.1'
-        echo "$RUNNER_TEMP/poetry-cli/bin" >> "$GITHUB_PATH"
-        echo "POETRY_CACHE_DIR=$RUNNER_TEMP/poetry-cache" >> "$GITHUB_ENV"
-        echo 'POETRY_VIRTUALENVS_IN_PROJECT=true' >> "$GITHUB_ENV"
+        version: '0.13.7'
+        enable-cache: true
+        cache-dependency-glob: |
+          pyproject.toml
+          uv.lock
+          .github/actions/setup-project/action.yml
+        cache-suffix: ${{ steps.python.outputs.python-version }}-${{ steps.dependencies.outputs.scope }}
     - name: Synchronize the selected locked dependencies
       shell: bash
       env:
@@ -57,9 +43,11 @@ runs:
         DEPENDENCY_GROUPS: ${{ inputs.groups }}
         PROJECT_EXTRAS: ${{ inputs.extras }}
       run: |
-        poetry env use "$SELECTED_PYTHON"
-        install_args=(--no-interaction --only "$DEPENDENCY_GROUPS")
-        if [[ -n "$PROJECT_EXTRAS" ]]; then
-          install_args+=(--extras "$PROJECT_EXTRAS")
-        fi
-        poetry sync "${install_args[@]}"
+        install_args=(--locked --no-default-groups --python "$SELECTED_PYTHON")
+        read -r -a selected_groups <<< "$DEPENDENCY_GROUPS"
+        read -r -a selected_extras <<< "$PROJECT_EXTRAS"
+        for group in "${selected_groups[@]}"; do install_args+=(--group "$group"); done
+        for extra in "${selected_extras[@]}"; do install_args+=(--extra "$extra"); done
+        uv sync "${install_args[@]}"
+        # Keep subsequent `uv run --no-sync` commands on the matrix interpreter.
+        printf 'UV_PYTHON=%s\n' "$SELECTED_PYTHON" >> "$GITHUB_ENV"

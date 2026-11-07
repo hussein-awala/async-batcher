@@ -3,7 +3,8 @@ name: Locked dependency audit
 on:
   pull_request:
     paths:
-      - poetry.lock
+      - uv.lock
+      - pyproject.toml
       - .github/scripts/audit_lock.py
       - .github/scripts/test_audit_lock.py
       - .github/lock-audit-exceptions.json
@@ -11,7 +12,8 @@ on:
   push:
     branches: [main]
     paths:
-      - poetry.lock
+      - uv.lock
+      - pyproject.toml
       - .github/scripts/audit_lock.py
       - .github/scripts/test_audit_lock.py
       - .github/lock-audit-exceptions.json
