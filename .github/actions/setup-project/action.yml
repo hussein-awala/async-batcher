@@ -22,11 +22,23 @@ runs:
           pyproject.toml
           poetry.lock
           .github/actions/setup-project/action.yml
+    - name: Identify the dependency selection
+      id: dependencies
+      shell: bash
+      env:
+        DEPENDENCY_GROUPS: ${{ inputs.groups }}
+        PROJECT_EXTRAS: ${{ inputs.extras }}
+      run: |
+        # Cache keys cannot contain the commas used by Poetry's group selector.
+        scope="${DEPENDENCY_GROUPS//,/+}-${PROJECT_EXTRAS// /+}"
+        printf 'scope=%s\n' "$scope" >> "$GITHUB_OUTPUT"
     - name: Cache downloaded Poetry packages
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ runner.temp }}/poetry-cache/artifacts
-        key: poetry-artifacts-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', '.github/actions/setup-project/action.yml') }}
+        key: poetry-artifacts-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', '.github/actions/setup-project/action.yml') }}-${{ steps.dependencies.outputs.scope }}
+        restore-keys: |
+          poetry-artifacts-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', '.github/actions/setup-project/action.yml') }}-
     - name: Install Poetry independently from project dependencies
       shell: bash
       run: |
