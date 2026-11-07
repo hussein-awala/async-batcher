@@ -9,11 +9,12 @@ In this example, we serve a TensorFlow model using FastAPI and create two endpoi
 
 ## How to use
 ```bash
-# Install the packages
-pip install -r requirements.txt
+# Install from the repository root
+pip install -e . -r examples/keras/requirements.txt
 
 # Run the FastAPI server with Uvicorn
-PYTHONPATH=$PYTHONPATH:$(git rev-parse --show-toplevel) uvicorn main:app --reload
+cd examples/keras
+uvicorn main:app --reload
 ```
 
 ## Load testing
