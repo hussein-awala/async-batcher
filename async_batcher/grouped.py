@@ -63,12 +63,16 @@ class GroupedBatcher(Generic[K, T, S]):
             raise TypeError("factory and group_key must be synchronous")
         if isinstance(max_groups, bool) or not isinstance(max_groups, int) or max_groups < 1:
             raise ValueError("max_groups must be a positive integer")
-        if (
-            isinstance(idle_timeout, bool)
-            or not isinstance(idle_timeout, Real)
-            or not math.isfinite(idle_timeout)
-            or idle_timeout < 0
-        ):
+        try:
+            valid_timeout = (
+                not isinstance(idle_timeout, bool)
+                and isinstance(idle_timeout, Real)
+                and math.isfinite(idle_timeout)
+                and idle_timeout >= 0
+            )
+        except OverflowError:
+            valid_timeout = False
+        if not valid_timeout:
             raise ValueError("idle_timeout must be a finite, nonnegative number")
         self._factory = factory
         self._group_key = group_key

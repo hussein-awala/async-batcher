@@ -217,6 +217,7 @@ async def test_context_errors_drain_and_close_without_suppressing():
         {"idle_timeout": "1"},
         {"idle_timeout": float("nan")},
         {"idle_timeout": float("inf")},
+        {"idle_timeout": 10**1000},
     ],
 )
 def test_invalid_limits(options):
