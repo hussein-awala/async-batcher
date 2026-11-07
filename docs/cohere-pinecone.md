@@ -98,7 +98,9 @@ This example adds no retry loop. Cohere HTTP errors, including throttling, propa
 The native Pinecone REST client has its own [built-in retries](https://sdk.pinecone.io/python/guides/retries.html),
 including retries of upserts. The CLI's 30-second client timeouts do not form a whole-import deadline;
 Pinecone can make several attempts and back off. For separate response, backend, and deployment
-deadlines, see the [operational guide](operations.md).
+deadlines, see the [operational guide](operations.md). For application-owned shared quotas and
+finite throttling retries, compose the [provider policy recipe](provider-policy.md), choosing one
+retry owner per operation and counting actual attempts.
 
 A successful result means Pinecone acknowledged the vector, not that a subsequent query can
 already see it. Errors, cancellation, or a lost response can leave earlier writes committed and
@@ -106,7 +108,10 @@ embedding requests billed. The map contexts close their sources and the batcher 
 accepted work before the CLI closes its clients. There is no transaction across Cohere and
 Pinecone, rollback, persistent checkpoint, or exactly-once claim. Replay stable IDs only with the
 same intended content/model/namespace policy; upsert convergence does not remove repeated embedding
-charges. Application-level recovery should record durable progress and reconcile ambiguous writes.
+charges. The [durable embedding handoff recipe](durable-embeddings.md) demonstrates persisting
+validated embeddings before delivery and replaying unfinished upserts. It binds the job to source
+contents and explicit model/configuration identity; a lost embedding response before persistence
+can still require a repeated paid call.
 
 Batcher workers use an empty explicit `Context` and metadata-only exception logging. Provider
 exceptions still reach callers and may contain response details; apply your own logging/redaction

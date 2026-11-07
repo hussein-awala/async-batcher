@@ -15,6 +15,21 @@ shared capacity across groups, caller-owned thread cleanup, and bounded telemetr
 For token-level models, the [variable-length inference recipe](variable-length-inference.md) shows
 collation, attention masks, conservative padding budgets, and output restoration.
 
+## Choose an import or recovery policy
+
+| Need | Recipe | Recovery boundary |
+| --- | --- | --- |
+| Stop on malformed input and upsert good batches | [SQLite stream](#import-a-file-or-async-stream-into-sqlite) | Previously committed batches remain; replay uses stable IDs. |
+| Resume an immutable file into one SQLite database | [Resumable import](resumable-import.md) | Records and byte checkpoint commit together. |
+| Continue after known malformed records | [Rejected-record import](rejected-import.md) | Good rows and rejection locations commit together; each run has a fresh ID. |
+| Avoid re-embedding saved work after a storage failure | [Durable embedding handoff](durable-embeddings.md) | Saved vectors survive; ambiguous upserts may replay. |
+| Share provider quotas and bound throttling retries | [Provider policy](provider-policy.md) | Per-process pacing and finite attempts; the application chooses safe retry errors. |
+
+The ordinary and resumable JSONL readers report the file and a zero-based byte offset for bad
+records without echoing their contents. A source error still terminates their iteration; use the
+explicit rejected-record recipe when continuing is the intended policy. Database errors, changed
+source files, and unknown failures are not silently treated as rejected input.
+
 ## Import a file or async stream into SQLite
 
 For restartable file jobs, the [resumable import recipe](resumable-import.md) commits each batch's
@@ -87,6 +102,8 @@ global transaction, checkpoint, or exactly-once delivery guarantee.
 
 For real provider calls, the separate [Cohere-to-Pinecone recipe](cohere-pinecone.md) uses the current
 REST/SDK contracts, an existing compatible vector index, and local boundary tests without credentials.
+The [durable handoff](durable-embeddings.md) saves embeddings before a separate replayable delivery
+stage. The [provider policy](provider-policy.md) shows explicit quota and retry composition.
 
 [The pipeline recipe](../examples/recipes/embedding_vectors.py) connects two bounded maps. The
 first embeds text and keeps each document ID attached to its vector. The second persists vectors
