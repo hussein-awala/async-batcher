@@ -18,6 +18,7 @@ from weakref import ref
 
 from async_batcher.exceptions import QueueFullException
 from async_batcher.map import map_items
+from async_batcher.observability import BatcherStats, BatchEvent, _BatchTiming
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, AsyncIterable, Awaitable, Callable, Iterable, Sequence
@@ -62,6 +63,10 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             thread executor. ProcessPoolExecutor and InterpreterPoolExecutor are
             unsupported because batchers hold event-loop state that cannot be
             transferred between processes or interpreters.
+        on_batch: Optional synchronous callback receiving a payload-free BatchEvent
+            after each dispatched batch finishes cleanup. It must return quickly
+            without blocking the event loop. Ordinary callback errors are logged
+            and do not change request outcomes.
     """
 
     logger = logging.getLogger(__name__)
@@ -77,6 +82,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         max_batch_cost: Real | None = None,
         item_cost: Callable[[T], Real] | None = None,
         executor: Executor | None = None,
+        on_batch: Callable[[BatchEvent], None] | None = None,
         **kwargs,
     ):
         super().__init__()
@@ -123,12 +129,24 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 raise TypeError(
                     f"{type(executor).__name__} is not supported; executor must run in the same interpreter"
                 )
+        if on_batch is not None:
+            if not callable(on_batch):
+                raise TypeError("on_batch must be a synchronous callable")
+            callback = on_batch.__call__
+            if (
+                inspect.iscoroutinefunction(on_batch)
+                or inspect.iscoroutinefunction(callback)
+                or inspect.isasyncgenfunction(on_batch)
+                or inspect.isasyncgenfunction(callback)
+            ):
+                raise TypeError("on_batch must be a synchronous callable")
         self.max_batch_size = max_batch_size
         self.max_queue_time = max_queue_time
         self.max_batch_cost = max_batch_cost
         self.item_cost = item_cost
         self.concurrency = concurrency
         self.executor = executor
+        self._on_batch = on_batch
         self._loop: asyncio.AbstractEventLoop | None = None
         self._queue = asyncio.Queue(maxsize=max_queue_size)
         self._next_batch_item: AsyncBatcher.QueueItem | None = None
@@ -144,6 +162,14 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self._is_running = asyncio.Event()
         self._force_stopped = False
         self._context_entered = False
+        self._accepted = 0
+        self._rejected = 0
+        self._succeeded = 0
+        self._failed = 0
+        self._cancelled = 0
+        self._in_flight_items = 0
+        self._batches_dispatched = 0
+        self._batches_completed = 0
 
     @staticmethod
     def from_callable(
@@ -195,11 +221,51 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             sign = "positive" if positive else "nonnegative"
             raise ValueError(f"{name} must be a finite, {sign} real number")
 
-    def _queued_count(self):
+    def _queued_count(self) -> int:
         return self._queue.qsize() + (self._next_batch_item is not None)
 
     def _queue_is_full(self):
         return self._queue.maxsize > 0 and self._queued_count() >= self._queue.maxsize
+
+    @staticmethod
+    def _outcome(future: asyncio.Future) -> str:
+        if future.cancelled():
+            return "cancelled"
+        if future.exception() is not None:
+            return "failed"
+        return "succeeded"
+
+    def _request_done(self, future: asyncio.Future) -> None:
+        self._pending_futures.remove(future)
+        outcome = self._outcome(future)
+        setattr(self, f"_{outcome}", getattr(self, f"_{outcome}") + 1)
+
+    def stats(self) -> BatcherStats:
+        """Read an immutable snapshot on the batcher's event-loop thread.
+
+        Reading does not bind a loop or reset totals. It examines outstanding
+        futures so completion callbacks queued for the next loop turn do not
+        make the snapshot stale. Rejections count admission refusals on the
+        owning loop; invalid arguments and foreign-loop calls are excluded.
+        """
+        outcomes = {"succeeded": self._succeeded, "failed": self._failed, "cancelled": self._cancelled}
+        pending = 0
+        for future in self._pending_futures:
+            if future.done():
+                outcomes[self._outcome(future)] += 1
+            else:
+                pending += 1
+        return BatcherStats(
+            queued_items=self._queued_count(),
+            pending_items=pending,
+            in_flight_items=self._in_flight_items,
+            active_batches=self._batches_dispatched - self._batches_completed,
+            accepted=self._accepted,
+            rejected=self._rejected,
+            batches_dispatched=self._batches_dispatched,
+            batches_completed=self._batches_completed,
+            **outcomes,
+        )
 
     @abc.abstractmethod
     def process_batch(self, batch: list[T]) -> Sequence[S] | Awaitable[Sequence[S] | None] | None:
@@ -302,19 +368,26 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 raise ValueError("item_cost result exceeds max_batch_cost")
         if self._stop.is_set():
             if (self._current_task is not None and not self._current_task.done()) or self._running_batches:
+                self._rejected += 1
                 raise RuntimeError("Batcher is stopping")
             self._stop.clear()
             self._force_stopped = False
             self._current_task = None
         if self._queue_is_full():
             if not wait_for_space:
+                self._rejected += 1
                 raise QueueFullException("The queue is full, cannot process more items at the moment.")
-            async with asyncio.timeout(enqueue_timeout):
-                await self._wait_for_queue_space(self._shutdown_generation)
+            try:
+                async with asyncio.timeout(enqueue_timeout):
+                    await self._wait_for_queue_space(self._shutdown_generation)
+            except (TimeoutError, RuntimeError):
+                self._rejected += 1
+                raise
         future = loop.create_future()
         self._pending_futures.add(future)
-        future.add_done_callback(self._pending_futures.discard)
+        future.add_done_callback(self._request_done)
         self._queue.put_nowait(self.QueueItem(item, future, loop.time(), cost))
+        self._accepted += 1
         self._queue_changed.set()
         if self._current_task is None:
             self._current_task = loop.create_task(self._run())
@@ -363,7 +436,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                     break
         return batch
 
-    async def _batch_run(self, batch: list[QueueItem]):
+    async def _batch_run(self, batch: list[QueueItem], timing: _BatchTiming):
         if self._force_stopped:
             return
         task = asyncio.current_task()
@@ -371,6 +444,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         context_token = _processing_ancestors.set((*_processing_ancestors.get(), ref(task)))
         loop = asyncio.get_running_loop()
         started_at = loop.time()
+        timing.started_at = started_at
         try:
             batch_items = [q_item.item for q_item in batch]
             if inspect.iscoroutinefunction(self.process_batch):
@@ -415,15 +489,18 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 else:
                     q_item.future.set_result(result)
         finally:
+            timing.finished_at = loop.time()
             _processing_ancestors.reset(context_token)
             self._processing_tasks.discard(task)
             self.logger.debug(
                 "Processed batch of %s elements in %s seconds.", len(batch), loop.time() - started_at
             )
 
-    def _batch_done(self, task_id: int, batch: list[QueueItem], task: asyncio.Task):
+    def _batch_done(self, task_id: int, batch: list[QueueItem], timing: _BatchTiming, task: asyncio.Task):
         # A done callback also runs when a task is cancelled before its first step.
         self._running_batches.pop(task_id, None)
+        self._in_flight_items -= len(batch)
+        self._batches_completed += 1
         if self._concurrency_semaphore is not None:
             self._concurrency_semaphore.release()
         error = None if task.cancelled() else task.exception()
@@ -433,6 +510,44 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                     q_item.future.set_exception(error)
                 else:
                     q_item.future.cancel()
+        if self._on_batch is not None:
+            completed_at = asyncio.get_running_loop().time()
+            outcomes = {"succeeded": 0, "failed": 0, "cancelled": 0}
+            for q_item in batch:
+                outcomes[self._outcome(q_item.future)] += 1
+            self._notify_batch(
+                BatchEvent(
+                    batch_id=timing.batch_id,
+                    size=len(batch),
+                    queue_wait_seconds=(timing.started_at if timing.started_at is not None else completed_at)
+                    - batch[0].enqueued_at,
+                    processing_seconds=(
+                        timing.finished_at - timing.started_at if timing.started_at is not None else None
+                    ),
+                    **outcomes,
+                )
+            )
+
+    def _notify_batch(self, event: BatchEvent) -> None:
+        try:
+            returned = self._on_batch(event)
+            if inspect.isawaitable(returned):
+                if inspect.iscoroutine(returned):
+                    returned.close()
+                elif isinstance(returned, asyncio.Future):
+                    # The observer may return a borrowed request Future/Task.
+                    # Observe late failures without changing its cancellation.
+                    returned.add_done_callback(
+                        lambda future: None if future.cancelled() else future.exception()
+                    )
+                else:
+                    iterator = returned.__await__()
+                    close = getattr(iterator, "close", None)
+                    if callable(close):
+                        close()
+                raise TypeError("on_batch must not return an awaitable")
+        except Exception:
+            self.logger.error("Error in on_batch callback", exc_info=True)
 
     def _cancel_pending(self):
         for future in self._pending_futures:
@@ -472,9 +587,19 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                     if self._force_stopped:
                         break
                     if batch:
-                        task = asyncio.create_task(self._batch_run(batch))
+                        self._batches_dispatched += 1
+                        self._in_flight_items += len(batch)
+                        timing = _BatchTiming(self._batches_dispatched)
+                        worker = self._batch_run(batch, timing)
+                        try:
+                            task = asyncio.create_task(worker)
+                        except BaseException:
+                            worker.close()
+                            self._batches_dispatched -= 1
+                            self._in_flight_items -= len(batch)
+                            raise
                         self._running_batches[task_id] = task
-                        task.add_done_callback(partial(self._batch_done, task_id, batch))
+                        task.add_done_callback(partial(self._batch_done, task_id, batch, timing))
                         # The completion callback now owns this semaphore permit.
                         semaphore_acquired = False
                         task_id += 1
