@@ -3,19 +3,68 @@ from __future__ import annotations
 import asyncio
 from collections import deque
 from collections.abc import AsyncIterable
-from typing import TYPE_CHECKING, TypeVar
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Iterable
-
-    from async_batcher.batcher import AsyncBatcher
+    from collections.abc import AsyncGenerator, Awaitable, Callable, Iterable
 
 T = TypeVar("T")
 S = TypeVar("S")
+T_co = TypeVar("T_co", covariant=True)
+S_co = TypeVar("S_co", covariant=True)
+
+
+@dataclass(frozen=True)
+class MapOutcome(Generic[T_co, S_co]):
+    """One indexed input and its result or ordinary request failure.
+
+    ``item`` is the original reference, not a copy. A successful ``None`` result
+    has ``error is None`` and ``succeeded is True``.
+    """
+
+    index: int
+    item: T_co
+    result: S_co | None = None
+    error: Exception | None = None
+
+    @property
+    def succeeded(self) -> bool:
+        return self.error is None
 
 
 def map_items(
-    batcher: AsyncBatcher[T, S],
+    process: Callable[..., Awaitable[S]],
+    source: Iterable[T] | AsyncIterable[T],
+    *,
+    max_pending: int,
+    ordered: bool,
+) -> AsyncGenerator[S, None]:
+    async def submit(index: int, item: T) -> S:
+        return await process(item, wait_for_space=True)
+
+    return _validated_map(submit, source, max_pending=max_pending, ordered=ordered)
+
+
+def map_outcomes(
+    process: Callable[..., Awaitable[S]],
+    source: Iterable[T] | AsyncIterable[T],
+    *,
+    max_pending: int,
+    ordered: bool,
+) -> AsyncGenerator[MapOutcome[T, S], None]:
+    async def submit(index: int, item: T) -> MapOutcome[T, S]:
+        try:
+            result = await process(item, wait_for_space=True)
+        except Exception as error:
+            return MapOutcome(index, item, error=error)
+        return MapOutcome(index, item, result=result)
+
+    return _validated_map(submit, source, max_pending=max_pending, ordered=ordered)
+
+
+def _validated_map(
+    submit: Callable[[int, T], Awaitable[S]],
     source: Iterable[T] | AsyncIterable[T],
     *,
     max_pending: int,
@@ -25,10 +74,10 @@ def map_items(
         raise ValueError("max_pending must be a positive integer")
     if not isinstance(ordered, bool):
         raise TypeError("ordered must be a boolean")
-    return _map_items(batcher, source, max_pending=max_pending, ordered=ordered)
+    return _map_items(submit, source, max_pending=max_pending, ordered=ordered)
 
 
-async def _map_items(batcher, source, *, max_pending, ordered):
+async def _map_items(submit, source, *, max_pending, ordered):
     asynchronous = isinstance(source, AsyncIterable)
     iterator = aiter(source) if asynchronous else iter(source)
     exhausted = StopAsyncIteration if asynchronous else StopIteration
@@ -44,6 +93,7 @@ async def _map_items(batcher, source, *, max_pending, ordered):
         changed.set()
 
     async def feed():
+        index = 0
         try:
             while True:
                 # A slot covers source consumption, admission, processing, and
@@ -55,7 +105,8 @@ async def _map_items(batcher, source, *, max_pending, ordered):
                     break
                 if closing:
                     break
-                task = asyncio.create_task(batcher.process(item, wait_for_space=True))
+                task = asyncio.create_task(submit(index, item))
+                index += 1
                 pending[task] = None
                 task.add_done_callback(completed)
                 changed.set()

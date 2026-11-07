@@ -7,7 +7,7 @@ from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Iterator
 from fractions import Fraction
 from typing import assert_type
 
-from async_batcher import AsyncBatcher, BatcherStats, BatchEvent, GroupedBatcher, GroupLimitError
+from async_batcher import AsyncBatcher, BatcherStats, BatchEvent, GroupedBatcher, GroupLimitError, MapOutcome
 
 
 class AsyncDouble(AsyncBatcher[int, int]):
@@ -159,3 +159,13 @@ async def consume() -> None:
     assert_type(stats.accepted, int)
     assert_type(await sync_batcher.stop(), None)
     assert_type(await sync_batcher.run(), None)
+
+
+async def consume_outcomes() -> None:
+    assert_type(sync_batcher.map_outcomes([1, 2]), AsyncGenerator[MapOutcome[int, str], None])
+    async for outcome in sync_batcher.map_outcomes(source(), ordered=False):
+        assert_type(outcome.index, int)
+        assert_type(outcome.item, int)
+        assert_type(outcome.result, str | None)
+        assert_type(outcome.error, Exception | None)
+        assert_type(outcome.succeeded, bool)
