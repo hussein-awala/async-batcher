@@ -67,6 +67,10 @@ These checks are not a filesystem snapshot or protection against an adversary de
 file changes. For a live producer, first publish a completed immutable file or use a transactional
 message source instead.
 
+Record validation errors identify the filename and zero-based byte offset of the failing line.
+Their messages and normal traceback chains omit record contents and decoder exception details.
+Paths themselves can be sensitive; apply your application logging policy.
+
 Offsets count UTF-8 **bytes**, including line endings, so multibyte text and a final line without a
 newline resume correctly. Blank lines, invalid UTF-8/JSON, extra fields, and invalid IDs are rejected.
 The reader buffers at most 32 records, each limited to 64 KiB including its newline, beyond the
