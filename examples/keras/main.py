@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import gc
 from pathlib import Path
 
@@ -41,7 +42,8 @@ async def shutdown_event():
 async def predict(data: list[float]):
     import numpy as np
 
-    return model.predict(np.asarray([data], dtype="float32"), verbose=0).tolist()[0][0]
+    result = await asyncio.to_thread(model.predict, np.asarray([data], dtype="float32"), verbose=0)
+    return result.tolist()[0][0]
 
 
 @app.post("/optimized_predict")
