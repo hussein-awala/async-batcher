@@ -14,6 +14,7 @@ class PlanTests(unittest.TestCase):
         self.assertFalse(result["has_adapters"])
         self.assertFalse(result["has_services"])
         self.assertFalse(result["has_examples"])
+        self.assertFalse(result["has_provider_recipes"])
         self.assertEqual(
             {row["os"] for row in result["core"]["include"]},
             {"ubuntu-24.04"},
@@ -22,6 +23,7 @@ class PlanTests(unittest.TestCase):
     def test_core_changes_keep_macos_architectures_and_windows_endpoints(self):
         result = plan("pull_request", {"core"})
         self.assertTrue(result["has_examples"])
+        self.assertTrue(result["has_provider_recipes"])
         self.assertEqual(
             result["core"]["include"],
             [
@@ -117,6 +119,24 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(len(result["core"]["include"]), 9)
         self.assertEqual([row["suite"] for row in result["adapters"]["include"]], ["keras"])
         self.assertFalse(result["has_services"])
+
+    def test_provider_recipes_select_only_their_optional_job(self):
+        result = plan("pull_request", {"provider_recipes"})
+        self.assertTrue(result["has_provider_recipes"])
+        self.assertFalse(result["has_adapters"])
+        self.assertFalse(result["has_services"])
+        self.assertFalse(result["has_examples"])
+
+    def test_provider_dependency_and_full_runs_select_provider_checks(self):
+        for event, changed in (
+            ("pull_request", {"pinecone"}),
+            ("pull_request", {"infrastructure"}),
+            ("schedule", set()),
+            ("workflow_dispatch", set()),
+            ("push", set()),
+        ):
+            with self.subTest(event=event, changed=changed):
+                self.assertTrue(plan(event, changed)["has_provider_recipes"])
 
 
 if __name__ == "__main__":

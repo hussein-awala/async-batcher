@@ -51,6 +51,9 @@ def plan(event: str, changed: set[str]) -> dict:
         "has_adapters": bool(adapters),
         "has_services": bool(services),
         "has_examples": full or event == "push" or bool(changed & {"core", "shared", "examples"}),
+        "has_provider_recipes": full
+        or event == "push"
+        or bool(changed & {"core", "shared", "provider_recipes", "pinecone"}),
     }
 
 

@@ -25,6 +25,16 @@ examples:
   - 'tests/conftest.py'
   - 'tests/core_helpers.py'
   - 'tests/__init__.py'
+provider_recipes:
+  - *infrastructure
+  - 'async_batcher/*.py'
+  - 'async_batcher/pinecone/**'
+  - 'examples/recipes/cohere_pinecone.py'
+  - 'examples/recipes/support.py'
+  - 'tests/provider_recipes/**'
+  - 'tests/conftest.py'
+  - 'tests/core_helpers.py'
+  - 'tests/__init__.py'
 shared: &shared
   - *infrastructure
   - 'async_batcher/*.py'
