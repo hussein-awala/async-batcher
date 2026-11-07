@@ -62,6 +62,8 @@ class AsyncDynamoDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
         )
         validate_max_retries(max_retries)
         self.max_retries = max_retries
+        if not 1 <= self.max_batch_size <= 25:
+            raise ValueError("DynamoDB write max_batch_size must be between 1 and 25")
         self.region_name = region_name
         self.use_ssl = True if use_ssl is None else use_ssl
         self.verify = verify
