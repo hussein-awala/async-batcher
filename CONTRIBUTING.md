@@ -13,12 +13,12 @@ poetry install --all-extras
 poetry run pytest
 ```
 
-Integration tests are skipped by default. To work on the core batcher without installing database or machine
-learning dependencies, use a virtual environment and run only the core tests:
+Integration tests are skipped by default. To work on the core batcher without the optional adapter extras,
+install the declared development dependencies and run only the core tests:
 
 ```bash
-python -m pip install -e . "pytest>=8,<9" "pytest-asyncio>=0.23.5,<0.24"
-python -m pytest tests/test_batcher*.py
+poetry install
+poetry run pytest tests/test_batcher*.py
 ```
 
 For integration tests, start the required services using the provided Compose files:

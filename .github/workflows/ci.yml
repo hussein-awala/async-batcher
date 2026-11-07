@@ -57,7 +57,34 @@ jobs:
           python-version: "3.12"
 
       - name: Install core and test dependencies without adapter extras
-        run: pip install -e . "pytest>=8,<9" "pytest-asyncio>=0.23.5,<0.24"
+        run: |
+          python - <<'PY'
+          import subprocess
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          poetry = tomllib.loads(Path("pyproject.toml").read_text())["tool"]["poetry"]
+          dependencies = poetry.get("group", {}).get("dev", {}).get(
+              "dependencies", poetry.get("dev-dependencies", {})
+          )
+          requirements = []
+          for name in ("pytest", "pytest-asyncio", "pygments"):
+              if name == "pygments" and name not in dependencies:
+                  continue
+              constraint = dependencies[name]
+              if constraint.startswith("^"):
+                  version = constraint[1:]
+                  upper = [int(part) for part in version.split(".")]
+                  pivot = next((i for i, part in enumerate(upper) if part), len(upper) - 1)
+                  upper[pivot] += 1
+                  upper[pivot + 1:] = [0] * (len(upper) - pivot - 1)
+                  constraint = f">={version},<{'.'.join(map(str, upper))}"
+              else:
+                  constraint = ",".join(constraint.replace(",", " ").split())
+              requirements.append(name + constraint)
+          subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", ".", *requirements])
+          PY
 
       - name: Run core tests
         run: |
