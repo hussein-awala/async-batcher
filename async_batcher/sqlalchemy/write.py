@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Literal
 
 from async_batcher.batcher import AsyncBatcher
-from sqlalchemy import Row, insert, update
+from sqlalchemy import Row, insert, inspect, update
 from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.orm import Mapper
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -13,6 +14,13 @@ if TYPE_CHECKING:
 
 
 class AsyncSqlalchemyWriteBatcher(AsyncBatcher[dict[str, Any], Row[tuple[Any, ...]] | None]):
+    """Batch SQLAlchemy inserts or ORM updates.
+
+    Bulk updates require a mapped ORM class and primary-key values in each item.
+    Core Table objects are supported for inserts only: their UPDATE statements do
+    not automatically add the primary-key filters needed for per-item updates.
+    """
+
     def __init__(
         self,
         model: Any,
@@ -23,6 +31,8 @@ class AsyncSqlalchemyWriteBatcher(AsyncBatcher[dict[str, Any], Row[tuple[Any, ..
     ):
         if operation not in ["insert", "update"]:
             raise ValueError(f"Invalid operation: {operation}")
+        if operation == "update" and not isinstance(inspect(model, raiseerr=False), Mapper):
+            raise ValueError("Bulk UPDATE requires a mapped ORM class with primary-key values in each item")
         super().__init__(**kwargs)
         self.model = model
         self.async_engine = async_engine
