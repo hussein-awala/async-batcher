@@ -38,7 +38,8 @@ set appropriate request-body and connection limits in your serving infrastructur
 ## Batch concurrent requests and inspect measurements
 
 Sequential curl commands normally form single-item batches. This bounded cohort sends 32 requests
-concurrently and prints actual client elapsed time plus the server's aggregated batch sizes:
+concurrently and prints actual client elapsed time plus the server's aggregated batch sizes.
+Run it with `uv run --no-sync python` from the same checkout:
 
 ```python
 import asyncio
