@@ -70,7 +70,8 @@ async def test_all_write_operations_return_their_own_results(database):
         ]
         assert [results[index].deleted_count for index in [5, 6, 8]] == [1, 1, 0]
         assert results[7].upserted_id == 3
-        assert results[7].matched_count == 0
+        assert results[7].did_upsert
+        assert results[7].modified_count == 0
         assert await database.items.find({}).to_list() == [{"_id": 3, "value": 7}]
         assert await database.other.find_one({"_id": "other"}) == {"_id": "other"}
     finally:

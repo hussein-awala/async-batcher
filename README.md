@@ -265,6 +265,9 @@ Pass native `InsertOne`, `UpdateOne`, `UpdateMany`, `DeleteOne`, `DeleteMany`, o
 `ReplaceOne` operations with a `namespace` such as `"app.items"`. A batch can target
 multiple collections. Each caller receives its own `InsertOneResult`, `UpdateResult`,
 or `DeleteResult`, including inserted IDs, upsert IDs, and matched/modified/deleted counts.
+For upserts, inspect `did_upsert` and `upserted_id`. Native PyMongo 4.19 client-bulk
+results include an upsert in `matched_count`, unlike collection-level update results;
+the adapter preserves the driver's result objects.
 
 ```python
 import asyncio

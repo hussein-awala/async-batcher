@@ -70,6 +70,7 @@ async def test_mixed_operations_route_native_results_in_request_order(client):
             results = await asyncio.wait_for(asyncio.gather(*(batcher.process(op) for op in operations)), 2)
             assert results == expected
             assert results[3].upserted_id == 2
+            assert results[3].did_upsert
             assert results[4].deleted_count == 0
             bulk_write.assert_awaited_once_with(operations, ordered=True, verbose_results=True)
         finally:
