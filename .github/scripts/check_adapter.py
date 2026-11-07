@@ -11,6 +11,7 @@ MODULES = {
     "scylla": ("cassandra.cluster",),
     "keras": ("jax", "keras"),
     "sklearn": ("sklearn",),
+    "pinecone": ("pinecone",),
 }
 
 if __name__ == "__main__":

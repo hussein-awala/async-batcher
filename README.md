@@ -206,6 +206,57 @@ batcher = AsyncDynamoDbGetBatcher(
 Without a projection, reads still return all attributes. Projections reduce returned data,
 but [do not reduce read capacity consumption](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ProjectionExpressions.html).
 
+### Pinecone vector batches
+
+Install `pip install 'async-batcher[pinecone]'` for Pinecone SDK 10.3 through 10.x.
+The vector adapters use a caller-owned `pinecone.AsyncIndex` and one namespace per batcher:
+
+- `AsyncPineconeUpsertBatcher`: accepts SDK `Vector` objects (dense, sparse or hybrid),
+  returning `None` when the server acknowledges the write.
+- `AsyncPineconeFetchBatcher`: accepts vector IDs and returns SDK `Vector` objects or `None`
+  for missing IDs, preserving input order and duplicate requests.
+- `AsyncPineconeDeleteBatcher`: accepts vector IDs and returns `None` after a successful call.
+  Deleting a missing ID also succeeds.
+
+```python
+import asyncio
+
+from pinecone import AsyncIndex, Vector
+from async_batcher.pinecone import AsyncPineconeUpsertBatcher
+
+
+async def write_vectors(host: str):
+    # The SDK reads PINECONE_API_KEY from the environment.
+    async with AsyncIndex(host=host) as index:
+        batcher = AsyncPineconeUpsertBatcher(index=index, namespace="articles")
+        try:
+            await asyncio.gather(
+                batcher.process(Vector(id="one", values=[0.1, 0.2, 0.3])),
+                batcher.process(Vector(id="two", values=[0.4, 0.5, 0.6])),
+            )
+        finally:
+            # Drain accepted work before the caller closes the shared index.
+            await batcher.stop()
+```
+
+Use your index's actual vector dimension. These adapters target the SDK's
+[vector interface](https://sdk.pinecone.io/python/how-to/vectors/upsert-and-query.html),
+not schema-based document indexes. They batch upserts, fetches and deletes; similarity
+queries and partial updates remain direct SDK operations.
+
+Each dispatch makes one native SDK call. `max_batch_size` defaults to 100 and must be
+between 1 and 1,000. Upserts also have a [2 MB request limit](https://docs.pinecone.io/reference/api/database-limits/operation-limits);
+large vectors or metadata need a smaller batch size. SDK validation, size and service errors
+fail that dispatch, with no extra adapter retries or rollback. Duplicate upsert IDs within
+one dispatch are rejected before writing; use `concurrency=1` (the default) for sequential
+dispatches, or separate awaited writes when repeatedly replacing the same ID. Fetches and
+deletes deduplicate IDs within a dispatch.
+
+Writes are eventually consistent: an acknowledgement does not guarantee immediate visibility
+in a subsequent fetch or query, and deletion success does not establish that an ID existed.
+The caller owns the index and must keep it open until every batcher using it has stopped.
+The adapters never create, enter, or close the index.
+
 ## Configuration and results
 
 - `max_batch_size` accepts a positive integer (including `1`) or `-1` for no limit.

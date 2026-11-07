@@ -19,6 +19,7 @@ def plan(event: str, changed: set[str]) -> dict:
         ("scylla", "main,test"),
         ("keras", "main,test,ml-test"),
         ("sklearn", "main,test"),
+        ("pinecone", "main,test"),
     ):
         if not full and suite not in changed:
             continue

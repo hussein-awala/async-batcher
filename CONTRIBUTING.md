@@ -30,6 +30,10 @@ replaces the current environment's selected dependencies with the specified lock
 | ScyllaDB | `poetry sync --only main,test -E scylla` | `poetry run pytest tests/adapters/scylla` |
 | Keras | `poetry sync --only main,test,ml-test -E keras` | `KERAS_BACKEND=jax poetry run pytest tests/adapters/keras` |
 | scikit-learn | `poetry sync --only main,test -E sklearn` | `poetry run pytest tests/adapters/sklearn` |
+| Pinecone | `poetry sync --only main,test -E pinecone` | `poetry run pytest tests/adapters/pinecone` |
+
+Pinecone tests use real SDK types and a local HTTP endpoint. They do not need live credentials
+and do not verify server-side persistence or eventual consistency.
 
 To install every adapter and run all unit tests:
 
