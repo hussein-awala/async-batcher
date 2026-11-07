@@ -13,6 +13,11 @@ if TYPE_CHECKING:
 class SklearnAsyncBatcher(AsyncBatcher):
     """Batcher for scikit-learn models.
 
+    Dense feature rows are passed through as a batch. Sparse feature vectors or
+    single-row matrices are stacked as CSR without densifying; dense rows can be
+    mixed into such a batch. Sparse predictions are returned as one CSR row per
+    request, preserving sparsity and the leading singleton sample dimension.
+
     Args:
         model: The scikit-learn model to use for prediction.
         executor: The executor to use for running the prediction.
@@ -48,7 +53,28 @@ class SklearnAsyncBatcher(AsyncBatcher):
         self.model = model
 
     def process_batch(self, batch):
-        if hasattr(self.model, "predict"):
-            return self.model.predict(batch)
-        else:
+        if not batch:
+            return []
+        if not hasattr(self.model, "predict"):
             raise AttributeError("Model does not have a predict method")
+
+        from scipy import sparse
+
+        inputs = batch
+        if any(sparse.issparse(row) for row in batch):
+            rows = []
+            for row in batch:
+                if sparse.issparse(row) and row.ndim == 1:
+                    row = row.reshape((1, -1))
+                row = sparse.csr_matrix(row)
+                if row.shape[0] != 1:
+                    raise ValueError("Each input in a sparse batch must contain exactly one sample")
+                rows.append(row)
+            inputs = sparse.vstack(rows, format="csr")
+        predictions = self.model.predict(inputs)
+        if sparse.issparse(predictions):
+            if predictions.ndim != 2 or predictions.shape[0] != len(batch):
+                raise ValueError(f"Expected {len(batch)} predictions as rows of a sparse matrix")
+            predictions = predictions.tocsr()
+            return [predictions[index : index + 1] for index in range(len(batch))]
+        return predictions

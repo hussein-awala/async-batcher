@@ -10,6 +10,7 @@ from async_batcher.ml.sklearn.model import SklearnAsyncBatcher
 
 @pytest.mark.asyncio
 async def test_sklearn_batcher_supports_bounded_queues():
+    pytest.importorskip("scipy")
     model = MagicMock()
     model.predict.side_effect = lambda batch, **kwargs: [item * 2 for item in batch]
     batcher = SklearnAsyncBatcher(model=model, max_queue_size=1, max_queue_time=0)
