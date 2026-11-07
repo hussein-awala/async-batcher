@@ -39,6 +39,7 @@ jobs:
       has_adapters: ${{ steps.plan.outputs.has_adapters }}
       has_services: ${{ steps.plan.outputs.has_services }}
       has_examples: ${{ steps.plan.outputs.has_examples }}
+      has_provider_recipes: ${{ steps.plan.outputs.has_provider_recipes }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -107,6 +108,30 @@ jobs:
         run: uv run --no-sync python -c 'import fastapi, httpx2, uvicorn; from fastapi.testclient import TestClient'
       - name: Run real HTTP and lifespan checks
         run: uv run --no-sync python -m pytest tests/examples -ra
+
+  provider-recipes:
+    name: Provider recipes (Python ${{ matrix.python }})
+    needs: plan
+    if: ${{ needs.plan.outputs.has_provider_recipes == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.15']
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-project
+        with:
+          python-version: ${{ matrix.python }}
+          groups: test example-test
+          extras: pinecone
+      - name: Require the real provider clients
+        run: uv run --no-sync python -c 'import httpx2; from pinecone import AsyncIndex, Vector'
+      - name: Validate provider boundaries against local HTTP servers
+        run: uv run --no-sync python -m pytest tests/provider_recipes -ra
 
   adapters:
     name: Adapter (${{ matrix.suite }}, Python ${{ matrix.python }})
@@ -297,7 +322,7 @@ jobs:
 
   ci:
     name: CI passed
-    needs: [plan, core, examples, adapters, services, quality, coverage]
+    needs: [plan, core, examples, provider-recipes, adapters, services, quality, coverage]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 2
@@ -311,11 +336,14 @@ jobs:
           ADAPTER_RESULT: ${{ needs.adapters.result }}
           SERVICE_RESULT: ${{ needs.services.result }}
           EXAMPLE_RESULT: ${{ needs.examples.result }}
+          PROVIDER_RECIPE_RESULT: ${{ needs.provider-recipes.result }}
           HAS_ADAPTERS: ${{ needs.plan.outputs.has_adapters }}
           HAS_SERVICES: ${{ needs.plan.outputs.has_services }}
           HAS_EXAMPLES: ${{ needs.plan.outputs.has_examples }}
+          HAS_PROVIDER_RECIPES: ${{ needs.plan.outputs.has_provider_recipes }}
         run: |
           [[ "$PLAN_RESULT" == success && "$CORE_RESULT" == success && "$QUALITY_RESULT" == success && "$COVERAGE_RESULT" == success ]]
           if [[ "$HAS_ADAPTERS" == true ]]; then [[ "$ADAPTER_RESULT" == success ]]; fi
           if [[ "$HAS_SERVICES" == true ]]; then [[ "$SERVICE_RESULT" == success ]]; fi
           if [[ "$HAS_EXAMPLES" == true ]]; then [[ "$EXAMPLE_RESULT" == success ]]; fi
+          if [[ "$HAS_PROVIDER_RECIPES" == true ]]; then [[ "$PROVIDER_RECIPE_RESULT" == success ]]; fi

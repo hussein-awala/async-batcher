@@ -85,6 +85,9 @@ global transaction, checkpoint, or exactly-once delivery guarantee.
 
 ## Connect embedding and vector-storage stages
 
+For real provider calls, the separate [Cohere-to-Pinecone recipe](cohere-pinecone.md) uses the current
+REST/SDK contracts, an existing compatible vector index, and local boundary tests without credentials.
+
 [The pipeline recipe](../examples/recipes/embedding_vectors.py) connects two bounded maps. The
 first embeds text and keeps each document ID attached to its vector. The second persists vectors
 and returns IDs. Both stages preserve input order, and storage concurrency is one, so later

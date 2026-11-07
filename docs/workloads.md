@@ -31,7 +31,7 @@ transactional, enforce a request-rate limit, or persist queued work across a pro
 | File or message stream | For broker deliveries, see [acknowledgement and replay](acknowledged-consumer.md). Bound `map(max_pending=...)`, keep the source lazy, and consume results as they arrive. Choose ordered results only if needed. See the [cookbook](cookbook.md) and [resumable file importer](resumable-import.md). |
 | Database writes | Respect the adapter's transaction boundaries. Use stable record IDs and define replay behavior; concurrency can reorder commits. |
 | Model inference | [Collate variable-length inputs](variable-length-inference.md), group compatible model/input shapes, and reserve memory for padding and outputs. A token count is an estimate, not a GPU memory measurement. |
-| Embedding pipeline | Bound both stages and keep IDs attached to vectors. Validate model dimensions and the destination namespace before writing. |
+| Embedding pipeline | Bound both stages and keep IDs attached to vectors. Validate model dimensions and the destination namespace before writing. See the [Cohere-to-Pinecone recipe](cohere-pinecone.md). |
 
 Keep `max_pending` large enough for the intended batch if latency allows. Smaller windows still
 work, but normally dispatch partial batches at the collection deadline. Queue and pending limits
