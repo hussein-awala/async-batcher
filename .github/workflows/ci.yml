@@ -71,7 +71,18 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Run the core gate without optional dependencies
-        run: uv run --no-sync python -m pytest tests/core -ra
+        run: uv run --no-sync python -m coverage run --parallel-mode -m pytest tests/core -ra
+
+      - name: Upload coverage data
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-data-core-${{ matrix.os }}-py${{ matrix.python }}
+          path: .coverage.*
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
 
   adapters:
     name: Adapter (${{ matrix.suite }}, Python ${{ matrix.python }})
@@ -103,7 +114,18 @@ jobs:
           KERAS_HOME: ${{ runner.temp }}/keras
         run: |
           uv run --no-sync python .github/scripts/check_adapter.py "$TEST_SUITE"
-          uv run --no-sync python -m pytest "tests/adapters/$TEST_SUITE" -ra
+          uv run --no-sync python -m coverage run --parallel-mode -m pytest "tests/adapters/$TEST_SUITE" -ra
+
+      - name: Upload coverage data
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-data-adapter-${{ matrix.suite }}-py${{ matrix.python }}
+          path: .coverage.*
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
 
   services:
     name: Service (${{ matrix.suite }})
@@ -134,7 +156,17 @@ jobs:
           uv run --no-sync python .github/scripts/wait_for_service.py "$TEST_SUITE"
       - name: Run integration tests
         timeout-minutes: 5
-        run: uv run --no-sync python -m pytest "tests/integration/$TEST_SUITE" -ra
+        run: uv run --no-sync python -m coverage run --parallel-mode -m pytest "tests/integration/$TEST_SUITE" -ra
+      - name: Upload coverage data
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-data-service-${{ matrix.suite }}
+          path: .coverage.*
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
       - name: Capture service diagnostics
         if: ${{ always() }}
         run: |
@@ -183,9 +215,48 @@ jobs:
           uv lock --check
           uv build
 
+  coverage:
+    name: Combined coverage
+    needs: [plan, core, adapters, services]
+    if: ${{ always() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-project
+        with:
+          python-version: '3.12'
+          groups: test
+      - name: Test artifact completeness and coverage report generation
+        run: uv run --no-sync python -m unittest discover -s .github/scripts -p 'test_report_coverage.py'
+      - name: Download each test job's coverage data
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: coverage-data-*
+          path: coverage-data
+          merge-multiple: false
+      - name: Validate planned artifacts and report selected source coverage
+        env:
+          CORE_MATRIX: ${{ needs.plan.outputs.core }}
+          ADAPTER_MATRIX: ${{ needs.plan.outputs.adapters }}
+          SERVICE_MATRIX: ${{ needs.plan.outputs.services }}
+        run: uv run --no-sync python .github/scripts/report_coverage.py --fail-under 95
+      - name: Upload coverage reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-report
+          path: coverage-report/
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 14
+
   ci:
     name: CI passed
-    needs: [plan, core, adapters, services, quality]
+    needs: [plan, core, adapters, services, quality, coverage]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 2
@@ -194,12 +265,13 @@ jobs:
         env:
           PLAN_RESULT: ${{ needs.plan.result }}
           CORE_RESULT: ${{ needs.core.result }}
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
           QUALITY_RESULT: ${{ needs.quality.result }}
           ADAPTER_RESULT: ${{ needs.adapters.result }}
           SERVICE_RESULT: ${{ needs.services.result }}
           HAS_ADAPTERS: ${{ needs.plan.outputs.has_adapters }}
           HAS_SERVICES: ${{ needs.plan.outputs.has_services }}
         run: |
-          [[ "$PLAN_RESULT" == success && "$CORE_RESULT" == success && "$QUALITY_RESULT" == success ]]
+          [[ "$PLAN_RESULT" == success && "$CORE_RESULT" == success && "$QUALITY_RESULT" == success && "$COVERAGE_RESULT" == success ]]
           if [[ "$HAS_ADAPTERS" == true ]]; then [[ "$ADAPTER_RESULT" == success ]]; fi
           if [[ "$HAS_SERVICES" == true ]]; then [[ "$SERVICE_RESULT" == success ]]; fi

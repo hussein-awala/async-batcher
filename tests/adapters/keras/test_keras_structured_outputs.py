@@ -55,3 +55,22 @@ async def test_two_output_keras_model_routes_both_heads_to_each_request(dictiona
                 np.testing.assert_allclose(result, [[value * 2], [value * 3]])
     finally:
         await batcher.stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("output", [3.0, {"valid": np.ones((2, 1)), "scalar": np.asarray(3.0)}])
+async def test_scalar_model_output_fails_all_callers_and_next_batch_recovers(output):
+    model = MagicMock()
+    model.predict.side_effect = [output, np.asarray([[6.0], [8.0]])]
+    batcher = KerasAsyncBatcher(model=model, max_batch_size=2, max_queue_time=1)
+    try:
+        failures = await asyncio.wait_for(
+            asyncio.gather(batcher.process([1.0]), batcher.process([2.0]), return_exceptions=True), 5
+        )
+        assert all(isinstance(error, ValueError) for error in failures)
+        assert all("leading batch dimension" in str(error) for error in failures)
+        results = await asyncio.wait_for(asyncio.gather(batcher.process([3.0]), batcher.process([4.0])), 5)
+        np.testing.assert_array_equal(results, [[6.0], [8.0]])
+        assert model.predict.call_count == 2
+    finally:
+        await batcher.stop(force=True, timeout=5)
