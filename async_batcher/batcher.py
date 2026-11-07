@@ -20,6 +20,15 @@ T = TypeVar("T")
 S = TypeVar("S")
 
 
+def _run_sync_batch(processor, batch):
+    try:
+        return processor(batch)
+    except StopIteration as error:
+        # Older supported asyncio versions cannot transfer StopIteration from
+        # an executor Future, leaving the awaiting worker unresolved.
+        raise RuntimeError("Synchronous process_batch raised StopIteration") from error
+
+
 class AsyncBatcher(Generic[T, S], abc.ABC):
     """Group items by size or age and process batches asynchronously.
 
@@ -96,7 +105,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
 
         Subclasses may implement this as a synchronous method. Exceptions raised
         by the processor fail the entire batch; exception objects in the result
-        list fail only their corresponding requests.
+        list fail only their corresponding requests. StopIteration becomes RuntimeError
+        with the original exception as its cause.
         """
 
     async def process(self, item: T) -> S:
@@ -162,7 +172,9 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             if inspect.iscoroutinefunction(self.process_batch):
                 results = await self.process_batch(batch=batch_items)
             else:
-                results = await loop.run_in_executor(self.executor, self.process_batch, batch_items)
+                results = await loop.run_in_executor(
+                    self.executor, _run_sync_batch, self.process_batch, batch_items
+                )
             if results is None:
                 results = [None] * len(batch)
             if len(results) != len(batch):
@@ -176,7 +188,11 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             for q_item, result in zip(batch, results, strict=True):
                 if q_item.future.done():
                     continue
-                if isinstance(result, Exception):
+                if isinstance(result, StopIteration):
+                    error = RuntimeError("process_batch returned StopIteration")
+                    error.__cause__ = result
+                    q_item.future.set_exception(error)
+                elif isinstance(result, Exception):
                     q_item.future.set_exception(result)
                 else:
                     q_item.future.set_result(result)
