@@ -76,6 +76,7 @@ Existing [subclasses](docs/api.md) and adapters support the same managed lifecyc
 - [Batch an existing function](docs/functions.md): callable processors and managed cleanup.
 - [Bulk and streaming producers](docs/bulk-processing.md): bounded maps and waiting for queue space.
 - [Cost budgets](docs/cost-aware-batching.md): byte, token, or work limits alongside batch counts.
+- [Variable-length inference](docs/variable-length-inference.md): padding, conservative token budgets, and per-request output shapes.
 - [Operational visibility](docs/observability.md): snapshots and payload-free completion events.
 - [Grouped batching](docs/grouped-batching.md): isolate compatible requests with bounded child ownership.
 - [Cookbook](docs/cookbook.md): runnable SQLite imports, embedding pipelines, and measured batch sizes.

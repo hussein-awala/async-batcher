@@ -12,6 +12,8 @@ For an HTTP application, the separate [FastAPI recipe](fastapi-recipe.md) uses a
 group and demonstrates lifespan-managed prediction and SQLite batchers with real HTTP tests.
 The [operational recipes](operations.md) add separate response/backend/deployment deadlines,
 shared capacity across groups, caller-owned thread cleanup, and bounded telemetry export.
+For token-level models, the [variable-length inference recipe](variable-length-inference.md) shows
+collation, attention masks, conservative padding budgets, and output restoration.
 
 ## Import a file or async stream into SQLite
 
