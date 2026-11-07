@@ -7,7 +7,7 @@ import logging
 import math
 import warnings
 from collections import namedtuple
-from contextvars import ContextVar
+from contextvars import ContextVar, copy_context
 from functools import partial
 from numbers import Real
 from typing import TYPE_CHECKING, Generic, TypeVar
@@ -113,7 +113,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         Subclasses may implement this as a synchronous method. Exceptions raised
         by the processor fail the entire batch; exception objects in the result
         list fail only their corresponding requests. StopIteration becomes RuntimeError
-        with the original exception as its cause.
+        with the original exception as its cause. Synchronous processors receive
+        a copy of the batch worker's context.
         """
 
     async def process(self, item: T) -> S:
@@ -180,8 +181,9 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             if inspect.iscoroutinefunction(self.process_batch):
                 results = await self.process_batch(batch=batch_items)
             else:
+                context = copy_context()
                 results = await loop.run_in_executor(
-                    self.executor, _run_sync_batch, self.process_batch, batch_items
+                    self.executor, context.run, _run_sync_batch, self.process_batch, batch_items
                 )
             if results is None:
                 results = [None] * len(batch)
