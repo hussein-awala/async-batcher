@@ -2,7 +2,7 @@ name: Set up the locked project environment
 description: Install isolated Poetry tooling and only the requested dependency groups and extras.
 inputs:
   python-version:
-    description: Python interpreter for the project and Poetry CLI
+    description: Python interpreter for the project tests
     required: true
   groups:
     description: Comma-separated Poetry dependency groups
@@ -17,11 +17,14 @@ runs:
       id: python
       with:
         python-version: ${{ inputs.python-version }}
+    # Keep packaging tools on a mature interpreter with wheels. Project tests
+    # still use the exact interpreter selected above via `poetry env use`.
+    - name: Set up the Poetry interpreter
+      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      with:
+        python-version: '3.12'
         cache: pip
-        cache-dependency-path: |
-          pyproject.toml
-          poetry.lock
-          .github/actions/setup-project/action.yml
+        cache-dependency-path: .github/actions/setup-project/action.yml
     - name: Identify the dependency selection
       id: dependencies
       shell: bash
