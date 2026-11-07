@@ -41,11 +41,8 @@ class GetRequestModel(BaseModel):
 
 
 @app.on_event("shutdown")
-def shutdown_event():
-    async def stop_batchers():
-        await asyncio.gather(get_batcher.stop(), write_batcher.stop())
-
-    asyncio.run(stop_batchers())
+async def shutdown_event():
+    await asyncio.gather(get_batcher.stop(), write_batcher.stop())
 
 
 @app.post("/put")
