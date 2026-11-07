@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -40,6 +41,10 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any] | None]):
             If -1, it will process all batches concurrently.
         consistent_read (bool, optional): Use strongly consistent reads for every table.
             Defaults to False (eventually consistent reads).
+        projection_expression: Optional projection applied to every requested table. It must
+            include every primary-key attribute in full so unordered results can be matched.
+        expression_attribute_names: Aliases used by the projection, for reserved words or
+            attribute names containing special characters. The mapping is copied.
         max_retries (int, optional): Number of retries for unprocessed requests, with exponential backoff.
             Defaults to 5. Exhaustion raises DynamoDBRetryError.
     """
@@ -58,6 +63,8 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any] | None]):
         concurrency: int = 1,
         max_retries: int = 5,
         consistent_read: bool = False,
+        projection_expression: str | None = None,
+        expression_attribute_names: dict[str, str] | None = None,
         **kwargs,
     ):
         super().__init__(
@@ -68,6 +75,23 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any] | None]):
         if not isinstance(consistent_read, bool):
             raise ValueError("consistent_read must be a boolean")
         self.consistent_read = consistent_read
+        if projection_expression is not None and (
+            not isinstance(projection_expression, str) or not projection_expression.strip()
+        ):
+            raise ValueError("projection_expression must be a nonempty string or None")
+        if expression_attribute_names is not None:
+            if projection_expression is None:
+                raise ValueError("expression_attribute_names requires projection_expression")
+            if not isinstance(expression_attribute_names, dict) or any(
+                not isinstance(alias, str)
+                or re.fullmatch(r"#[a-zA-Z0-9_]+", alias) is None
+                or not isinstance(name, str)
+                or not name
+                for alias, name in expression_attribute_names.items()
+            ):
+                raise ValueError("expression_attribute_names must map #aliases to nonempty attribute names")
+        self.projection_expression = projection_expression
+        self.expression_attribute_names = dict(expression_attribute_names or {})
         if not 1 <= self.max_batch_size <= 100:
             raise ValueError("DynamoDB get max_batch_size must be between 1 and 100")
         self.region_name = region_name
@@ -96,6 +120,18 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any] | None]):
         request_items = {}
         tables_keys = {}
         serializer = TypeSerializer()
+        projection = self.projection_expression
+        aliases = self.expression_attribute_names.copy()
+        projected_attributes = set()
+        if projection is not None:
+            # Only complete top-level attributes can identify a scalar primary key.
+            # A path such as "id.child" or "id[0]" does not include the key "id".
+            for path in projection.split(","):
+                path = path.strip()
+                if path in aliases:
+                    projected_attributes.add(aliases[path])
+                elif re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_]*", path):
+                    projected_attributes.add(path)
         for ind, item in enumerate(batch):
             key_names = sorted(item.key)
             if not key_names:
@@ -107,12 +143,17 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any] | None]):
                 serialized = serializer.serialize(value)
                 if not serialized.keys() <= {"S", "N", "B"}:
                     raise ValueError("DynamoDB key attributes must be strings, numbers, or binary values")
+            if projection is not None and not set(key_names) <= projected_attributes:
+                raise ValueError("projection_expression must include every complete primary-key attribute")
             if item.table_name not in request_items:
                 request_items[item.table_name] = {"Keys": []}
+                if projection is not None:
+                    request_items[item.table_name]["ProjectionExpression"] = projection
+                    if aliases:
+                        request_items[item.table_name]["ExpressionAttributeNames"] = aliases.copy()
                 if self.consistent_read:
                     request_items[item.table_name]["ConsistentRead"] = True
                 tables_keys[item.table_name] = key_names
-            # TODO: support ProjectionExpression
             key = self._item_key(item.table_name, item.key, tables_keys[item.table_name])
             if key not in indexed_items:
                 request_items[item.table_name]["Keys"].append(item.key)
