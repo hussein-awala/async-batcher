@@ -1,0 +1,62 @@
+name: Set up the locked project environment
+description: Install isolated Poetry tooling and only the requested dependency groups and extras.
+inputs:
+  python-version:
+    description: Python interpreter for the project and Poetry CLI
+    required: true
+  groups:
+    description: Comma-separated Poetry dependency groups
+    default: main,test
+  extras:
+    description: Space-separated project extras
+    default: ''
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      id: python
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: pip
+        cache-dependency-path: |
+          pyproject.toml
+          poetry.lock
+          .github/actions/setup-project/action.yml
+    - name: Identify the dependency selection
+      id: dependencies
+      shell: bash
+      env:
+        DEPENDENCY_GROUPS: ${{ inputs.groups }}
+        PROJECT_EXTRAS: ${{ inputs.extras }}
+      run: |
+        # Cache keys cannot contain the commas used by Poetry's group selector.
+        scope="${DEPENDENCY_GROUPS//,/+}-${PROJECT_EXTRAS// /+}"
+        printf 'scope=%s\n' "$scope" >> "$GITHUB_OUTPUT"
+    - name: Cache downloaded Poetry packages
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/poetry-cache/artifacts
+        key: poetry-artifacts-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', '.github/actions/setup-project/action.yml') }}-${{ steps.dependencies.outputs.scope }}
+        restore-keys: |
+          poetry-artifacts-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', '.github/actions/setup-project/action.yml') }}-
+    - name: Install Poetry independently from project dependencies
+      shell: bash
+      run: |
+        python -m venv "$RUNNER_TEMP/poetry-cli"
+        "$RUNNER_TEMP/poetry-cli/bin/python" -m pip install --disable-pip-version-check 'poetry==2.5.1'
+        echo "$RUNNER_TEMP/poetry-cli/bin" >> "$GITHUB_PATH"
+        echo "POETRY_CACHE_DIR=$RUNNER_TEMP/poetry-cache" >> "$GITHUB_ENV"
+        echo 'POETRY_VIRTUALENVS_IN_PROJECT=true' >> "$GITHUB_ENV"
+    - name: Synchronize the selected locked dependencies
+      shell: bash
+      env:
+        SELECTED_PYTHON: ${{ steps.python.outputs.python-path }}
+        DEPENDENCY_GROUPS: ${{ inputs.groups }}
+        PROJECT_EXTRAS: ${{ inputs.extras }}
+      run: |
+        poetry env use "$SELECTED_PYTHON"
+        install_args=(--no-interaction --only "$DEPENDENCY_GROUPS")
+        if [[ -n "$PROJECT_EXTRAS" ]]; then
+          install_args+=(--extras "$PROJECT_EXTRAS")
+        fi
+        poetry sync "${install_args[@]}"

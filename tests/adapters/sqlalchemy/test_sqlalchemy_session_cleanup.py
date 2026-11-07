@@ -10,7 +10,6 @@ pytest.importorskip("sqlalchemy")
 pytest.importorskip("aiosqlite")
 
 from async_batcher.sqlalchemy.write import AsyncSqlalchemyWriteBatcher  # noqa: E402
-
 from sqlalchemy import Column, Integer, MetaData, Table, select  # noqa: E402
 from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
 

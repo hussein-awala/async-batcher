@@ -45,8 +45,8 @@ async def test_cancelled_server_stops_rpcs_before_batcher(monkeypatch, stop_fail
         "predictor_pb2_grpc",
         SimpleNamespace(KerasPredictorServicer=object, add_KerasPredictorServicer_to_server=Mock()),
     )
-    monkeypatch.setitem(sys.modules, "tensorflow", Mock())
-    namespace = runpy.run_path(str(Path(__file__).parents[1] / "examples" / "keras_with_grpc" / "server.py"))
+    monkeypatch.setitem(sys.modules, "keras", Mock())
+    namespace = runpy.run_path(str(Path(__file__).parents[2] / "examples" / "keras_with_grpc" / "server.py"))
     serve = namespace["serve"]
     serve.__globals__["PredictorGRPC"] = lambda: SimpleNamespace(batcher=Batcher())
 

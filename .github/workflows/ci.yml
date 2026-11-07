@@ -1,239 +1,206 @@
-name: test
+name: CI
 
 on:
   pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
+    types: [opened, reopened, synchronize, ready_for_review]
   push:
-    branches:
-      - main
+    branches: [main]
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Newer commits replace obsolete checks on the same PR or main branch.
+# Scheduled/manual runs remain independent, as do different PRs.
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || (github.event_name == 'push' && github.ref) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+  PYTHONUNBUFFERED: '1'
 
 jobs:
-  changed-files:
-    runs-on: ubuntu-latest
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: read
     outputs:
-      should_run_unit_tests: ${{ steps.check-unit-tests.outputs.src }}
-      should_run_integration_tests: ${{ steps.check-integration-tests.outputs.src }}
+      core: ${{ steps.plan.outputs.core }}
+      adapters: ${{ steps.plan.outputs.adapters }}
+      services: ${{ steps.plan.outputs.services }}
+      has_adapters: ${{ steps.plan.outputs.has_adapters }}
+      has_services: ${{ steps.plan.outputs.has_services }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - id: check-unit-tests
-        name: Should run unit tests
-        uses: dorny/paths-filter@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          filters: |
-            src:
-              - "async_batcher/**"
-              - "tests/**"
-              - "pyproject.toml"
-              - "poetry.lock"
-              - "pytest.ini"
-              - ".github/workflows/ci.yml"
-
-      - id: check-integration-tests
-        name: Should run integration tests
-        uses: dorny/paths-filter@v3
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: changes
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
         with:
-          filters: |
-            src:
-              - "async_batcher/**"
-              - "tests/**"
-              - "pyproject.toml"
-              - "poetry.lock"
-              - "pytest.ini"
-              - "docker-compose/**"
-              - ".github/workflows/ci.yml"
+          base: ${{ github.ref }}
+          filters: .github/filters.yml
+      - name: Select supported interpreters and relevant adapters
+        id: plan
+        env:
+          CHANGED_FILTERS: ${{ steps.changes.outputs.changes }}
+        run: python .github/scripts/ci_plan.py
 
-  core-tests:
-    needs: changed-files
-    if: ${{ needs.changed-files.outputs.should_run_unit_tests == 'true' || github.event.action == 'reopened' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install core and test dependencies without adapter extras
-        run: |
-          python - <<'PY'
-          import subprocess
-          import sys
-          import tomllib
-          from pathlib import Path
-
-          poetry = tomllib.loads(Path("pyproject.toml").read_text())["tool"]["poetry"]
-          dependencies = poetry.get("group", {}).get("dev", {}).get(
-              "dependencies", poetry.get("dev-dependencies", {})
-          )
-          requirements = []
-          for name in ("pytest", "pytest-asyncio", "pygments"):
-              if name == "pygments" and name not in dependencies:
-                  continue
-              constraint = dependencies[name]
-              if constraint.startswith("^"):
-                  version = constraint[1:]
-                  upper = [int(part) for part in version.split(".")]
-                  pivot = next((i for i, part in enumerate(upper) if part), len(upper) - 1)
-                  upper[pivot] += 1
-                  upper[pivot + 1:] = [0] * (len(upper) - pivot - 1)
-                  constraint = f">={version},<{'.'.join(map(str, upper))}"
-              else:
-                  constraint = ",".join(constraint.replace(",", " ").split())
-              requirements.append(name + constraint)
-          subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", ".", *requirements])
-          PY
-
-      - name: Run core tests
-        run: |
-          shopt -s nullglob
-          python -m pytest tests/test_batcher*.py tests/test_core_*.py \
-            tests/test_force_stop*.py tests/test_stop_cancelled*.py tests/test_request_logging*.py
-
-  keras-tests:
-    needs: changed-files
-    if: ${{ needs.changed-files.outputs.should_run_unit_tests == 'true' || github.event.action == 'reopened' }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12"]
-    env:
-      KERAS_BACKEND: jax
-      KERAS_HOME: ${{ runner.temp }}/keras
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install patched Keras and the JAX CPU backend
-        run: >-
-          python -m pip install -e ".[keras,sqlalchemy]" "jax[cpu]"
-          "pytest>=9.0.3,<10" "pytest-asyncio>=1.4.1.post1,<2"
-      - name: Test real Keras predictions and model loading
-        run: python -m pytest tests/test_keras*.py
-
-  unit-tests:
-    needs: changed-files
-    if: ${{ needs.changed-files.outputs.should_run_unit_tests == 'true' || github.event.action == 'reopened' }}
+  core:
+    name: Core (${{ matrix.os }}, Python ${{ matrix.python }})
+    needs: plan
     strategy:
       fail-fast: false
-      matrix:
-        os: [ "ubuntu-latest", "macos-15", "macos-15-intel" ]
-        python-version: [ "3.10", "3.11", "3.12" ]
+      matrix: ${{ fromJSON(needs.plan.outputs.core) }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up python ${{ matrix.python-version }}
-        id: setup-python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+          persist-credentials: false
+      - uses: ./.github/actions/setup-project
         with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
+          python-version: ${{ matrix.python }}
+      - name: Run the core gate without optional dependencies
+        run: poetry run python -m pytest tests/core -ra
 
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ runner.arch }}-${{ matrix.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root --all-extras
-
-      - name: Install library
-        run: poetry install --no-interaction --all-extras
-
-      - name: Run tests
-        run: |
-          source .venv/bin/activate
-          pytest tests/
-
-  integration-tests:  # TODO: Improve this job to run just the changed integration tests
-    needs: changed-files
-    if: ${{ needs.changed-files.outputs.should_run_integration_tests == 'true' || github.event.action == 'reopened' }}
+  adapters:
+    name: Adapter (${{ matrix.suite }}, Python ${{ matrix.python }})
+    needs: plan
+    if: ${{ needs.plan.outputs.has_adapters == 'true' }}
     strategy:
       fail-fast: false
-      matrix:
-        python-version: [ "3.10", "3.11", "3.12" ]
-    runs-on: ubuntu-latest
+      matrix: ${{ fromJSON(needs.plan.outputs.adapters) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up python ${{ matrix.python-version }}
-        id: setup-python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+          persist-credentials: false
+      - name: Install HDF5 headers for the Python 3.15 source build
+        if: ${{ matrix.suite == 'keras' && matrix.python == '3.15' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libhdf5-dev pkg-config
+      - uses: ./.github/actions/setup-project
         with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ runner.arch }}-ubuntu-latest-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root --all-extras
-
-      - name: Install library
-        run: poetry install --no-interaction --all-extras
-
-      - name: Run docker-compose
+          python-version: ${{ matrix.python }}
+          groups: ${{ matrix.groups }}
+          extras: ${{ matrix.suite }}
+      - name: Run the selected adapter tests
+        env:
+          TEST_SUITE: ${{ matrix.suite }}
+          KERAS_BACKEND: jax
+          KERAS_HOME: ${{ runner.temp }}/keras
         run: |
-          docker compose \
-            -f docker-compose/dynamodb.yml \
-            -f docker-compose/postgres.yml \
-            up -d --wait
+          poetry run python .github/scripts/check_adapter.py "$TEST_SUITE"
+          poetry run python -m pytest "tests/adapters/$TEST_SUITE" -ra
 
-      # TODO: Make the ScyllaDB containers more stable then activate all the integration tests
-      - name: Run DynamoDB integration tests
-        run: |
-          source .venv/bin/activate
-          pytest tests/ -m integration_dynamodb
-
-      - name: Run Postgres integration tests
-        run: |
-          source .venv/bin/activate
-          pytest tests/ -m integration_postgres
-
-  linter:
-    runs-on: ubuntu-latest
+  services:
+    name: Service (${{ matrix.suite }})
+    needs: plan
+    if: ${{ needs.plan.outputs.has_services == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.services) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      COMPOSE_PROJECT_NAME: ci-${{ matrix.suite }}
+      COMPOSE_FILE: docker-compose/${{ matrix.compose }}.yml
+      TEST_SUITE: ${{ matrix.suite }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up python 3.11
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: 3.11
+          persist-credentials: false
+      - uses: ./.github/actions/setup-project
+        with:
+          python-version: '3.12'
+          groups: ${{ matrix.groups }}
+          extras: ${{ matrix.extra }}
+      - name: Start the selected service
+        timeout-minutes: 6
+        run: |
+          docker compose up -d --wait --wait-timeout 180
+          poetry run python .github/scripts/wait_for_service.py "$TEST_SUITE"
+      - name: Run integration tests
+        timeout-minutes: 5
+        run: poetry run python -m pytest "tests/integration/$TEST_SUITE" -ra
+      - name: Capture service diagnostics
+        if: ${{ always() }}
+        run: |
+          mkdir -p service-diagnostics
+          docker compose ps --all > service-diagnostics/status.txt 2>&1 || true
+          docker compose logs --no-color --tail 300 > service-diagnostics/logs.txt 2>&1 || true
+          cat service-diagnostics/status.txt
+          cat service-diagnostics/logs.txt
+      - name: Tear down containers and volumes
+        if: ${{ always() }}
+        timeout-minutes: 2
+        run: docker compose down --volumes --remove-orphans --timeout 30
+      - name: Upload failed service diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: service-${{ matrix.suite }}-logs
+          path: service-diagnostics/
+          retention-days: 7
 
-      - name: Install pre-commit
-        run: pip install pre-commit
+  quality:
+    name: Lint, workflow validation and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-project
+        with:
+          python-version: '3.12'
+          groups: main,lint
+      - name: Cache pre-commit hook environments
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ runner.arch }}-py312-${{ hashFiles('.pre-commit-config.yaml', 'poetry.lock') }}
+      - name: Check source formatting and lint
+        run: poetry run pre-commit run --all-files --show-diff-on-failure
+      - name: Validate workflow expressions and shell commands
+        run: |
+          bash .github/scripts/check-workflows.sh
+          python -m unittest discover -s .github/scripts -p 'test_*.py'
+      - name: Validate the lock and build both distributions
+        run: |
+          poetry check --lock
+          poetry build
 
-      - name: Run pre-commit
-        run: pre-commit run --all-files
+  ci:
+    name: CI passed
+    needs: [plan, core, adapters, services, quality]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every selected check to succeed
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+          CORE_RESULT: ${{ needs.core.result }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          ADAPTER_RESULT: ${{ needs.adapters.result }}
+          SERVICE_RESULT: ${{ needs.services.result }}
+          HAS_ADAPTERS: ${{ needs.plan.outputs.has_adapters }}
+          HAS_SERVICES: ${{ needs.plan.outputs.has_services }}
+        run: |
+          [[ "$PLAN_RESULT" == success && "$CORE_RESULT" == success && "$QUALITY_RESULT" == success ]]
+          if [[ "$HAS_ADAPTERS" == true ]]; then [[ "$ADAPTER_RESULT" == success ]]; fi
+          if [[ "$HAS_SERVICES" == true ]]; then [[ "$SERVICE_RESULT" == success ]]; fi

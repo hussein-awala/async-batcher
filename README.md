@@ -112,7 +112,7 @@ sequenceDiagram
 
 ## How to use
 
-To use the library, you need to install the package in your environment. You can install the package using pip:
+The library requires Python 3.11 or newer. Install it in your environment with pip:
 
 ```bash
 pip install async-batcher
@@ -120,9 +120,8 @@ pip install async-batcher
 
 ### Keras optional dependency
 
-The core library supports Python 3.10 and newer. The `keras` extra requires Python 3.11 or newer and
-Keras 3.15.1 or newer. It no longer installs Keras 2 or older Keras 3 releases. This is a breaking change
-for Keras users on Python 3.10; use a Python 3.11+ environment for this adapter.
+The library and its optional adapters require Python 3.11 or newer. The `keras` extra requires
+Keras 3.15.1 or newer and a separately installed backend. Keras 2 and older Keras 3 releases are not supported.
 
 ```bash
 python -m pip install "async-batcher[keras]" jax
@@ -131,8 +130,6 @@ export KERAS_BACKEND=jax
 
 Install and select your backend before importing Keras. TensorFlow 2.16.1+ and PyTorch are also supported
 by Keras; consult the [Keras installation guide](https://keras.io/getting_started/) for backend setup.
-Python package markers cannot reject an unsupported interpreter for just one extra: on Python 3.10,
-pip may install the base package without Keras. `KerasAsyncBatcher` raises a clear error on that interpreter.
 
 When migrating from Keras 2, review the [Keras 3 migration guide](https://keras.io/guides/migrating_to_keras_3/).
 Use the native `.keras` format for newly saved models. The bundled legacy HDF5 model is covered by a
@@ -147,16 +144,19 @@ import logging
 
 from async_batcher.batcher import AsyncBatcher
 
+
 class MyBatchProcessor(AsyncBatcher[int, int]):
     async def process_batch(self, batch: list[int]) -> list[int]:
         await asyncio.sleep(1)  # Simulate processing delay
         return [x * 2 for x in batch]  # Example: Doubling each item
+
 
 async def main():
     batcher = MyBatchProcessor(max_batch_size=5, max_queue_time=2.0, concurrency=2)
     results = await asyncio.gather(*[batcher.process(i) for i in range(10)])
     print(results)  # Output: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
     await batcher.stop()
+
 
 # Set logging level to DEBUG if you want to see more details and understand the flow
 logging.basicConfig(level=logging.DEBUG)

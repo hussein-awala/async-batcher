@@ -1,0 +1,49 @@
+# Infrastructure changes exercise every supported Python and optional adapter.
+infrastructure: &infrastructure
+  - '.github/**'
+  - 'pyproject.toml'
+  - 'poetry.lock'
+  - 'pytest.ini'
+shared: &shared
+  - *infrastructure
+  - 'async_batcher/*.py'
+  - 'tests/conftest.py'
+  - 'tests/core_helpers.py'
+  - 'tests/__init__.py'
+  - 'tests/adapters/conftest.py'
+  - 'tests/integration/conftest.py'
+aws:
+  - *shared
+  - 'async_batcher/aws/**'
+  - 'tests/adapters/aws/**'
+  - 'tests/integration/aws/**'
+  - 'examples/dynamodb/**'
+  - 'docker-compose/dynamodb.yml'
+sqlalchemy:
+  - *shared
+  - 'async_batcher/sqlalchemy/**'
+  - 'tests/adapters/sqlalchemy/**'
+  - 'tests/integration/sqlalchemy/**'
+  - 'examples/*sqlalchemy*/**'
+  - 'docker-compose/postgres.yml'
+scylla:
+  - *shared
+  - 'async_batcher/scylladb/**'
+  - 'tests/adapters/scylla/**'
+  - 'tests/integration/scylladb/**'
+  - 'docker-compose/scylladb.yml'
+keras:
+  - *shared
+  - 'async_batcher/ml/*.py'
+  - 'async_batcher/ml/keras/**'
+  - 'tests/adapters/keras/**'
+  - 'examples/keras/**'
+  - 'examples/keras_with_grpc/**'
+  - 'examples/diabetes_tf_model.h5'
+  - 'examples/train.py'
+sklearn:
+  - *shared
+  - 'async_batcher/ml/*.py'
+  - 'async_batcher/ml/sklearn/**'
+  - 'tests/adapters/sklearn/**'
+  - 'examples/*sklearn*/**'

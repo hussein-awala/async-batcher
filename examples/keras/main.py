@@ -1,27 +1,27 @@
 from __future__ import annotations
 
 import gc
-from typing import TYPE_CHECKING
+from pathlib import Path
 
-import tensorflow as tf
 from async_batcher.batcher import AsyncBatcher
 from fastapi import FastAPI
 
-if TYPE_CHECKING:
-    import keras.src.engine.sequential
+import keras
 
 
 class MlBatcher(AsyncBatcher[list[float], list[float]]):
     def __init__(self, model, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.model: keras.src.engine.sequential.Sequential = model
+        self.model: keras.Model = model
 
-    def process_batch(self, batch: list[list[float]]) -> list[float]:
-        return self.model.predict(batch, verbose=0).tolist()
+    def process_batch(self, batch: list[list[float]]) -> list[list[float]]:
+        import numpy as np
+
+        return self.model.predict(np.asarray(batch, dtype="float32"), verbose=0).tolist()
 
 
 app = FastAPI()
-model = tf.keras.models.load_model("../diabetes_tf_model.h5")
+model = keras.models.load_model(Path(__file__).resolve().parents[1] / "diabetes_tf_model.h5", compile=False)
 
 
 batcher = MlBatcher(model=model, max_queue_time=0.001)
@@ -39,7 +39,9 @@ async def shutdown_event():
 
 @app.post("/predict")
 async def predict(data: list[float]):
-    return model.predict([data]).tolist()[0][0]
+    import numpy as np
+
+    return model.predict(np.asarray([data], dtype="float32"), verbose=0).tolist()[0][0]
 
 
 @app.post("/optimized_predict")

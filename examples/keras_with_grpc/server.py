@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from functools import partial
+from pathlib import Path
 
 import grpc
 import predictor_pb2
 import predictor_pb2_grpc
-import tensorflow as tf
 from async_batcher.batcher import AsyncBatcher
+
+import keras
 
 
 class MlBatcher(AsyncBatcher[list[float], list[float]]):
@@ -15,15 +18,20 @@ class MlBatcher(AsyncBatcher[list[float], list[float]]):
         super().__init__(*args, **kwargs)
         self.model = model
 
-    async def process_batch(self, batch: list[list[float]]) -> list[float]:
-        batch_result = await asyncio.get_event_loop().run_in_executor(None, self.model.predict, batch)
+    async def process_batch(self, batch: list[list[float]]) -> list[list[float]]:
+        import numpy as np
+
+        predict = partial(self.model.predict, np.asarray(batch, dtype="float32"), verbose=0)
+        batch_result = await asyncio.get_running_loop().run_in_executor(self.executor, predict)
         return batch_result.tolist()
 
 
 class PredictorGRPC(predictor_pb2_grpc.KerasPredictorServicer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        model = tf.keras.models.load_model("../diabetes_tf_model.h5")
+        model = keras.models.load_model(
+            Path(__file__).resolve().parents[1] / "diabetes_tf_model.h5", compile=False
+        )
         self.batcher = MlBatcher(model=model, max_batch_size=200, max_queue_time=0.01)
 
     async def Predict(

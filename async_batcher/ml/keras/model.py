@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from typing import TYPE_CHECKING
 
 from async_batcher.batcher import AsyncBatcher
@@ -47,8 +46,6 @@ class KerasAsyncBatcher(AsyncBatcher):
         executor: Executor | None = None,
         **kwargs,
     ):
-        if sys.version_info < (3, 11):
-            raise RuntimeError("KerasAsyncBatcher requires Python 3.11 or newer for supported Keras releases")
         super().__init__(
             max_batch_size=max_batch_size,
             max_queue_time=max_queue_time,

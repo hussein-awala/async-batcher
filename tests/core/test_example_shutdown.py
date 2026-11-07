@@ -34,8 +34,11 @@ async def test_shutdown_awaits_batchers_on_serving_loop(monkeypatch, example, ba
     # Keep this lifecycle test independent of model backends and the web server.
     monkeypatch.setitem(sys.modules, "fastapi", SimpleNamespace(FastAPI=ExampleApp, HTTPException=Exception))
     monkeypatch.setitem(sys.modules, "pydantic", SimpleNamespace(BaseModel=object))
-    monkeypatch.setitem(sys.modules, "tensorflow", Mock())
-    namespace = runpy.run_path(str(Path(__file__).parents[1] / "examples" / example / "main.py"))
+    monkeypatch.setitem(sys.modules, "keras", Mock())
+    monkeypatch.setitem(sys.modules, "aioboto3", Mock())
+    monkeypatch.setitem(sys.modules, "async_batcher.aws.dynamodb.get", Mock())
+    monkeypatch.setitem(sys.modules, "async_batcher.aws.dynamodb.write", Mock())
+    namespace = runpy.run_path(str(Path(__file__).parents[2] / "examples" / example / "main.py"))
     handler = namespace["app"].handlers["shutdown"]
     serving_loop = asyncio.get_running_loop()
     stopped = []

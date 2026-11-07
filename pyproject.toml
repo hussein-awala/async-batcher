@@ -1,61 +1,85 @@
-[tool.poetry]
+[project]
 name = "async-batcher"
 version = "0.0.1"
 description = "A service to batch your http requests."
-authors = ["Hussein Awala <hussein@awala.fr>"]
+authors = [{name = "Hussein Awala", email = "hussein@awala.fr"}]
 readme = "README.md"
-repository = "https://github.com/hussein-awala/async-batcher"
+requires-python = ">=3.11,<4.0"
 keywords = ["python", "asyncio", "rest", "grpc", "fastapi"]
 license = "Apache-2.0"
+license-files = ["LICENSE"]
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/hussein-awala/async-batcher"
+"Bug Tracker" = "https://github.com/hussein-awala/async-batcher/issues"
+Documentation = "https://github.com/hussein-awala/async-batcher/blob/main/README.md"
+
+[project.optional-dependencies]
+aws = [
+    "aioboto3>=15.5,<16",
+    "aiohttp>=3.14.4,<4",
+    "urllib3>=2.8.0,<3",
+    "idna>=3.15,<4",
+]
+scylla = ["scylla-driver>=3.29.13,<4"]
+keras = ["keras>=3.15.1,<4", "pygments>=2.20,<3"]
+sklearn = ["scikit-learn>=1.9.1,<2"]
+sqlalchemy = ["sqlalchemy[asyncio]>=2.0.10,<3"]
+
+[tool.poetry]
+requires-poetry = ">=2.5.1,<3"
 packages = [{include = "async_batcher"}]
 
-[tool.poetry.urls]
-"Bug Tracker" = "https://github.com/hussein-awala/async-batcher/issues"
-"Documentation" = "https://github.com/hussein-awala/async-batcher/blob/main/README.md"
-
-[tool.poetry.dependencies]
-python = "^3.10"
-aioboto3 = {version = "^13.1", optional = true}
-aiohttp = {version = ">=3.14.4 <4", optional = true}
-urllib3 = {version = ">=2.8.0 <3", optional = true}
-idna = {version = ">=3.15 <4", optional = true}
-scylla-driver = {version = "^3", optional = true}
-keras = {version = ">=3.15.1 <4", optional = true, python = ">=3.11"}
-pygments = {version = ">=2.20 <3", optional = true, python = ">=3.11"}
-scikit-learn = [
-    {version = "^1.2", optional = true, markers = "python_version < '3.12'"},
-    {version = "^1.3", optional = true, markers = "python_version >= '3.12'"}
-]
-sqlalchemy = {version = ">=2.0.10 <3", extras = ["asyncio"], optional = true}
-
-[tool.poetry.extras]
-aws= ["aioboto3", "aiohttp", "urllib3", "idna"]
-scylla = ["scylla-driver"]
-keras = ["keras", "pygments"]
-sklearn = ["scikit-learn"]
-sqlalchemy = ["sqlalchemy"]
-
-[tool.poetry.dev-dependencies]
-mock = "^5.1.0"
+[tool.poetry.group.test.dependencies]
 pytest = ">=9.0.3 <10"
 pytest-asyncio = ">=1.4.1.post1 <2"
 pygments = ">=2.20 <3"
-pre-commit = {version = "^3", python = ">=3.11"}
-virtualenv = {version = ">=21.14.9 <22", python = ">=3.11"}
-filelock = {version = ">=4.2.1 <5", python = ">=3.11"}
-types-aioboto3 = {version = "^13.1", extras = ["dynamodb"]}
-aiosqlite = "^0.20"
-asyncpg = "^0.29"
+
+[tool.poetry.group.adapter-test]
+optional = true
+
+[tool.poetry.group.adapter-test.dependencies]
+aiosqlite = "^0.22.1"
+asyncpg = "^0.32"
+
+[tool.poetry.group.ml-test]
+optional = true
+
+[tool.poetry.group.ml-test.dependencies]
+jax = [
+    {version = ">=0.10.2 <0.11", python = ">=3.11,<3.12"},
+    {version = ">=0.12.0.1 <0.13", python = ">=3.12"}
+]
+
+[tool.poetry.group.lint]
+optional = true
+
+[tool.poetry.group.lint.dependencies]
+pre-commit = "^4.7"
+virtualenv = ">=21.14.9 <22"
+filelock = ">=4.2.1 <5"
+ruff = "==0.17.4"
+
+[tool.poetry.group.typing]
+optional = true
+
+[tool.poetry.group.typing.dependencies]
+types-aioboto3 = {version = "^15.5", extras = ["dynamodb"]}
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.5.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 110
 indent-width = 4
 src = ["async_batcher", "examples", "tests"]
+extend-exclude = ["*_pb2*"]
+force-exclude = true
+
+[tool.ruff.lint]
 fixable = ["ALL"]
 ignore = ["E712"]
 select = [
@@ -67,14 +91,14 @@ select = [
     "C4", # flake8-comprehensions
     "I", # isort
     "UP", # pyupgrade,
-    "TCH", # flake8-type-checking
+    "TC", # flake8-type-checking
 ]
-exclude = ["*_pb2*"]
 
 [tool.ruff.format]
 docstring-code-format = true
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
+known-third-party = ["sqlalchemy"]
 required-imports = ["from __future__ import annotations"]
 combine-as-imports = true
 

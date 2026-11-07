@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import asyncio
+import inspect
 import logging
 import math
 import warnings
@@ -141,7 +142,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                         break
                     try:
                         await asyncio.wait_for(self._queue_changed.wait(), timeout=remaining)
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         break
             else:
                 batch.append(item)
@@ -158,7 +159,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         started_at = loop.time()
         try:
             batch_items = [q_item.item for q_item in batch]
-            if asyncio.iscoroutinefunction(self.process_batch):
+            if inspect.iscoroutinefunction(self.process_batch):
                 results = await self.process_batch(batch=batch_items)
             else:
                 results = await loop.run_in_executor(self.executor, self.process_batch, batch_items)
