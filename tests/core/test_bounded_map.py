@@ -423,3 +423,36 @@ async def test_cancellation_during_join_still_closes_source(harness):
         await asyncio.wait_for(closing, 2)
     assert source.closed
     assert await batcher.process(2) == 4
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ordered", [False, True])
+async def test_failure_while_consumer_pauses_precedes_buffered_successes(harness, ordered):
+    failure_seen = asyncio.Event()
+
+    class ObservedGates(ItemGates):
+        async def process(self, item, **kwargs):
+            try:
+                return await super().process(item, **kwargs)
+            except ValueError:
+                failure_seen.set()
+                raise
+
+    batcher = harness.create(ObservedGates)
+    error = batcher.errors[7] = ValueError("failure behind buffered successes")
+    stream = batcher.map(range(8), max_pending=8, ordered=ordered)
+    async with aclosing(stream):
+        first = harness.spawn(anext(stream))
+        await wait_until(lambda: batcher.started.qsize() == 8)
+        batcher.release(0)
+        assert await asyncio.wait_for(first, 2) == 0
+        batcher.release(1, 2, 3, 4, 5, 6)
+        await wait_until(lambda: batcher.stats().succeeded == 7)
+        batcher.release(7)
+        await asyncio.wait_for(failure_seen.wait(), 2)
+        with pytest.raises(ValueError, match="buffered successes") as caught:
+            await anext(stream)
+        assert caught.value is error
+    assert batcher.stats().pending_items == 0
+    batcher.release(9)
+    assert await batcher.process(9) == 18
