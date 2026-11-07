@@ -6,12 +6,13 @@ and processes them asynchronously. It is designed for scenarios where multiple r
 batches to improve efficiency and throughput.
 
 ## Key Features
+- Generic typing: `AsyncBatcher[T, S]` describes input and output types.
 - Asynchronous processing: Uses asyncio for non-blocking execution.
 - Batching mechanism: Groups items into batches based on size or time constraints.
 - Concurrency control: Limits the number of concurrent batch executions.
-- Custom processing logic: Users must implement the `process_batch` method to define batch behavior.
-- Queue management: Uses an `asyncio.Queue` to manage incoming items.
-- Error handling: Ensures robust error reporting and handling.
+- Custom processing logic: Implement `process_batch` as an async method or a synchronous function run in an executor.
+- Queue management: Uses an `asyncio.Queue` with optional capacity limits (`max_queue_size`).
+- Error handling: Processor exceptions fail a batch; returned exception objects fail their corresponding items.
 
 ## How it works
 
@@ -23,26 +24,30 @@ batches to improve efficiency and throughput.
 ### 2. Queue Management and Batching
 - A background task (`run()`) continuously monitors the queue.
 - Items are collected into batches based on:
-  - `max_batch_size`: Maximum items per batch.
+  - `max_batch_size`: Maximum items per batch, or `-1` for no limit.
   - `max_queue_time`: Time to collect a partial batch, measured from its oldest queued item.
     Busy processors can delay dispatch beyond this limit; queued items do not receive a fresh waiting period.
-- Once a batch is ready, it is passed to the processing function.
+- A bounded queue rejects additional items with `QueueFullException` when it is full.
+- The dispatcher acquires a concurrency slot before collecting the next batch, then starts its processing task.
 
 ### 3. Processing the Batch
 - If `process_batch` is asynchronous, it is awaited directly.
-- If `process_batch` is synchronous, it runs inside an `Executor`.
-- Each item’s future is resolved with the corresponding processed result.
+- If `process_batch` is synchronous, it runs inside the configured `executor`, or the event loop's default executor.
+- Each item's future is resolved with the corresponding result. A raised exception fails all pending items in that batch.
+- Returning `None` resolves every item with `None`; returning the wrong number of results fails the batch.
 
 ### 4. Concurrency Control
 - If `concurrency > 0`, a semaphore ensures that only a limited number of batches are processed simultaneously.
-- Otherwise, all batches run concurrently.
+- `concurrency=-1` allows unlimited concurrent batches. The completion callback releases a limited concurrency slot
+  even if its batch task was canceled before starting.
 
 ### 5. Stopping the Batcher
-- `await stop()` immediately rejects new items, flushes partial batches, and waits for queued and active work.
+- `await stop()` rejects new items while draining, flushes partial batches, and waits for queued and active work.
 - `await stop(timeout=seconds)` raises `asyncio.TimeoutError` if shutdown takes longer; accepted work continues draining.
   You can await `stop()` again or force cancellation. Canceling a caller awaiting `stop()` also leaves draining intact.
-- `await stop(force=True)` cancels pending requests and waits for batch-task cleanup. It is terminal and repeatable.
+- `await stop(force=True)` cancels pending requests and waits for batch-task cleanup. Calling it repeatedly is safe.
   Synchronous functions already running in an executor cannot be interrupted and may still finish afterward.
+  Restarting the batcher can overlap those still-running functions.
 - Canceling one `process()` caller does not prevent other items in its batch from receiving results.
   Already accepted work may still execute, so cancellation does not guarantee that side effects are prevented.
 
@@ -51,51 +56,58 @@ sequenceDiagram
     participant User
     participant AsyncBatcher
     participant Queue as asyncio.Queue
-    participant RunLoop
+    participant RunLoop as run()
     participant Semaphore
-    participant BatchProcessor
+    participant BatchTask as _batch_run()
+    participant Executor
+    participant Completion as _batch_done()
+    participant Futures as Item futures
 
-    User->>AsyncBatcher: process(item)
-    activate AsyncBatcher
-    AsyncBatcher->>Queue: put(QueueItem(item, future))
-    Note over User,AsyncBatcher: process() awaits the item result
-    deactivate AsyncBatcher
+    User->>AsyncBatcher: await process(item)
+    AsyncBatcher->>Queue: put_nowait(item, future, enqueued_at)
+    opt Dispatcher has not started
+        AsyncBatcher->>RunLoop: create_task(run())
+    end
+    Note over User,Futures: process() awaits its item's future
 
-    Note over AsyncBatcher: Starts RunLoop on first process()
-
-    loop Run Loop (run() method)
-        RunLoop->>Queue: Collect items (max_batch_size/max_queue_time)
-        activate Queue
-        Queue-->>RunLoop: Batch [QueueItem1, QueueItem2...]
-        deactivate Queue
-
-        alt Concurrency Limited (concurrency > 0)
-            RunLoop->>Semaphore: acquire()
-            activate Semaphore
-            Semaphore-->>RunLoop: acquired
-            deactivate Semaphore
+    loop While accepting work or queued items remain
+        opt concurrency > 0
+            RunLoop->>Semaphore: await acquire()
+            Semaphore-->>RunLoop: permit acquired
         end
+        RunLoop->>Queue: _fill_batch_from_queue()
+        Queue-->>RunLoop: batch
 
-        RunLoop->>BatchProcessor: create_task(_batch_run(batch))
-        activate BatchProcessor
+        alt Nonempty batch
+            RunLoop->>BatchTask: create_task(_batch_run(batch))
+            Note over RunLoop,BatchTask: Dispatch does not await this task.<br/>The next iteration acquires a permit before collecting.
 
-        alt Async process_batch
-            BatchProcessor->>AsyncBatcher: await process_batch(batch)
-        else Sync process_batch
-            BatchProcessor->>Executor: run_in_executor(process_batch)
-        end
+            alt Async process_batch
+                BatchTask->>AsyncBatcher: await process_batch(batch_items)
+                AsyncBatcher-->>BatchTask: results or exception
+            else Sync process_batch
+                BatchTask->>Executor: await run_in_executor(process_batch, batch_items)
+                Executor-->>BatchTask: results or exception
+            end
 
-        AsyncBatcher-->>BatchProcessor: results [S1, S2...]
-        BatchProcessor->>QueueItem1.future: set_result(S1)
-        BatchProcessor->>QueueItem2.future: set_result(S2)
-        deactivate BatchProcessor
+            alt Processor raises or result count is invalid
+                BatchTask->>Futures: set_exception(error) for pending items
+            else Valid results
+                BatchTask->>Futures: set_result(value) or set_exception(item_error)
+            end
 
-        alt Concurrency Limited
-            RunLoop->>Semaphore: release()
+            BatchTask-->>Completion: task completion callback
+            opt concurrency > 0
+                Completion->>Semaphore: release()
+            end
+            Completion->>Futures: cancel any unfinished requests
+            Futures-->>User: result, exception, or cancellation
+        else No items remain during shutdown
+            opt concurrency > 0
+                RunLoop->>Semaphore: release unused permit
+            end
         end
     end
-
-    Note over User, BatchProcessor: User's await future gets resolved
 ```
 
 ## How to use
@@ -159,8 +171,11 @@ asyncio.run(main())
 - `max_queue_size` limits buffered items; `-1` and `0` mean unlimited. A full queue raises `QueueFullException`.
 - Each processor returns one result per input, in the same order. Returning `None` resolves every item with `None`.
   An exception raised by the processor fails the entire batch; an exception in the result list fails only that item.
-- A batcher belongs to one event loop and cannot be restarted after stopping. Prefer `try/finally` to ensure
-  `await batcher.stop()` runs before closing application resources. Call `stop()` from outside `process_batch`.
+- A batcher belongs to one event loop. After the dispatcher and worker completion callbacks finish shutting down,
+  the next `process()` call automatically starts a fresh dispatcher on that same loop. While graceful draining or
+  forced cleanup is still active, `process()` raises `RuntimeError("Batcher is stopping")`, including after a shutdown timeout.
+  Prefer `try/finally` to ensure `await batcher.stop()` runs before closing application resources.
+  Call `stop()` from outside `process_batch`.
   Invalid limits and unknown options raise during construction rather than being silently accepted.
 
 ## Benchmark
