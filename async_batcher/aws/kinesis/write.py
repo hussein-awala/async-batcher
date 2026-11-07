@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Unpack
 
 from async_batcher.aws._records import send_records, validate_options
 from async_batcher.batcher import AsyncBatcher
 
 if TYPE_CHECKING:
     from aiobotocore.client import AioBaseClient
+
+    from async_batcher._options import CoreOptions
 
 _MAX_BYTES = 10 * 1024 * 1024
 
@@ -42,8 +44,8 @@ class AsyncKinesisBatcher(AsyncBatcher[KinesisRecord, dict[str, Any]]):
         max_batch_size: int = 500,
         max_retries: int = 5,
         retry_jitter: bool = False,
-        **kwargs: Any,
-    ):
+        **kwargs: Unpack[CoreOptions[KinesisRecord]],
+    ) -> None:
         super().__init__(max_batch_size=max_batch_size, **kwargs)
         validate_options(self.max_batch_size, max_retries, retry_jitter)
         if (stream_name is None) == (stream_arn is None):

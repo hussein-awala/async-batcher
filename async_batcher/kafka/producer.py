@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Unpack, cast
 
 from aiokafka.errors import MessageSizeTooLargeError
 
@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from aiokafka import AIOKafkaProducer
     from aiokafka.producer.message_accumulator import BatchBuilder
     from aiokafka.structs import RecordMetadata
+
+    from async_batcher._options import BatcherOptions
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -56,7 +58,7 @@ class AsyncKafkaBatcher(AsyncBatcher[KafkaRecord, "RecordMetadata | None"]):
     Keep concurrency=1 when ordering across separate AsyncBatcher batches matters.
     """
 
-    def __init__(self, *, producer: AIOKafkaProducer, **kwargs):
+    def __init__(self, *, producer: AIOKafkaProducer, **kwargs: Unpack[BatcherOptions[KafkaRecord]]) -> None:
         super().__init__(**kwargs)
         self.producer = producer
 

@@ -75,13 +75,51 @@ def verify_fixture(result: subprocess.CompletedProcess[str], fixture: Path, *, n
         )
 
 
-def run(command: list[str], work: Path, env: dict[str, str]) -> None:
-    subprocess.run(command, cwd=work, env=env, check=True, timeout=180)
+def run(command: list[str], work: Path, env: dict[str, str], *, quiet: bool = False) -> None:
+    subprocess.run(
+        command,
+        cwd=work,
+        env=env,
+        check=True,
+        timeout=180,
+        stdout=subprocess.DEVNULL if quiet else None,
+    )
+
+
+def dependency_export(uv: str, root: Path, destination: Path, adapter: str) -> list[str]:
+    if adapter not in {"aws", "kafka"}:
+        raise ValueError(f"Unsupported typing adapter: {adapter}")
+    command = [
+        uv,
+        "export",
+        "--project",
+        str(root),
+        "--locked",
+        "--no-default-groups",
+        "--no-emit-project",
+        "--extra",
+        adapter,
+        "--output-file",
+        str(destination),
+    ]
+    if adapter == "aws":
+        command.extend(["--group", "typing"])
+    return command
+
+
+def checker_config(adapter: str | None) -> str:
+    config = "[mypy]\nstrict = True\npython_version = 3.11\n"
+    if adapter == "kafka":
+        # aiokafka has inline types but no PEP 561 marker. Analyze the installed
+        # SDK's annotations instead of treating its producer/results as Any.
+        config += "\n[mypy-aiokafka.*]\nfollow_untyped_imports = True\n"
+    return config
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--uv", default="uv")
+    parser.add_argument("--adapter", choices=("aws", "kafka"))
     args = parser.parse_args()
     uv = shutil.which(args.uv)
     if uv is None:
@@ -99,20 +137,33 @@ def main() -> None:
         fixtures = []
         for name in ("valid.py", "invalid.py"):
             fixture = work / name
-            shutil.copyfile(root / "tests" / "typing" / name, fixture)
+            source_name = f"{args.adapter}_{name}" if args.adapter else name
+            shutil.copyfile(root / "tests" / "typing" / source_name, fixture)
             fixtures.append(fixture)
         run([uv, "build", "--no-sources", "--wheel", "--out-dir", str(work / "dist"), str(root)], work, env)
         wheel = next((work / "dist").glob("*.whl"))
         environment = work / "installed"
         venv.EnvBuilder(with_pip=False).create(environment)
         python = environment / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+        if args.adapter:
+            requirements = work / "sdk-requirements.txt"
+            run(dependency_export(uv, root, requirements, args.adapter), work, env, quiet=True)
+            run(
+                [uv, "pip", "install", "--python", str(python), "--require-hashes", "-r", str(requirements)],
+                work,
+                env,
+            )
         run([uv, "pip", "install", "--python", str(python), "--no-deps", str(wheel)], work, env)
+        imports = "import pathlib,async_batcher; "
+        if args.adapter:
+            module = "async_batcher.aws.kinesis" if args.adapter == "aws" else "async_batcher.kafka"
+            imports += f"import importlib; importlib.import_module({module!r}); "
         query = subprocess.run(
             [
                 str(python),
                 "-I",
                 "-c",
-                "import pathlib,async_batcher; print(pathlib.Path(async_batcher.__file__).parent)",
+                imports + "print(pathlib.Path(async_batcher.__file__).parent)",
             ],
             cwd=work,
             env=env,
@@ -127,7 +178,7 @@ def main() -> None:
         marker = package / "py.typed"
         marker_bytes = marker.read_bytes()
         config = work / "mypy.ini"
-        config.write_text("[mypy]\nstrict = True\npython_version = 3.11\n")
+        config.write_text(checker_config(args.adapter))
         command = [
             sys.executable,
             "-m",
@@ -164,7 +215,8 @@ def main() -> None:
         finally:
             marker.write_bytes(marker_bytes)
         print(
-            f"Public typing passed with mypy {importlib.metadata.version('mypy')}: "
+            f"Public typing ({args.adapter or 'core'}) passed "
+            f"with mypy {importlib.metadata.version('mypy')}: "
             "positive consumer, exact negative diagnostics, installed-marker negative control"
         )
 

@@ -21,8 +21,9 @@ class LegacyOptions(TypedDict, total=False):
     buffering_time: object
 
 
-class BatcherOptions(LegacyOptions, Generic[T], total=False):
-    max_batch_size: int
+class CoreOptions(LegacyOptions, Generic[T], total=False):
+    """Shared options for adapters that declare their own count limit."""
+
     max_queue_time: float
     concurrency: int
     max_queue_size: int
@@ -32,3 +33,7 @@ class BatcherOptions(LegacyOptions, Generic[T], total=False):
     on_batch: Callable[[BatchEvent], None] | None
     processor_context: Context | None
     log_exceptions: bool
+
+
+class BatcherOptions(CoreOptions[T], total=False):
+    max_batch_size: int
