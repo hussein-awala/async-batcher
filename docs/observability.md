@@ -3,7 +3,7 @@
 The core exposes immutable `BatcherStats` and `BatchEvent` dataclasses. It does not depend on a
 monitoring client, collect item payloads, or start an exporter. Read these APIs from the same
 event-loop thread that owns the batcher. This guide describes the current source checkout;
-see the [installation instructions](../README.md#installation) for release/source differences.
+see the [installation instructions](../README.md#install) for release/source differences.
 
 ## Read a snapshot
 
