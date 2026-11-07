@@ -82,3 +82,9 @@ async def invalid_outcomes() -> None:
     async for outcome in batcher.map_outcomes([1]):
         outcome.index = 1  # error: misc
         _wrong: str = outcome.item  # error: assignment
+
+
+async def invalid_grouped_streams() -> None:
+    grouped.map(["bad"])  # error: list-item
+    grouped.map_outcomes(strings())  # error: arg-type
+    await grouped.process(1, enqueue_timeout="soon")  # error: arg-type

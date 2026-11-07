@@ -10,9 +10,10 @@ from typing import TYPE_CHECKING, Generic, Self, TypeVar
 
 from async_batcher.batcher import AsyncBatcher, _processing_ancestors
 from async_batcher.exceptions import AsyncBatchException
+from async_batcher.map import MapOutcome, map_items, map_outcomes
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Hashable
+    from collections.abc import AsyncGenerator, AsyncIterable, Callable, Hashable, Iterable
     from types import TracebackType
 
 K = TypeVar("K", bound="Hashable")
@@ -173,8 +174,39 @@ class GroupedBatcher(Generic[K, T, S]):
             oldest = min(idle, key=lambda group: group.idle_since)
             await asyncio.shield(self._begin_close(oldest))
 
-    async def process(self, item: T) -> S:
-        """Submit to one group; cancellation stops waiting but retains accepted work."""
+    def map(
+        self,
+        source: Iterable[T] | AsyncIterable[T],
+        *,
+        max_pending: int = 128,
+        ordered: bool = True,
+    ) -> AsyncGenerator[S, None]:
+        """Map a bounded source across groups, failing promptly on any item error."""
+        return map_items(self.process, source, max_pending=max_pending, ordered=ordered)
+
+    def map_outcomes(
+        self,
+        source: Iterable[T] | AsyncIterable[T],
+        *,
+        max_pending: int = 128,
+        ordered: bool = True,
+    ) -> AsyncGenerator[MapOutcome[T, S], None]:
+        """Map across groups and yield ordinary item failures with input correlation."""
+        return map_outcomes(self.process, source, max_pending=max_pending, ordered=ordered)
+
+    async def process(
+        self,
+        item: T,
+        *,
+        wait_for_space: bool = False,
+        enqueue_timeout: float | None = None,
+    ) -> S:
+        """Submit to a group, optionally waiting for its child queue admission.
+
+        Busy group slots still reject new keys immediately. Once a child request
+        starts, caller cancellation detaches its wait and retains child ownership,
+        including any child admission wait, until completion or manager shutdown.
+        """
         self._get_loop()
         self._check_open()
         key = self._group_key(item)
@@ -184,7 +216,9 @@ class GroupedBatcher(Generic[K, T, S]):
             raise TypeError("group_key must return a hashable key directly")
         hash(key)
         group = await self._get_group(key)
-        task = asyncio.create_task(group.batcher.process(item))
+        task = asyncio.create_task(
+            group.batcher.process(item, wait_for_space=wait_for_space, enqueue_timeout=enqueue_timeout)
+        )
         group.pending.add(task)
         task.add_done_callback(lambda completed: self._request_done(group, completed))
         return await asyncio.shield(task)
