@@ -44,4 +44,6 @@ class AsyncScyllaDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
                     else:
                         op.model.objects(**op.key).batch(b).delete()
                         results.append(None)
+                else:
+                    results.append(ValueError(f"Invalid operation: {op.operation}"))
         return results
