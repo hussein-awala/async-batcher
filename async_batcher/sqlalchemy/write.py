@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 
-class AsyncSqlalchemyWriteBatcher(AsyncBatcher[dict[str, Any], None]):
+class AsyncSqlalchemyWriteBatcher(AsyncBatcher[dict[str, Any], Row[tuple[Any, ...]] | None]):
     def __init__(
         self,
         model: Any,
@@ -34,23 +34,28 @@ class AsyncSqlalchemyWriteBatcher(AsyncBatcher[dict[str, Any], None]):
         )
         self.operation = operation
         self.returning = returning
+        if returning is None:
+            self._returning_columns = []
+        elif isinstance(returning, list | tuple):
+            self._returning_columns = list(returning)
+        else:
+            self._returning_columns = [returning]
+        if operation == "update" and self._returning_columns:
+            raise ValueError("RETURNING is not supported for bulk UPDATE operations")
 
-    async def process_batch(self, batch: list[dict[str, Any]]) -> Sequence[Row[tuple[Any]]] | None:
+    async def process_batch(self, batch: list[dict[str, Any]]) -> Sequence[Row[tuple[Any, ...]]] | None:
         session: AsyncSession
         async with self.async_session_maker() as session:
             if self.operation == "insert":
-                statement = insert(self.model).returning()
+                statement = insert(self.model)
             elif self.operation == "update":
                 statement = update(self.model)
-            if self.returning:
-                if isinstance(self.returning, list):
-                    statement = statement.returning(*self.returning)
-                else:
-                    statement = statement.returning(self.returning)
+            if self._returning_columns:
+                statement = statement.returning(*self._returning_columns, sort_by_parameter_order=True)
             res = await session.execute(
                 statement=statement,
                 params=batch,
             )
             await session.commit()
-            if self.returning:
+            if self._returning_columns:
                 return res.all()
