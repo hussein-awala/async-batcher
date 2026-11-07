@@ -34,9 +34,8 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any] | None]):
         aioboto3_session: The aioboto3 session to use. If not provided, a new session is created.
         max_batch_size (int, optional): The max number of items to process in a batch.The default is 100
             items, which is the maximum number of items that can be processed in a single batch.
-        max_queue_time (float, optional): The max time for a task to stay in the queue before processing
-            it if the batch is not full and the number of running batches is less than the concurrency.
-            Defaults to 0.01.
+        max_queue_time (float, optional): Collection delay measured from the oldest queued input.
+            Busy processors can delay dispatch beyond this limit. Defaults to 0.01 seconds.
         concurrency (int, optional): The max number of concurrent batches to process. Defaults to 1.
             If -1, it will process all batches concurrently.
         consistent_read (bool, optional): Use strongly consistent reads for every table.

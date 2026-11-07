@@ -1,6 +1,6 @@
 # Contributing Guidelines
 
-Use Python 3.11 or newer and [uv 0.13.7](https://docs.astral.sh/uv/getting-started/installation/).
+Use Python 3.11 or newer and [uv 0.13.7 or newer](https://docs.astral.sh/uv/getting-started/installation/).
 The core library has no runtime dependencies. Optional adapters and development tools are installed separately.
 
 ## Core development
@@ -55,12 +55,41 @@ outside default discovery, so collecting core tests never imports service fixtur
 Async tests and fixtures use function-scoped event loops by default. Shared SQLAlchemy fixtures
 explicitly use a session-scoped loop. Use `loop_scope` when choosing an async test loop.
 
+## Coverage
+
+After installing the desired test environment, measure statement and branch coverage:
+
+```bash
+uv run --no-sync python -m coverage run -m pytest
+uv run --no-sync python -m coverage report --show-missing
+uv run --no-sync python -m coverage html
+```
+
+Open `htmlcov/index.html` to inspect uncovered lines and branches. A core-only environment skips
+optional adapters, so its whole-package percentage is not a full coverage measurement. Use the
+all-adapter environment above for the service-free suite; live integration cases add service behavior
+that those tests do not exercise. This local command starts a fresh coverage dataset.
+For a complete all-adapter dataset, enforce the CI threshold with
+`uv run --no-sync python -m coverage report --fail-under=95`.
+
+CI measures coverage in the existing core, adapter, and live-service jobs, using
+`coverage run --parallel-mode -m pytest <suite> -ra`. It uploads uniquely named data artifacts,
+checks that every selected matrix job supplied data, and combines them without rerunning the suites.
+The aggregate gate requires **95% combined statement-and-branch coverage**. Full adapter runs
+measure every `async_batcher` source file. Scoped runs measure the core and selected adapter
+directories, including shared ML helpers when relevant; the report identifies that scope.
+
+The combined `coverage-report` artifact contains `html/`, `coverage.xml`, `coverage.json`, and
+`summary.md`. Download it to inspect failures; an unselected adapter is not counted as tested by
+a scoped pull request. Missing coverage artifacts fail the gate instead of producing a partial report.
+
 ## Integration tests
 
 Install the corresponding adapter first, then start its service and select its integration directory:
 
 ```bash
 docker compose -f docker-compose/dynamodb.yml up -d --wait
+uv run --no-sync python .github/scripts/wait_for_service.py aws
 uv run --no-sync python -m pytest tests/integration/aws
 docker compose -f docker-compose/dynamodb.yml down --volumes
 ```
@@ -79,6 +108,22 @@ For Kafka, use `uv sync --locked --no-default-groups --group test --extra kafka`
 The integration suite verifies native batches, per-record offsets, both timestamp modes, and a
 broker-rejected oversized record alongside successful records. Unit tests use the actual aiokafka
 producer and batch builder, replacing only the broker enqueue/delivery boundary.
+
+The readiness helper accepts `aws`, `sqlalchemy`, `scylladb`, `mongodb`, or `kafka` and checks
+the service protocol before tests start. Run it after `docker compose up` for the corresponding
+suite. These integration suites require local Docker services; AWS stream and Pinecone unit
+tests use SDK/local HTTP boundaries and do not assert live cloud persistence.
+
+## Documentation and examples
+
+The [README](README.md) introduces the current checkout; the [API guide](docs/api.md) and adapter
+guides document its contracts. Clearly distinguish unreleased source behavior from a published
+release when adding features. Keep resource ownership, error/partial-success behavior, and
+shutdown examples consistent with the implementation.
+
+The application examples have additional dependencies outside `uv.lock`. Follow their README
+instructions to create separate example environments. Preserve the repository's isolated test
+environments instead of adding example web servers or TensorFlow to the core test group.
 
 ## Dependency and CI maintenance
 

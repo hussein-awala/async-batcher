@@ -20,15 +20,13 @@ class SklearnAsyncBatcher(AsyncBatcher):
 
     Args:
         model: The scikit-learn model to use for prediction.
-        executor: The executor to use for running the prediction.
         max_batch_size (int, optional): The max number of items to process in a batch.
             Defaults to -1 (no limit).
-        max_queue_time (float, optional): The max time for a task to stay in the queue
-            before processing it if the batch is not full and the number of running batches
-            is less than the concurrency. Defaults to 0.01.
+        max_queue_time (float, optional): Collection delay measured from the oldest queued input.
+            Busy processors can delay dispatch beyond this limit. Defaults to 0.01 seconds.
         concurrency (int, optional): The max number of concurrent batches to process.
             Defaults to 1. If -1, it will process all batches concurrently.
-        max_queue_size (int, optional): The maximum number of queued inputs. Defaults to -1 (no limit).
+        max_queue_size (int, optional): Maximum queued inputs. -1 and 0 mean no limit. Defaults to -1.
         executor (Executor, optional): The executor to use to process the batch.
             If None, it will use the default asyncio executor. Defaults to None.
     """
