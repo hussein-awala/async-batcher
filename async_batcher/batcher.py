@@ -235,6 +235,9 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             if self._running_batches:
                 await asyncio.shield(asyncio.gather(*self._running_batches.values(), return_exceptions=True))
         except BaseException:
+            # A caller may cancel the public run() task directly. Later stop()
+            # calls must join this cleanup rather than cancel it a second time.
+            self._force_stopped = True
             self._stop.set()
             self._cancel_pending()
             for task in self._running_batches.values():
