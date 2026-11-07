@@ -73,3 +73,11 @@ async def consume() -> None:
     _result: int = await batcher.process(1)  # error: assignment
     await grouped.process("bad")  # error: arg-type
     _grouped_result: int = await grouped.process(1)  # error: assignment
+
+
+async def invalid_outcomes() -> None:
+    batcher.map_outcomes(["bad"])  # error: list-item
+    batcher.map_outcomes(strings())  # error: arg-type
+    async for outcome in batcher.map_outcomes([1]):
+        outcome.index = 1  # error: misc
+        _wrong: str = outcome.item  # error: assignment

@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Generic, Self, TypeVar, Unpack, overload
 from weakref import ref
 
 from async_batcher.exceptions import QueueFullException
-from async_batcher.map import map_items
+from async_batcher.map import MapOutcome, map_items, map_outcomes
 from async_batcher.observability import BatcherStats, BatchEvent, _BatchTiming
 
 if TYPE_CHECKING:
@@ -351,7 +351,21 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         iterator cancels its request tasks and closes its source, without stopping
         this batcher. Use contextlib.aclosing when breaking iteration early.
         """
-        return map_items(self, source, max_pending=max_pending, ordered=ordered)
+        return map_items(self.process, source, max_pending=max_pending, ordered=ordered)
+
+    def map_outcomes(
+        self,
+        source: Iterable[T] | AsyncIterable[T],
+        *,
+        max_pending: int = 128,
+        ordered: bool = True,
+    ) -> AsyncGenerator[MapOutcome[T, S], None]:
+        """Yield indexed results and ordinary item errors with bounded consumption.
+
+        Source errors and cancellation still terminate iteration. Source ownership
+        and cleanup follow map(); use contextlib.aclosing when breaking early.
+        """
+        return map_outcomes(self.process, source, max_pending=max_pending, ordered=ordered)
 
     async def _wait_for_queue_space(self, generation: int):
         while True:

@@ -55,7 +55,7 @@ but partial batches may wait for the collection delay before dispatching.
 Iteration is fail-fast: a source error or any request error is raised on the next iteration
 step as soon as it is observed, even if an earlier ordered result is still pending. This can
 omit successful results already buffered. A per-request `CancelledError` cancels iteration.
-Use individual `process()` calls when you need to collect and handle every item's outcome.
+Use `map_outcomes()` when ordinary item failures should be returned alongside successes.
 
 When iteration finishes, fails, is cancelled during an iteration step, or is explicitly closed,
 map cancels and joins its own feeder/request tasks and closes the source iterator if it exposes
@@ -89,3 +89,32 @@ producers with `RuntimeError("Batcher is stopping")`; those attempts cannot slip
 restart. Once accepted, existing result/cancellation semantics apply. Waiting producers are
 not included in the shared queue limit. Avoid creating an unbounded number of them: use `map()`
 for a bounded producer. Waiting admission does not promise priority over other submissions.
+
+## Collect correlated successes and failures
+
+`batcher.map_outcomes(source, *, max_pending=128, ordered=True)` has the same bounded consumption,
+waiting admission, ordering, and source ownership as `map()`. It yields frozen `MapOutcome[T, S]`
+envelopes instead of aborting on an ordinary per-item exception:
+
+```python
+from contextlib import aclosing
+
+async with aclosing(batcher.map_outcomes(source, max_pending=64, ordered=False)) as outcomes:
+    async for outcome in outcomes:
+        if outcome.succeeded:
+            print(outcome.index, outcome.item, outcome.result)
+        else:
+            print(outcome.index, outcome.item, outcome.error)
+```
+
+`index` is the zero-based source position, so duplicate inputs and out-of-order results remain
+correlated. `item` is the original input reference; it is not copied, and callers remain responsible
+for mutations. `result` contains the successful value and `error` contains the original ordinary
+`Exception`, including an admission error. `succeeded` distinguishes successful `None` results
+from failures. Exceptions may retain their normal traceback references while an outcome is held.
+
+An ordinary item failure does not abort the stream. Source iteration/cleanup errors still raise,
+and a per-request `CancelledError` or cancellation of the consumer still terminates iteration.
+These terminal conditions can prevent delivery of buffered outcomes. Closing the stream cancels
+only its own request tasks, closes its source, and leaves the shared batcher usable; accepted
+backend work can still run. Use `aclosing` for early breaks, just as with `map()`.
