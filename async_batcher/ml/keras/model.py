@@ -11,7 +11,10 @@ if TYPE_CHECKING:
 
 
 class KerasAsyncBatcher(AsyncBatcher):
-    """Batcher for Keras models.
+    """Batcher for Keras models with one dense input per sample.
+
+    Samples are combined along a new batch axis. Override process_batch for models
+    with multiple inputs or custom/ragged input structures.
 
     Args:
         model: The Keras model to use for prediction.
@@ -47,4 +50,6 @@ class KerasAsyncBatcher(AsyncBatcher):
         self.model = model
 
     def process_batch(self, batch):
-        return self.model.predict(batch, batch_size=len(batch))
+        import numpy as np
+
+        return self.model.predict(np.asarray(batch), batch_size=len(batch))
