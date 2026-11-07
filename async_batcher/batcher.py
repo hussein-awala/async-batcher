@@ -149,9 +149,12 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         except Exception as e:
             self.logger.error("Error processing batch", exc_info=True)
             for q_item in batch:
-                q_item.future.set_exception(e)
+                if not q_item.future.done():
+                    q_item.future.set_exception(e)
         else:
             for q_item, result in zip(batch, results, strict=True):
+                if q_item.future.done():
+                    continue
                 if isinstance(result, Exception):
                     q_item.future.set_exception(result)
                 else:

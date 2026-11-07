@@ -9,6 +9,8 @@ from async_batcher.batcher import AsyncBatcher
 from sqlalchemy import String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+pytest_plugins = ["tests.core_helpers"]
+
 
 def pytest_runtest_setup(item):
     def _has_marker(item, marker_name: str) -> bool:
