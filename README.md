@@ -178,6 +178,25 @@ batcher = AsyncDynamoDbGetBatcher(region_name="us-west-2", consistent_read=True)
 Strongly consistent reads use more read capacity than eventual reads; see the
 [DynamoDB read consistency guide](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadConsistency.html).
 
+### DynamoDB projected reads
+
+Use `projection_expression` and optional `expression_attribute_names` to select fields
+for every table requested by a read batcher. Include **every primary-key attribute** as a
+complete top-level field, using an alias when necessary. The batcher validates this before
+opening a connection so it can match unordered responses to requests, including duplicates.
+It returns the requested projection without adding hidden key fields. Nested document paths
+and list indexes are forwarded to DynamoDB; retries preserve the projection and aliases.
+
+```python
+batcher = AsyncDynamoDbGetBatcher(
+    projection_expression="#pk, #sk, details.#name, tags[0]",
+    expression_attribute_names={"#pk": "partitionKey", "#sk": "sortKey", "#name": "name"},
+)
+```
+
+Without a projection, reads still return all attributes. Projections reduce returned data,
+but [do not reduce read capacity consumption](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ProjectionExpressions.html).
+
 ## Configuration and results
 
 - `max_batch_size` accepts a positive integer (including `1`) or `-1` for no limit.

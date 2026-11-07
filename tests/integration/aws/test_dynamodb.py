@@ -83,3 +83,50 @@ async def test_dynamodb_strongly_consistent_read(dynamodb_tables, dynamodb_aiobo
         assert await reader.process(GetItem(table_name=table, key={"key": item["key"]})) == item
     finally:
         await reader.stop()
+
+
+@pytest.mark.asyncio
+async def test_dynamodb_projection_routes_composite_keys_and_preserves_nested_fields(
+    dynamodb_tables, dynamodb_aioboto3_session, write_batcher
+):
+    table = dynamodb_tables[1]
+    rows = [
+        {
+            "key1": "projected",
+            "key2": key,
+            "details": {"name": name, "secret": "not selected"},
+            "values": ["zero", name, "last"],
+            "unrequested": "not selected",
+        }
+        for key, name in [("one", "first"), ("two", "second")]
+    ]
+    await asyncio.gather(
+        *(write_batcher.process(WriteOperation(table_name=table, operation="PUT", data=row)) for row in rows)
+    )
+    reader = AsyncDynamoDbGetBatcher(
+        endpoint_url="http://localhost:8000",
+        aioboto3_session=dynamodb_aioboto3_session,
+        consistent_read=True,
+        projection_expression="#pk, #sk, #details.#name, #values[1]",
+        expression_attribute_names={
+            "#pk": "key1",
+            "#sk": "key2",
+            "#details": "details",
+            "#name": "name",
+            "#values": "values",
+        },
+    )
+    try:
+        results = await asyncio.gather(
+            *(
+                reader.process(GetItem(table_name=table, key={"key1": "projected", "key2": key}))
+                for key in ["two", "one", "two", "missing"]
+            )
+        )
+        expected = [
+            {"key1": "projected", "key2": key, "details": {"name": name}, "values": [name]}
+            for key, name in [("two", "second"), ("one", "first"), ("two", "second")]
+        ]
+        assert results == [*expected, None]
+    finally:
+        await reader.stop()
