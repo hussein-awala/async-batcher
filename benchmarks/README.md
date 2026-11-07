@@ -4,6 +4,8 @@ This service-free harness compares `AsyncBatcher` with direct operations on the 
 It measures a **synthetic fixed-cost bulk operation**, not a database, model, HTTP service, or
 universal library speedup. No cloud credentials, server, or optional dependency is used.
 
+For real database arrivals and overload measurements, see the [open-loop SQLite experiment](SQLITE.md).
+
 ## Run
 
 From the repository root, install only the core checkout:
