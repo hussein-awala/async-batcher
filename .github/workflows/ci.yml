@@ -217,6 +217,8 @@ jobs:
         run: |
           bash .github/scripts/check-workflows.sh
           uv run --no-sync python -m unittest discover -s .github/scripts -p 'test_*.py'
+      - name: Check benchmark measurements and cleanup
+        run: uv run --no-sync python -m unittest discover -s benchmarks -p 'test_*.py'
       - name: Validate the lock and installed wheel and source distributions
         run: |
           uv lock --check
