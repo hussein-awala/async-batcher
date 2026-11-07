@@ -69,3 +69,9 @@ pinecone:
   - *shared
   - 'async_batcher/pinecone/**'
   - 'tests/adapters/pinecone/**'
+kafka:
+  - *shared
+  - 'async_batcher/kafka/**'
+  - 'tests/adapters/kafka/**'
+  - 'tests/integration/kafka/**'
+  - 'docker-compose/kafka.yml'

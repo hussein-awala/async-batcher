@@ -14,6 +14,15 @@ async def probe(service: str) -> None:
         )
         async with session.client("dynamodb", endpoint_url="http://localhost:8000") as client:
             await client.list_tables(Limit=1)
+    elif service == "kafka":
+        from aiokafka.admin import AIOKafkaAdminClient
+
+        client = AIOKafkaAdminClient(bootstrap_servers="127.0.0.1:9092", request_timeout_ms=5000)
+        try:
+            await client.start()
+            await client.list_topics()
+        finally:
+            await client.close()
     elif service == "sqlalchemy":
         import asyncpg
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 
+from check_adapter import MODULES
 from ci_plan import plan
 
 
@@ -30,7 +31,7 @@ class PlanTests(unittest.TestCase):
         )
 
     def test_adapter_changes_keep_linux_core_gate_without_macos_queue(self):
-        for suite in ("aws", "sqlalchemy", "scylla", "mongodb", "keras", "sklearn", "pinecone"):
+        for suite in MODULES:
             with self.subTest(suite=suite):
                 result = plan("pull_request", {suite})
                 self.assertEqual(
@@ -64,12 +65,23 @@ class PlanTests(unittest.TestCase):
                     {row["os"] for row in result["core"]["include"]},
                     {"ubuntu-24.04", "macos-15", "macos-15-intel"},
                 )
-                self.assertEqual(len(result["adapters"]["include"]), 14)
+                self.assertEqual(
+                    {(row["suite"], row["python"]) for row in result["adapters"]["include"]},
+                    {(suite, version) for suite in MODULES for version in ("3.11", "3.15")},
+                )
                 self.assertEqual({row["python"] for row in result["adapters"]["include"]}, {"3.11", "3.15"})
                 self.assertEqual(
                     {row["suite"] for row in result["services"]["include"]},
-                    {"aws", "sqlalchemy", "scylladb", "mongodb"},
+                    {"aws", "sqlalchemy", "scylladb", "mongodb", "kafka"},
                 )
+
+    def test_kafka_change_selects_native_tests_and_live_broker(self):
+        result = plan("pull_request", {"kafka"})
+        self.assertEqual([row["suite"] for row in result["adapters"]["include"]], ["kafka"])
+        self.assertEqual(
+            result["services"]["include"],
+            [{"suite": "kafka", "extra": "kafka", "groups": "main,test", "compose": "kafka"}],
+        )
 
     def test_main_expands_core_without_unrelated_service_jobs(self):
         result = plan("push", {"keras"})

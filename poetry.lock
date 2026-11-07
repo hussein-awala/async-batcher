@@ -287,6 +287,63 @@ files = [
 ]
 
 [[package]]
+name = "aiokafka"
+version = "0.15.0"
+description = "Kafka integration with asyncio"
+optional = true
+python-versions = ">=3.11"
+groups = ["main"]
+markers = "extra == \"kafka\""
+files = [
+    {file = "aiokafka-0.15.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:bc9f5afaeaab11fa1d82c0e40d6ae8bde8006912118427bd76b59d12ad1403cf"},
+    {file = "aiokafka-0.15.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:395f84f0cf4ed55af46e799eee394073f2a02b460e3921e9cb010c94afc15374"},
+    {file = "aiokafka-0.15.0-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:64cfcbd8459c9156f60071c420a92c9993c153896b4c1bccc64bb49a8e84d255"},
+    {file = "aiokafka-0.15.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:5135f0abe9cd4218dc6171d02c12cd76258854489b5be21fb3bc9f2cd7cb33f7"},
+    {file = "aiokafka-0.15.0-cp311-cp311-win32.whl", hash = "sha256:9baf427fcad30744a221d221e0efbcf544e9d0a1e93e223dfe2a6ce024e96290"},
+    {file = "aiokafka-0.15.0-cp311-cp311-win_amd64.whl", hash = "sha256:4fee1a68043e4c78cdc173a5bd3e8dbaaf87ff2ef8f08c998859292b48c6d3b8"},
+    {file = "aiokafka-0.15.0-cp311-cp311-win_arm64.whl", hash = "sha256:1faccf072cdecfd342a439ce4914e90bca75120e8b120fa34ce8f91b68fffdad"},
+    {file = "aiokafka-0.15.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:569d27eb1543819db1d35c0ba7a779a4992575debb3dcb012922efa5568de7ca"},
+    {file = "aiokafka-0.15.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:e726472daef51682b8e2045aab3cdcd68e4a0569492ddae91b162c39bbbb6682"},
+    {file = "aiokafka-0.15.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:7f2f2084b6e1981cfc4a12600753ac2b6340029769bf058c69d58684a3ae7db4"},
+    {file = "aiokafka-0.15.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:79a7b0110e377faf1932d91bea1f442d18e769241809a0b25df88552ad82a3b1"},
+    {file = "aiokafka-0.15.0-cp312-cp312-win32.whl", hash = "sha256:a4dab06d9d93cf7cf45cae295850273dc4cfcf055194a4b3baefe25d93235813"},
+    {file = "aiokafka-0.15.0-cp312-cp312-win_amd64.whl", hash = "sha256:88acb9bdf8aaf2fe47de220ea218fa4646ed1cc8b23eb8337676f2c1b82d3618"},
+    {file = "aiokafka-0.15.0-cp312-cp312-win_arm64.whl", hash = "sha256:0dcb23b7d4dbdaed542307e3bd0b7b96b6a8493ca645d56c00c7680c666b74cf"},
+    {file = "aiokafka-0.15.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:9ea881f33371358cf5de399a50607d57f66280d969efe2c75a38a5d7837103f6"},
+    {file = "aiokafka-0.15.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:29a919268979e6f5dd68221e3df9de9dbf4db31aea24c8e6f1e75733605d9bae"},
+    {file = "aiokafka-0.15.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:08fe870205ce05b5198c05e38a7617e9fe9bf9cb04a2eb67c4defdfcee212277"},
+    {file = "aiokafka-0.15.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d3e34a77da9aa2f2c7db77df240b321964da8a8042a9c35d318e885a57bb42e4"},
+    {file = "aiokafka-0.15.0-cp313-cp313-win32.whl", hash = "sha256:5bd1eae658c1e19c68d903d952ed90fa22a5378be43dc95d0bd0869d158df8b3"},
+    {file = "aiokafka-0.15.0-cp313-cp313-win_amd64.whl", hash = "sha256:e4979bc1335c1bd02d1ed71c5fd3d7eff58effc87f55cf081937f7b82594b54a"},
+    {file = "aiokafka-0.15.0-cp313-cp313-win_arm64.whl", hash = "sha256:1af146dfe9af17c6f6d275e67bd1e4a7e423e1101d89dc7140d943a00cb6a495"},
+    {file = "aiokafka-0.15.0-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:85c93160c2a46f2d4ae9b12c7c4f2ee6b0751802e458cdf70263643f9e22658b"},
+    {file = "aiokafka-0.15.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:1f2206257c623e4d33a540dbc051763ff9a946ebd76095df5684b7eb19dd5691"},
+    {file = "aiokafka-0.15.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:bc028df26d700b32a4549658bcb9e9694109945460d1716c406e2d3ce035b0ec"},
+    {file = "aiokafka-0.15.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:f208274b4e4e852bad1763fd3c62884673021513f080b736a01c119d4792c63a"},
+    {file = "aiokafka-0.15.0-cp314-cp314-win32.whl", hash = "sha256:aebb59af49e216f6147888be66e7b04a4075f7ec857db9376801d7f1845c9a77"},
+    {file = "aiokafka-0.15.0-cp314-cp314-win_amd64.whl", hash = "sha256:2db1a5074691b1794d22943262124e2711704b27624765db792b4b80d57d58f4"},
+    {file = "aiokafka-0.15.0-cp314-cp314-win_arm64.whl", hash = "sha256:26d76a3b3171ef9d3b62a6a682c16ed887a7f3392a832db3aab26aa786355252"},
+    {file = "aiokafka-0.15.0-cp315-cp315-macosx_10_15_x86_64.whl", hash = "sha256:742fe221d62ef49a5d32ac1cedecda4e132de6cb4aafc806c0e5c34fda35c47b"},
+    {file = "aiokafka-0.15.0-cp315-cp315-macosx_11_0_arm64.whl", hash = "sha256:4bc41591dec727225799a7683e4b58ec653a172c46c383447bcb5e9904cb22ae"},
+    {file = "aiokafka-0.15.0-cp315-cp315-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:538d4609567d22db59a5d2a3a35a6c3fa9c5d27f63c0c177748580c53b6ec86a"},
+    {file = "aiokafka-0.15.0-cp315-cp315-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:6189daaa842e4c65c37a92e7c66f67968181f56935a9f82a82e4c37a32d9750f"},
+    {file = "aiokafka-0.15.0-cp315-cp315-win32.whl", hash = "sha256:418a0e25c65c258c91c07c2e88537a8615b6deef65c380344116da9e52fbbf1a"},
+    {file = "aiokafka-0.15.0-cp315-cp315-win_amd64.whl", hash = "sha256:27f476c53c1c9f5d51c7d353419911ba48fe93ff6f276a43ae5ca5c18c9293fc"},
+    {file = "aiokafka-0.15.0-cp315-cp315-win_arm64.whl", hash = "sha256:342a2441776bebe0f9377f44e9482358e673252ef20dd869a8b5877c803abb6b"},
+    {file = "aiokafka-0.15.0.tar.gz", hash = "sha256:8457e45565544c0888679943a0de2a284526d2ce489ad861f4b740f2f58b5dd0"},
+]
+
+[package.dependencies]
+typing-extensions = {version = ">=4.6.0", markers = "python_version < \"3.12\""}
+
+[package.extras]
+all = ["cramjam (>=2.8.0)", "gssapi"]
+gssapi = ["gssapi"]
+lz4 = ["cramjam (>=2.8.0)"]
+snappy = ["cramjam"]
+zstd = ["cramjam ; python_version < \"3.14\""]
+
+[[package]]
 name = "aiosignal"
 version = "1.4.0"
 description = "aiosignal: a list of registered asynchronous callbacks"
@@ -4010,7 +4067,7 @@ files = [
     {file = "typing_extensions-4.16.0-py3-none-any.whl", hash = "sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"},
     {file = "typing_extensions-4.16.0.tar.gz", hash = "sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5"},
 ]
-markers = {main = "python_version == \"3.11\" and (extra == \"aws\" or extra == \"keras\" or extra == \"sqlalchemy\" or extra == \"pinecone\") or (extra == \"keras\" or extra == \"sqlalchemy\" or extra == \"pinecone\" or python_version == \"3.12\") and (extra == \"keras\" or extra == \"sqlalchemy\" or extra == \"pinecone\" or extra == \"aws\") and (python_version < \"3.15\" or extra == \"keras\" or extra == \"sqlalchemy\") and python_version >= \"3.12\"", test = "python_version < \"3.13\"", typing = "python_version == \"3.11\""}
+markers = {main = "python_version == \"3.11\" and (extra == \"aws\" or extra == \"kafka\" or extra == \"keras\" or extra == \"sqlalchemy\" or extra == \"pinecone\") or (extra == \"keras\" or extra == \"sqlalchemy\" or extra == \"pinecone\" or python_version == \"3.12\") and (extra == \"keras\" or extra == \"sqlalchemy\" or extra == \"pinecone\" or extra == \"aws\") and (python_version < \"3.15\" or extra == \"keras\" or extra == \"sqlalchemy\") and python_version >= \"3.12\"", test = "python_version < \"3.13\"", typing = "python_version == \"3.11\""}
 
 [[package]]
 name = "urllib3"
@@ -4298,6 +4355,7 @@ propcache = ">=0.2.1"
 
 [extras]
 aws = ["aioboto3", "aiohttp", "idna", "urllib3"]
+kafka = ["aiokafka"]
 keras = ["keras", "pygments"]
 mongodb = ["pymongo"]
 pinecone = ["pinecone"]
@@ -4308,4 +4366,4 @@ sqlalchemy = ["sqlalchemy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "116f22bb626117ee32e7dea479de3ec8e1a327d635f0f5fc1ab40b493f02f2e6"
+content-hash = "719750fbedf68f75ef461061ad3de0a76e381d1c6f21436fffda09a474a9d6be"

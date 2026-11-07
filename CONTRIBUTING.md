@@ -25,6 +25,7 @@ replaces the current environment's selected dependencies with the specified lock
 
 | Adapter | Install | Run |
 | --- | --- | --- |
+| Kafka | `poetry sync --only main,test -E kafka` | `poetry run pytest tests/adapters/kafka` |
 | AWS | `poetry sync --only main,test -E aws` | `poetry run pytest tests/adapters/aws` |
 | SQLAlchemy | `poetry sync --only main,test,adapter-test -E sqlalchemy` | `poetry run pytest tests/adapters/sqlalchemy` |
 | ScyllaDB | `poetry sync --only main,test -E scylla` | `poetry run pytest tests/adapters/scylla` |
@@ -63,6 +64,12 @@ For PostgreSQL, use `docker-compose/postgres.yml` and `tests/integration/sqlalch
 `adapter-test` group and `sqlalchemy` extra. For ScyllaDB, use `docker-compose/scylladb.yml` and
 `tests/integration/scylladb` with the `scylla` extra. Stop services after testing; CI collects service
 logs on failure and tears services down even if tests fail.
+
+For Kafka, use `poetry sync --only main,test -E kafka`, `docker-compose/kafka.yml`, and
+`tests/integration/kafka`. The development broker is a single-node KRaft server on `127.0.0.1:9092`.
+The integration suite verifies native batches, per-record offsets, both timestamp modes, and a
+broker-rejected oversized record alongside successful records. Unit tests use the actual aiokafka
+producer and batch builder, replacing only the broker enqueue/delivery boundary.
 
 ## Dependency and CI maintenance
 
