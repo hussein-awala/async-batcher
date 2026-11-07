@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import groupby
 from typing import TYPE_CHECKING, Any, Literal
 
 from sqlalchemy import Row, insert, inspect, update
@@ -67,10 +68,17 @@ class AsyncSqlalchemyWriteBatcher(AsyncBatcher[dict[str, Any], Row[tuple[Any, ..
                 statement = update(self.model)
             if self._returning_columns:
                 statement = statement.returning(*self._returning_columns, sort_by_parameter_order=True)
-            res = await session.execute(
-                statement=statement,
-                params=batch,
-            )
+            parameter_batches = [batch]
+            if self.operation == "insert":
+                # Core INSERT determines its columns from the first parameter set.
+                # Keep adjacent shapes together so omitted fields retain defaults
+                # without dropping values or changing input/RETURNING order.
+                parameter_batches = [list(items) for _, items in groupby(batch, key=frozenset)]
+            results = []
+            for parameters in parameter_batches:
+                res = await session.execute(statement=statement, params=parameters)
+                if self._returning_columns:
+                    results.extend(res.all())
             await session.commit()
             if self._returning_columns:
-                return res.all()
+                return results
