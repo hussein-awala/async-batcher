@@ -23,4 +23,4 @@ async def test_batcher_fixture_awaits_cleanup(monkeypatch, fixture_name, class_n
     batcher.stop.assert_not_called()
     with pytest.raises(StopAsyncIteration):
         await anext(fixture)
-    batcher.stop.assert_awaited_once_with()
+    batcher.stop.assert_awaited_once_with(force=True, timeout=10)
