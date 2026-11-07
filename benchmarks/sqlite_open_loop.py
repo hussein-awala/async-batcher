@@ -82,6 +82,12 @@ def arrivals(config, profile):
             yield index, offset
 
 
+async def wait_until_due(deadline):
+    """Recheck after timer wakeups, which asyncio may deliver slightly early."""
+    while (remaining := deadline - time.perf_counter()) > 0:
+        await asyncio.sleep(remaining)
+
+
 class SQLiteWriter:
     """One connection and all its operations belong to one executor thread."""
 
@@ -302,7 +308,7 @@ async def trial(config, mode, profile, database):
             for identifier, scheduled in arrivals(config, profile):
                 remaining = origin + scheduled - time.perf_counter()
                 if remaining > 0:
-                    await asyncio.sleep(remaining)
+                    await wait_until_due(origin + scheduled)
                 elif identifier % 64 == 0:
                     await asyncio.sleep(0)  # Bound catch-up work without moving scheduled arrival times.
                 if failures:
@@ -330,7 +336,7 @@ async def trial(config, mode, profile, database):
                 record["status"] = "pending"
                 pending.add(asyncio.create_task(execute(row, record)))
                 peak = max(peak, len(pending))
-            await asyncio.sleep(max(0, origin + config.duration - time.perf_counter()))
+            await wait_until_due(origin + config.duration)
             if pending:
                 await asyncio.gather(*pending)
             finished = time.perf_counter() - origin

@@ -7,9 +7,17 @@ import tempfile
 import unittest
 from dataclasses import replace
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, call, patch
 
-from benchmarks.sqlite_open_loop import Config, SQLiteWriter, arrivals, experiment, summarize, trial
+from benchmarks.sqlite_open_loop import (
+    Config,
+    SQLiteWriter,
+    arrivals,
+    experiment,
+    summarize,
+    trial,
+    wait_until_due,
+)
 
 
 class ScheduleTests(unittest.TestCase):
@@ -67,6 +75,20 @@ class ScheduleTests(unittest.TestCase):
             summarize([{"status": "pending"}], 1, 1, [], 1, [])
 
 
+class DeadlineTests(unittest.IsolatedAsyncioTestCase):
+    async def test_early_timer_wakeup_cannot_emit_an_early_arrival(self):
+        with patch("benchmarks.sqlite_open_loop.time.perf_counter", side_effect=[0.0, 0.4, 1.0]):
+            with patch("benchmarks.sqlite_open_loop.asyncio.sleep", new_callable=AsyncMock) as sleep:
+                await wait_until_due(1.0)
+        self.assertEqual(sleep.await_args_list, [call(1.0), call(0.6)])
+
+    async def test_late_arrival_keeps_original_deadline_without_added_delay(self):
+        with patch("benchmarks.sqlite_open_loop.time.perf_counter", return_value=2.0):
+            with patch("benchmarks.sqlite_open_loop.asyncio.sleep", new_callable=AsyncMock) as sleep:
+                await wait_until_due(1.0)
+        sleep.assert_not_awaited()
+
+
 class SQLiteTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.config = Config(
@@ -94,6 +116,7 @@ class SQLiteTests(unittest.IsolatedAsyncioTestCase):
                 # can complete. The common limit accepts eight in every mode.
                 self.assertEqual((summary["offered"], summary["completed"], summary["rejected"]), (12, 8, 4))
                 self.assertEqual(summary["peak_outstanding"], 8)
+                self.assertGreaterEqual(summary["elapsed_seconds"], self.config.duration)
                 self.assertEqual(result["persisted_rows_verified"], 8)
                 self.assertEqual(sum(call["size"] for call in result["transactions"]), 8)
                 self.assertEqual(result["sqlite_settings"]["journal_mode"], "wal")
