@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from unittest.mock import MagicMock
 
 import pytest
+
+pytestmark = pytest.mark.skipif(sys.version_info < (3, 11), reason="Supported Keras requires Python 3.11+")
 
 np = pytest.importorskip("numpy")
 
