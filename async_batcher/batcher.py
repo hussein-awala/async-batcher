@@ -7,6 +7,7 @@ import logging
 import math
 import warnings
 from collections import namedtuple
+from concurrent import futures
 from contextvars import ContextVar, copy_context
 from functools import partial
 from numbers import Real
@@ -46,7 +47,11 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             this limit. Defaults to 0.01.
         max_queue_size: Maximum queued items, or -1/0 for no limit. Defaults to -1.
         concurrency: Maximum concurrent batches, or -1 for no limit. Defaults to 1.
-        executor: Executor for synchronous processors; None uses asyncio's default.
+        executor: Same-interpreter executor for synchronous processors, such as
+            ThreadPoolExecutor or a custom executor. None uses asyncio's default
+            thread executor. ProcessPoolExecutor and InterpreterPoolExecutor are
+            unsupported because batchers hold event-loop state that cannot be
+            transferred between processes or interpreters.
     """
 
     logger = logging.getLogger(__name__)
@@ -91,6 +96,15 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             or max_queue_time < 0
         ):
             raise ValueError("max_queue_time must be a finite, nonnegative number")
+        if executor is not None:
+            unsupported_executors = (futures.ProcessPoolExecutor,)
+            interpreter_executor = getattr(futures, "InterpreterPoolExecutor", None)
+            if interpreter_executor is not None:
+                unsupported_executors += (interpreter_executor,)
+            if isinstance(executor, unsupported_executors):
+                raise TypeError(
+                    f"{type(executor).__name__} is not supported; executor must run in the same interpreter"
+                )
         self.max_batch_size = max_batch_size
         self.max_queue_time = max_queue_time
         self.concurrency = concurrency
