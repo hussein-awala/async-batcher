@@ -838,24 +838,13 @@ files = [
 
 [[package]]
 name = "keras"
-version = "2.15.0"
-description = "Deep learning for humans."
-optional = true
-python-versions = ">=3.8"
-files = [
-    {file = "keras-2.15.0-py3-none-any.whl", hash = "sha256:2dcc6d2e30cf9c951064b63c1f4c404b966c59caf09e01f3549138ec8ee0dd1f"},
-    {file = "keras-2.15.0.tar.gz", hash = "sha256:81871d298c064dc4ac6b58440fdae67bfcf47c8d7ad28580fab401834c06a575"},
-]
-
-[[package]]
-name = "keras"
-version = "3.8.0"
+version = "3.15.1"
 description = "Multi-backend Keras"
 optional = true
-python-versions = ">=3.9"
+python-versions = ">=3.11"
 files = [
-    {file = "keras-3.8.0-py3-none-any.whl", hash = "sha256:b65d125976b0f8bf8ad1e93311a98e7dfb334ff6023627a59a52b35499165ec3"},
-    {file = "keras-3.8.0.tar.gz", hash = "sha256:6289006e6f6cb2b68a563b58cf8ae5a45569449c5a791df6b2f54c1877f3f344"},
+    {file = "keras-3.15.1-py3-none-any.whl", hash = "sha256:836460e480930acbd19bb7a17e62f9ecad40e8a9af9a651fc8d0586a96d27e20"},
+    {file = "keras-3.15.1.tar.gz", hash = "sha256:92ae7c1dd7f61041953dc2d42253181ee099086f0b58ae36fcf98147a6f08a29"},
 ]
 
 [package.dependencies]
@@ -938,6 +927,7 @@ files = [
 
 [package.dependencies]
 numpy = [
+    {version = ">=1.23.3", markers = "python_version >= \"3.11\" and python_version < \"3.12\""},
     {version = ">=2.1.0", markers = "python_version >= \"3.13\""},
     {version = ">=1.26.0", markers = "python_version >= \"3.12\" and python_version < \"3.13\""},
 ]
@@ -3083,7 +3073,7 @@ propcache = ">=0.2.1"
 
 [extras]
 aws = ["aioboto3", "aiohttp", "idna", "urllib3"]
-keras = ["keras", "keras"]
+keras = ["keras", "pygments"]
 scylla = ["scylla-driver"]
 sklearn = ["scikit-learn", "scikit-learn"]
 sqlalchemy = ["sqlalchemy"]
@@ -3091,4 +3081,4 @@ sqlalchemy = ["sqlalchemy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "9ea6e2280e6c3e677cd80c05434653047db05ef48ecae302fc41990e695eede8"
+content-hash = "e5c1de42e71b88497859695840a83aee283f2440c567db7632c5097a3bac5a26"

@@ -1,5 +1,8 @@
 # Async Batcher with Keras model and GRPC
 
+Requires Python 3.11+ and Keras 3.15.1+; the requirements file excludes older Keras releases.
+
+
 This example shows how to use the `async_batcher` library with GRPC to process data
 in batches by a Keras (Tensorflow) model.
 

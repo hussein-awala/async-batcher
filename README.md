@@ -106,6 +106,27 @@ To use the library, you need to install the package in your environment. You can
 pip install async-batcher
 ```
 
+### Keras optional dependency
+
+The core library supports Python 3.10 and newer. The `keras` extra requires Python 3.11 or newer and
+Keras 3.15.1 or newer. It no longer installs Keras 2 or older Keras 3 releases. This is a breaking change
+for Keras users on Python 3.10; use a Python 3.11+ environment for this adapter.
+
+```bash
+python -m pip install "async-batcher[keras]" jax
+export KERAS_BACKEND=jax
+```
+
+Install and select your backend before importing Keras. TensorFlow 2.16.1+ and PyTorch are also supported
+by Keras; consult the [Keras installation guide](https://keras.io/getting_started/) for backend setup.
+Python package markers cannot reject an unsupported interpreter for just one extra: on Python 3.10,
+pip may install the base package without Keras. `KerasAsyncBatcher` raises a clear error on that interpreter.
+
+When migrating from Keras 2, review the [Keras 3 migration guide](https://keras.io/guides/migrating_to_keras_3/).
+Use the native `.keras` format for newly saved models. The bundled legacy HDF5 model is covered by a
+prediction test with Keras 3 and the JAX backend; inference can load it with `compile=False` to avoid
+restoring training configuration. Other backends and custom layers need application-specific validation.
+
 Then, you can create a new `AsyncBatcher` class by implementing the `process_batch` method:
 
 ```python

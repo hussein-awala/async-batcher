@@ -99,6 +99,28 @@ jobs:
           python -m pytest tests/test_batcher*.py tests/test_core_*.py \
             tests/test_force_stop*.py tests/test_stop_cancelled*.py tests/test_request_logging*.py
 
+  keras-tests:
+    needs: changed-files
+    if: ${{ needs.changed-files.outputs.should_run_unit_tests == 'true' || github.event.action == 'reopened' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    env:
+      KERAS_BACKEND: jax
+      KERAS_HOME: ${{ runner.temp }}/keras
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install patched Keras and the JAX CPU backend
+        run: >-
+          python -m pip install -e ".[keras,sqlalchemy]" "jax[cpu]"
+          "pytest>=9.0.3,<10" "pytest-asyncio>=1.4.1.post1,<2"
+      - name: Test real Keras predictions and model loading
+        run: python -m pytest tests/test_keras*.py
+
   unit-tests:
     needs: changed-files
     if: ${{ needs.changed-files.outputs.should_run_unit_tests == 'true' || github.event.action == 'reopened' }}
