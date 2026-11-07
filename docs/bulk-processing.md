@@ -118,3 +118,11 @@ and a per-request `CancelledError` or cancellation of the consumer still termina
 These terminal conditions can prevent delivery of buffered outcomes. Closing the stream cancels
 only its own request tasks, closes its source, and leaves the shared batcher usable; accepted
 backend work can still run. Use `aclosing` for early breaks, just as with `map()`.
+
+## Flush an acceptance boundary
+
+Use `await batcher.flush(timeout=5)` to dispatch a partial batch and wait for work
+already accepted while keeping intake open. Admission waiters and later submissions
+are not included. It waits for batch cleanup even if individual callers were cancelled;
+it does not turn item failures into success. See the [flush contract](api.md#flush-without-stopping-intake)
+for cancellation, forced shutdown, and checkpoint ownership.

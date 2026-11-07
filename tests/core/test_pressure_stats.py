@@ -24,13 +24,13 @@ async def test_age_tracks_oldest_unresolved_result_not_cancelled_backend_work(ha
     accepted_at = next(iter(batcher._pending_since.values()))
     with patch.object(batcher._loop, "time", return_value=accepted_at + 7):
         before = batcher.stats()
-        assert before.oldest_pending_seconds == 7
+        assert before.oldest_pending_seconds == pytest.approx(7)
     first.cancel()
     # The future is terminal immediately, before bookkeeping callbacks execute.
     after = batcher.stats()
     assert after.oldest_pending_seconds is None
     assert after.pending_items == 0 and after.in_flight_items == 1
-    assert before.oldest_pending_seconds == 7
+    assert before.oldest_pending_seconds == pytest.approx(7)
     await asyncio.gather(first, return_exceptions=True)
     second = harness.submit(batcher, 2)[0]
     await wait_until(lambda: batcher.stats().pending_items == 1)

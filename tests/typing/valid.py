@@ -162,6 +162,7 @@ async def consume() -> None:
     assert_type(stats.accepted, int)
     assert_type(stats.admission_waiters, int)
     assert_type(stats.oldest_pending_seconds, float | None)
+    assert_type(await sync_batcher.flush(timeout=1), None)
     assert_type(await sync_batcher.stop(), None)
     assert_type(await sync_batcher.run(), None)
 

@@ -221,3 +221,24 @@ Carry request-specific identity and tracing data explicitly in input records. Bu
 compatibility keys from authenticated server-side identity and processing options;
 grouping does not authenticate a caller. Snapshot mutable nested input values before
 submission when later mutation could change routing or invalidate a cached cost.
+
+## Flush without stopping intake
+
+`await batcher.flush(timeout=None)` dispatches partial batches and waits for all work
+accepted before the flush coroutine starts running. Requests still waiting for queue
+capacity and later submissions are outside that boundary. Intake stays open, so a
+shared service can flush one checkpoint without stopping or restarting its dispatcher.
+For a producer-owned checkpoint, finish submitting its intended items before flushing;
+merely creating submission tasks does not mean they have been accepted.
+
+Completion includes batch-task cleanup even when a caller cancelled its result.
+Inspect the individual results or `map_outcomes()` to determine success: flush does
+not guarantee that every item succeeded, provide a database transaction, or establish
+backend durability. Running batches retain their configured concurrency limit.
+
+A timeout or cancellation stops only the flush wait. Accepted work continues. Graceful
+shutdown can finish a pending flush; forced shutdown interrupts it with `RuntimeError`
+because cancelled executor awaits cannot prove their native functions have finished.
+A flush started after cleanup with no remaining accepted work returns immediately.
+Calling flush from the batcher's processor or its active descendants raises instead of
+waiting on itself. Like processing and shutdown, flush binds the owning event loop.

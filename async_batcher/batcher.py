@@ -6,7 +6,7 @@ import inspect
 import logging
 import math
 import warnings
-from collections import namedtuple
+from collections import Counter, namedtuple
 from collections.abc import Mapping, Set
 from concurrent import futures
 from contextvars import Context, ContextVar, copy_context
@@ -183,6 +183,11 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self._pending_futures: set[asyncio.Future] = set()
         self._pending_since: dict[asyncio.Future, float] = {}
         self._admission_waiters = 0
+        # Separate accepted work lifetime from a caller's cancellable result.
+        self._work_sequences: dict[asyncio.Future, int] = {}
+        self._work_changed = asyncio.Event()
+        self._flush_targets: Counter[int] = Counter()
+        self._abort_generation = 0
         self._concurrency_semaphore = asyncio.Semaphore(concurrency) if concurrency > 0 else None
         self._stop = asyncio.Event()
         self._is_running = asyncio.Event()
@@ -477,6 +482,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         future.add_done_callback(self._request_done)
         self._queue.put_nowait(self.QueueItem(item, future, accepted_at, cost))
         self._accepted += 1
+        self._work_sequences[future] = self._accepted
         self._queue_changed.set()
         if self._current_task is None:
             self._current_task = loop.create_task(self._run(), **self._task_options())
@@ -488,6 +494,13 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         loop = asyncio.get_running_loop()
         deadline = None
         while self.max_batch_size < 0 or len(batch) < self.max_batch_size:
+            if batch and any(
+                self._work_sequences.get(batch[0].future, math.inf)
+                <= target
+                <= self._work_sequences.get(batch[-1].future, -math.inf)
+                for target in self._flush_targets
+            ):
+                break
             try:
                 if self._next_batch_item is not None:
                     item = self._next_batch_item
@@ -495,7 +508,11 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 else:
                     item = self._queue.get_nowait()
             except asyncio.QueueEmpty:
-                if self._stop.is_set():
+                if self._stop.is_set() or (
+                    batch
+                    and self._flush_targets
+                    and self._work_sequences.get(batch[0].future, math.inf) <= max(self._flush_targets)
+                ):
                     break
                 self._queue_changed.clear()
                 if deadline is None:
@@ -519,6 +536,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 # including a request retained after a cost-limited split.
                 self._queue_space_available.set()
                 batch_cost += item.cost
+                if self._work_sequences.get(item.future) in self._flush_targets:
+                    break
                 if deadline is None:
                     deadline = item.enqueued_at + self.max_queue_time
                 if self.max_batch_cost is not None and batch_cost >= self.max_batch_cost:
@@ -599,6 +618,9 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                     q_item.future.set_exception(error)
                 else:
                     q_item.future.cancel()
+        for q_item in batch:
+            self._work_sequences.pop(q_item.future, None)
+        self._work_changed.set()
         if self._on_batch is not None:
             completed_at = asyncio.get_running_loop().time()
             outcomes = {"succeeded": 0, "failed": 0, "cancelled": 0}
@@ -648,6 +670,9 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             self.logger.error("Error in on_batch callback", exc_info=self._log_exceptions)
 
     def _cancel_pending(self):
+        self._abort_generation += 1
+        self._work_sequences.clear()
+        self._work_changed.set()
         for future in self._pending_futures:
             future.cancel()
         while not self._queue.empty():
@@ -732,6 +757,51 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         """Return whether the dispatcher is running or draining active batches."""
         return self._is_running.is_set()
 
+    def _check_not_processing(self, action: str) -> None:
+        if asyncio.current_task() in self._processing_tasks or any(
+            ancestor() in self._processing_tasks for ancestor in _processing_ancestors.get()
+        ):
+            raise RuntimeError(
+                f"{action}() cannot be awaited from process_batch; call it from outside the processor"
+            )
+
+    async def flush(self, timeout: float | None = None) -> None:
+        """Dispatch and finish work accepted before this coroutine starts running.
+
+        Intake stays open. Later submissions and producers waiting for admission
+        are outside this boundary. Completion includes batch-task cleanup even if
+        callers cancelled; it does not assert success or backend durability.
+        Timeout/cancellation stops this wait without cancelling accepted work.
+        Forced shutdown interrupts a pending flush with RuntimeError, since native
+        executor functions may still run. Processors cannot flush their own batcher.
+        """
+        self._get_loop()
+        self._check_not_processing("flush")
+        if timeout is not None:
+            self._validate_cost(timeout, "timeout")
+        if self._force_stopped and (
+            (self._current_task is not None and not self._current_task.done()) or self._running_batches
+        ):
+            raise RuntimeError("Flush interrupted by forced shutdown")
+        if not self._work_sequences:
+            return
+        target = self._accepted
+        generation = self._abort_generation
+        self._flush_targets[target] += 1
+        self._queue_changed.set()
+        try:
+            async with asyncio.timeout(timeout):
+                # Insertion order is acceptance order; completed work is removed.
+                while next(iter(self._work_sequences.values()), math.inf) <= target:
+                    self._work_changed.clear()
+                    await self._work_changed.wait()
+                if generation != self._abort_generation:
+                    raise RuntimeError("Flush interrupted by forced shutdown")
+        finally:
+            self._flush_targets[target] -= 1
+            if not self._flush_targets[target]:
+                del self._flush_targets[target]
+
     async def stop(self, force: bool = False, timeout: float | None = None) -> None:
         """Reject new work while waiting for shutdown.
 
@@ -744,12 +814,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         is active, because shutdown must wait for the processor itself.
         """
         self._get_loop()
-        if asyncio.current_task() in self._processing_tasks or any(
-            ancestor() in self._processing_tasks for ancestor in _processing_ancestors.get()
-        ):
-            raise RuntimeError(
-                "stop() cannot be awaited from process_batch; call it from outside the processor"
-            )
+        self._check_not_processing("stop")
         self._begin_shutdown()
         if force and not self._force_stopped:
             self._force_stopped = True
