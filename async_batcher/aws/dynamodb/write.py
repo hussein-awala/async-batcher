@@ -64,6 +64,8 @@ class AsyncDynamoDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
         self.aioboto3_session = aioboto3_session or aioboto3.Session()
 
     async def process_batch(self, batch: list[WriteOperation]) -> None:
+        if not batch:
+            return
         request_items = {}
         for operation in batch:
             if operation.table_name not in request_items:
