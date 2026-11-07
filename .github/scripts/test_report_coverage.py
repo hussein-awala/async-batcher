@@ -163,13 +163,21 @@ class CoverageReportTests(unittest.TestCase):
         (package / "unexecuted_adapter").mkdir()
         (package / "unexecuted_adapter" / "extra.py").write_text("missing = 1\n")
         (self.root / "exercise.py").write_text(
-            "import sys\nfrom async_batcher.batcher import choose\nchoose(sys.argv[1] == 'yes')\n"
+            "import sys\nfrom async_batcher.batcher import choose\n"
+            "from examples.recipes.used import choose as recipe_choice\n"
+            "choose(sys.argv[1] == 'yes')\nrecipe_choice(sys.argv[1] == 'yes')\n"
         )
         (self.root / "pyproject.toml").write_text(
-            '[tool.coverage.run]\nbranch=true\nrelative_files=true\nsource=["async_batcher"]\n'
+            "[tool.coverage.run]\nbranch=true\nrelative_files=true\n"
+            'source=["async_batcher", "examples/recipes"]\n'
         )
         recipes = self.root / "examples/recipes"
         recipes.mkdir(parents=True)
+        (recipes.parent / "__init__.py").touch()
+        (recipes / "__init__.py").touch()
+        (recipes / "used.py").write_text(
+            "def choose(value):\n    if value:\n        return 1\n    return 2\n"
+        )
         (recipes / "untouched.py").write_text("first = 1\nsecond = 2\n")
         self.plan = plan("pull_request", set())
         self.names, _ = planned_artifacts(self.plan["core"], self.plan["adapters"], self.plan["services"])
@@ -223,7 +231,9 @@ class CoverageReportTests(unittest.TestCase):
         recipes = json.loads((output / "recipes/coverage.json").read_text())
         self.assertEqual(package["totals"]["percent_covered"], 100)
         self.assertEqual(recipes["files"]["examples/recipes/untouched.py"]["missing_lines"], [1, 2])
-        self.assertEqual(recipes["totals"]["percent_covered"], 0)
+        self.assertLess(recipes["totals"]["percent_covered"], 100)
+        self.assertEqual(recipes["files"]["examples/recipes/used.py"]["summary"]["percent_covered"], 100)
+        self.assertEqual(recipes["files"]["examples/recipes/used.py"]["missing_branches"], [])
         self.assertTrue((output / "recipes/html/index.html").is_file())
         self.assertIn("Child-process", (output / "summary.md").read_text())
         self.assertIn("selected recipe test suites: core.", result.stdout)
