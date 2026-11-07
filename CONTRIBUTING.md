@@ -17,7 +17,12 @@ poetry run pre-commit run --all-files
 
 ## Testing
 
-We use `pytest` for testing. Install the project and development dependencies with all adapter extras from the
+We use pytest 9 and pytest-asyncio 1 for testing. Async fixtures and tests use
+function-scoped event loops by default; shared database fixtures explicitly use
+a session-scoped loop. Use `loop_scope`, rather than the deprecated `scope`
+argument, when choosing an async test loop.
+
+Install the project and development dependencies with all adapter extras from the
 repository root:
 
 ```bash

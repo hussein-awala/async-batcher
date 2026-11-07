@@ -11,7 +11,7 @@ from tests.sqlalchemy.models import _TestModel
 pytestmark = [pytest.mark.integration, pytest.mark.integration_postgres]
 
 
-@pytest.mark.asyncio(scope="session")
+@pytest.mark.asyncio(loop_scope="session")
 async def test_async_sqlalchemy_postgres_write_batcher(async_postgres_engine, create_models):
     insert_batcher = AsyncSqlalchemyWriteBatcher(
         model=_TestModel,
