@@ -77,3 +77,23 @@ does not suppress that exception. Nested entry is rejected. Unlike an individual
 batcher, a stopped group manager cannot restart: create a new manager. Factories
 and their clients remain caller-owned; close shared clients after the manager.
 Do not stop the manager from a child processor or its descendant tasks.
+
+## Bounded grouped streams and child admission
+
+`grouped.process(item, wait_for_space=True, enqueue_timeout=0.5)` forwards those admission
+options to the selected child. The timeout covers that child's queue admission only, not group
+eviction or processing. By default a full child queue still raises `QueueFullException`. If all
+group slots are busy, a new key still raises `GroupLimitError` immediately even when waiting
+admission is enabled; this option does not create a queue of unbounded new groups.
+
+`grouped.map(source, max_pending=128, ordered=True)` and `grouped.map_outcomes(...)` provide the
+same bounded input consumption, ordering and source cleanup as the corresponding
+[core stream methods](bulk-processing.md). They use waiting admission for child queues. A busy
+group limit fails `map()` promptly and becomes a correlated error in `map_outcomes()`. Choose
+`max_groups` for the number of concurrently active keys or handle rejected outcomes explicitly.
+
+Use `contextlib.aclosing` when breaking early. Closing or cancelling a grouped stream closes its
+source and joins its own mapping tasks, but leaves the manager and unrelated users open. Once
+a request is handed to a child, the group manager keeps owning its child task through completion,
+including an admission wait. Thus cancellation does not withdraw that child submission: it may
+still be admitted and executed later. Stop the group manager to drain or force-stop all its work.
