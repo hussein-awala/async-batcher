@@ -22,6 +22,36 @@ The core tests include cancellation, shutdown, restart, queue limits, and exampl
 They do not require database drivers or ML backends. Python 3.11 is the minimum supported version;
 CI also checks the current stable Python releases through 3.15.
 
+## Replaying lifecycle traces
+
+`tests/core/test_generated_cost_lifecycle.py` combines cached cost limits, a retained FIFO
+head, bounded admission, cancellation before and after acceptance, mixed per-item outcomes,
+and graceful/forced stop followed by restart. It checks public snapshots and recorded
+processor inputs against an independent outcome model. Event gates control progress;
+there are no sleep-based timing or throughput assertions.
+
+Run the fixed seed set with `uv run --no-sync python -m pytest tests/core/test_generated_cost_lifecycle.py`.
+A failure includes the seed, task-factory mode, and a JSON trace. Assertion failures also
+try a bounded reduction that removes whole stop/restart cycles while preserving the same
+failing assertion. Re-run a seed with, for example,
+`uv run --no-sync python -m pytest 'tests/core/test_generated_cost_lifecycle.py::test_generated_cost_admission_and_outcome_traces[normal-3]'`.
+To replay the emitted JSON directly, save the array as `trace.json` and run:
+
+```bash
+uv run --no-sync python - <<'PY'
+import asyncio
+import json
+from pathlib import Path
+from tests.core.test_generated_cost_lifecycle import Cycle, replay
+
+cycles = [Cycle(**cycle) for cycle in json.loads(Path("trace.json").read_text(encoding="utf-8"))]
+asyncio.run(replay(cycles, eager=False))  # Use the mode reported by the failure.
+PY
+```
+
+The eager mode requires Python 3.12 or newer. These bounded traces complement the existing
+multi-concurrency stress tests; they are regression checks, not a proof of every interleaving.
+
 ## Public types
 
 The [public typing guide](docs/typing.md) documents a separate installed-wheel consumer gate:
