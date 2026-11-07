@@ -31,3 +31,4 @@ class BatcherOptions(LegacyOptions, Generic[T], total=False):
     executor: Executor | None
     on_batch: Callable[[BatchEvent], None] | None
     processor_context: Context | None
+    log_exceptions: bool

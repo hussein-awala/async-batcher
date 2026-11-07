@@ -193,3 +193,15 @@ Keep export work off the hook's critical path through your SDK's configured read
 If collecting batcher gauges through an SDK callback running on another thread, first copy a
 snapshot on the owning loop and let that callback read the immutable copy. The same outcome
 scope and cancellation limitations apply to both recipes.
+
+## Exception details in logs
+
+Completion events contain no payloads, but processors and observers can raise
+exceptions whose messages contain input values. The default `log_exceptions=True`
+includes those messages, chained causes, and tracebacks in error logs.
+
+Set `log_exceptions=False` on a batcher to emit only fixed failure messages. The
+original exception still reaches its caller; application logging of that exception
+requires its own policy. Set the option on both `GroupedBatcher` and its child
+factory to cover manager cleanup and processing failures respectively. This controls
+library error records, not logs produced by a client, model, or user callback.

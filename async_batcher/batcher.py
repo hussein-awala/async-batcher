@@ -81,6 +81,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         processor_context: Optional service context, copied at construction and for
             every dispatcher and worker. None preserves the initiating caller context.
             Internal processor ancestry is always retained for shutdown safety.
+        log_exceptions: Include exception messages and tracebacks in failure logs.
+            False logs fixed messages only; caller exceptions remain unchanged.
     """
 
     logger = logging.getLogger(__name__)
@@ -98,6 +100,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         executor: Executor | None = None,
         on_batch: Callable[[BatchEvent], None] | None = None,
         processor_context: Context | None = None,
+        log_exceptions: bool = True,
         **kwargs: Unpack[LegacyOptions],
     ) -> None:
         super().__init__()
@@ -155,6 +158,9 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 or inspect.isasyncgenfunction(callback)
             ):
                 raise TypeError("on_batch must be a synchronous callable")
+        if not isinstance(log_exceptions, bool):
+            raise TypeError("log_exceptions must be a boolean")
+        self._log_exceptions = log_exceptions
         if processor_context is not None and not isinstance(processor_context, Context):
             raise TypeError("processor_context must be a contextvars.Context or None")
         self._processor_context = processor_context.copy() if processor_context is not None else None
@@ -517,7 +523,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             if len(results) < len(batch):
                 raise ValueError(f"Expected to get {len(batch)} results, but got {len(results)}.")
         except Exception as error:
-            self.logger.error("Error processing batch", exc_info=True)
+            self.logger.error("Error processing batch", exc_info=self._log_exceptions)
             for q_item in batch:
                 if not q_item.future.done():
                     q_item.future.set_exception(error)
@@ -603,7 +609,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                             cleanup.close()
                 raise TypeError("on_batch must not return an awaitable")
         except Exception:
-            self.logger.error("Error in on_batch callback", exc_info=True)
+            self.logger.error("Error in on_batch callback", exc_info=self._log_exceptions)
 
     def _cancel_pending(self):
         for future in self._pending_futures:
