@@ -192,6 +192,34 @@ def test_batch_size_limits(size):
         AsyncFirehoseBatcher(None, delivery_stream_name="events", max_batch_size=size)
 
 
+@pytest.mark.parametrize(
+    "batcher_type, target",
+    [
+        (AsyncKinesisBatcher, {"stream_name": "events"}),
+        (AsyncFirehoseBatcher, {"delivery_stream_name": "events"}),
+    ],
+)
+@pytest.mark.parametrize("size", [1, 500])
+def test_legacy_batch_size_overrides_explicit_limit_before_validation(batcher_type, target, size):
+    with pytest.warns(UserWarning, match="batch_size.*deprecated"):
+        batcher = batcher_type(None, **target, max_batch_size=501, batch_size=size)
+    assert batcher.max_batch_size == size
+
+
+@pytest.mark.parametrize(
+    "batcher_type, target",
+    [
+        (AsyncKinesisBatcher, {"stream_name": "events"}),
+        (AsyncFirehoseBatcher, {"delivery_stream_name": "events"}),
+    ],
+)
+@pytest.mark.parametrize("size", [-1, 501])
+def test_legacy_batch_size_cannot_bypass_service_count_limit(batcher_type, target, size):
+    with pytest.warns(UserWarning, match="batch_size.*deprecated"):
+        with pytest.raises(ValueError, match="between 1 and 500"):
+            batcher_type(None, **target, batch_size=size)
+
+
 @pytest.mark.parametrize("retries", [-1, True, 1.5, None])
 def test_retry_validation(retries):
     with pytest.raises(ValueError, match="max_retries"):

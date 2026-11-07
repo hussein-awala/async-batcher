@@ -57,6 +57,8 @@ Firehose, not delivery to the destination.
 
 Both batchers accept the [core options](api.md#configuration), including `max_queue_time`, `concurrency`,
 and `max_queue_size`. `max_batch_size` defaults to 500 and must be 1–500.
+The deprecated `batch_size` alias still warns and overrides `max_batch_size`; the same 1–500
+limit applies to its effective value.
 `max_retries` defaults to 5 retries after the initial request; zero disables
 record retries. Exponential backoff starts at 0.1 seconds and caps at 5 seconds.
 Only explicitly rejected records with retryable service error codes are retried.

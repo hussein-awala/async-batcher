@@ -32,7 +32,7 @@ class AsyncFirehoseBatcher(AsyncBatcher[bytes, dict[str, Any]]):
         **kwargs: Any,
     ):
         super().__init__(max_batch_size=max_batch_size, **kwargs)
-        validate_options(max_batch_size, max_retries)
+        validate_options(self.max_batch_size, max_retries)
         if not isinstance(delivery_stream_name, str) or not delivery_stream_name:
             raise ValueError("delivery_stream_name must be a nonempty string")
         self.client = client
