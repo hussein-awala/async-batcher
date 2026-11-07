@@ -25,12 +25,20 @@ class LockAuditTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        self.lock = self.root / "poetry.lock"
+        self.lock = self.root / "uv.lock"
+        self.project = self.root / "pyproject.toml"
+        self.project.write_text('[project]\nname="async-batcher"\nversion="0.0.1"\n')
         self.lock.write_text(
+            "version=1\nrevision=5\n"
+            '[[package]]\nname="async-batcher"\nversion="0.0.1"\nsource={editable="."}\n'
+            '[package.optional-dependencies]\nml=[{name="example-package", version="2.0"}]\n'
+            '[package.dev-dependencies]\ntest=[{name="example-package", version="1.0"}]\n'
             '[[package]]\nname="Example_Package"\nversion="1.0"\n'
-            'groups=["main"]\nmarkers="python_version < \'3.12\'"\noptional=true\n'
+            'source={registry="https://pypi.org/simple"}\n'
+            "resolution-markers=[\"python_full_version < '3.12'\"]\n"
             '[[package]]\nname="example-package"\nversion="2.0"\n'
-            'groups=["ml-test"]\nmarkers="python_version >= \'3.12\'"\n'
+            'source={registry="https://pypi.org/simple"}\n'
+            "resolution-markers=[\"python_full_version >= '3.12'\"]\n"
         )
         self.exceptions = self.root / "exceptions.json"
         self.exceptions.write_text('{"exceptions": []}')
@@ -59,24 +67,130 @@ class LockAuditTests(unittest.TestCase):
         }
         self.exceptions.write_text(json.dumps({"exceptions": [entry]}))
 
-    def test_all_conditional_versions_and_groups_are_audited(self):
+    def test_all_conditional_versions_in_extras_and_dev_groups_are_audited(self):
         packages = load_packages(self.lock)
         self.assertEqual(set(packages), {("example-package", "1.0"), ("example-package", "2.0")})
-        self.assertEqual(packages[("example-package", "1.0")]["lock_entries"][0]["groups"], ["main"])
+        self.assertEqual(
+            packages[("example-package", "1.0")]["lock_entries"][0]["resolution_markers"],
+            ["python_full_version < '3.12'"],
+        )
         report = audit(self.lock, self.exceptions, self.fake_osv)
         self.assertEqual(report["packages_audited"], 2)
         self.assertEqual(report["blocking_findings"], 2)
         self.assertEqual(report["status"], "fail")
 
-    def test_non_pypi_source_fails_instead_of_querying_same_named_public_package(self):
+    def test_same_version_in_multiple_forks_is_queried_once_with_all_lock_entries(self):
         self.lock.write_text(
-            self.lock.read_text() + '[package.source]\ntype="git"\nurl="https://example.com"\n'
+            self.lock.read_text() + '[[package]]\nname="example.package"\nversion="1.0"\n'
+            'source={registry="https://pypi.org/simple/"}\n'
+            "resolution-markers=[\"sys_platform == 'win32'\"]\n"
         )
-        with self.assertRaisesRegex(AuditError, "non-PyPI"):
+        packages = load_packages(self.lock)
+        self.assertEqual(len(packages), 2)
+        entries = packages[("example-package", "1.0")]["lock_entries"]
+        self.assertEqual(len(entries), 2)
+        self.assertEqual(entries[1]["resolution_markers"], ["sys_platform == 'win32'"])
+        queries = []
+
+        def fetch(path, payload=None):
+            if path == "/querybatch":
+                queries.extend((q["package"]["name"], q["version"]) for q in payload["queries"])
+            return self.fake_osv(path, payload)
+
+        audit(self.lock, self.exceptions, fetch)
+        self.assertEqual(queries, [CONTROL, ("example-package", "1.0"), ("example-package", "2.0")])
+
+    def test_verified_editable_and_virtual_root_are_not_queried_as_public_packages(self):
+        contents = self.lock.read_text()
+        for source in ('editable="."', 'virtual="."'):
+            with self.subTest(source=source):
+                self.lock.write_text(contents.replace('editable="."', source))
+                self.assertNotIn(("async-batcher", "0.0.1"), load_packages(self.lock))
+
+    def test_virtual_root_without_a_version_is_allowed(self):
+        self.lock.write_text(
+            self.lock.read_text().replace('version="0.0.1"\nsource={editable="."}', 'source={virtual="."}')
+        )
+        self.assertEqual(len(load_packages(self.lock)), 2)
+
+    def test_only_the_verified_root_can_be_excluded(self):
+        for contents in ('[project]\nname="different-project"', '[project]\nversion="0.0.1"'):
+            with self.subTest(contents=contents):
+                self.project.write_text(contents)
+                with self.assertRaisesRegex(AuditError, "does not match"):
+                    load_packages(self.lock)
+        self.project.unlink()
+        with self.assertRaisesRegex(AuditError, "Cannot verify"):
             load_packages(self.lock)
 
+    def test_duplicate_root_entries_fail_closed(self):
+        self.lock.write_text(
+            self.lock.read_text() + '[[package]]\nname="async-batcher"\nsource={virtual="."}\n'
+        )
+        with self.assertRaisesRegex(AuditError, "duplicate local project"):
+            load_packages(self.lock)
+
+    def test_non_pypi_sources_fail_instead_of_querying_same_named_public_packages(self):
+        contents = self.lock.read_text()
+        for source in (
+            '{git="https://example.com/repository?rev=main#abcdef"}',
+            '{path="../example.whl"}',
+            '{directory="../example"}',
+            '{editable="../example"}',
+            '{virtual="../example"}',
+            '{url="https://example.com/example.whl"}',
+            '{registry="https://private.example/simple"}',
+            '{registry="http://pypi.org/simple"}',
+            '{registry="https://pypi.org/simple", git="https://example.com"}',
+            '{editable=".", registry="https://pypi.org/simple"}',
+            "{registry=true}",
+            "{}",
+            '"https://pypi.org/simple"',
+        ):
+            with self.subTest(source=source):
+                self.lock.write_text(
+                    contents + f'[[package]]\nname="unsupported"\nversion="1.0"\nsource={source}\n'
+                )
+                with self.assertRaisesRegex(AuditError, "non-PyPI"):
+                    load_packages(self.lock)
+
+    def test_registry_packages_need_an_exact_version(self):
+        contents = self.lock.read_text()
+        for version in ('""', '"*"', '"1.*"', '">=1"', '"==1.0"', '"latest"', '"1.0 "', "1", "true"):
+            with self.subTest(version=version):
+                self.lock.write_text(
+                    contents.replace('version="1.0"\nsource=', f"version={version}\nsource=")
+                )
+                with self.assertRaisesRegex(AuditError, "exact version"):
+                    load_packages(self.lock)
+
+    def test_normalized_pep440_version_forms_are_supported(self):
+        contents = self.lock.read_text()
+        for version in ("1", "1.0rc1", "1.0a2", "1.0b3", "1.0.post1", "1!2.0.post1.dev2+local.1"):
+            with self.subTest(version=version):
+                self.lock.write_text(
+                    contents.replace('version="1.0"\nsource=', f'version="{version}"\nsource=')
+                )
+                self.assertIn(("example-package", version), load_packages(self.lock))
+
+    def test_unsupported_lock_schema_fails_closed(self):
+        contents = self.lock.read_text()
+        for version in ('"1"', "2", "0", "true", "1.0"):
+            with self.subTest(version=version):
+                self.lock.write_text(contents.replace("version=1\n", f"version={version}\n", 1))
+                with self.assertRaisesRegex(AuditError, "schema version"):
+                    load_packages(self.lock)
+
     def test_empty_or_malformed_lockfile_is_not_a_clean_result(self):
-        for contents in ('[metadata]\nlock-version="2.1"', '[[package]]\nname="example"'):
+        for contents in (
+            '[metadata]\nlock-version="2.1"',
+            "version=1\npackage=[]",
+            'version=1\npackage=["example"]',
+            'version=1\n[[package]]\nname="example"\nsource={registry="https://pypi.org/simple"}',
+            'version=1\n[[package]]\nname="example"\nversion="1.0"',
+            'version=1\n[[package]]\nname="invalid name"\nversion="1.0"',
+            'version=1\n[[package]]\nname="async-batcher"\nsource={editable="."}',
+        ):
             with self.subTest(contents=contents):
                 self.lock.write_text(contents)
                 with self.assertRaises(AuditError):
@@ -196,6 +310,7 @@ class LockAuditTests(unittest.TestCase):
 
     def test_http_retry_exhaustion_is_an_error(self):
         error = HTTPError("https://api.osv.dev", 503, "unavailable", {}, None)
+        self.addCleanup(error.close)
         with patch("audit_lock.urlopen", side_effect=error) as request, patch("audit_lock.time.sleep"):
             with self.assertRaisesRegex(AuditError, "HTTP 503"):
                 request_json("/querybatch", {"queries": []})
@@ -217,6 +332,15 @@ class LockAuditTests(unittest.TestCase):
             patch("builtins.print"),
         ):
             self.assertEqual(main(["--output", str(output)]), 1)
+
+    def test_cli_defaults_to_uv_lock(self):
+        output = self.root / "report.json"
+        with (
+            patch("audit_lock.audit", return_value={"status": "pass", "blocking_findings": 0}) as run_audit,
+            patch("builtins.print"),
+        ):
+            self.assertEqual(main(["--output", str(output)]), 0)
+        run_audit.assert_called_once_with(Path("uv.lock"), Path(".github/lock-audit-exceptions.json"))
 
 
 if __name__ == "__main__":

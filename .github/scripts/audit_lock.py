@@ -15,6 +15,14 @@ from urllib.request import Request, urlopen
 API = "https://api.osv.dev/v1"
 CONTROL = ("keras", "3.8.0")  # Known vulnerable; queried only, never installed.
 BATCH_SIZE = 100
+PYPI_REGISTRIES = {"https://pypi.org/simple", "https://pypi.org/simple/"}
+PACKAGE_NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?")
+# uv serializes normalized PEP 440 versions. Accept literals, never constraints,
+# wildcards, or URLs, without installing a dependency before the security audit.
+EXACT_VERSION = re.compile(
+    r"(?:[0-9]+!)?[0-9]+(?:\.[0-9]+)*(?:(?:a|b|rc)[0-9]+)?"
+    r"(?:\.post[0-9]+)?(?:\.dev[0-9]+)?(?:\+[a-z0-9]+(?:\.[a-z0-9]+)*)?"
+)
 
 
 class AuditError(Exception):
@@ -25,29 +33,65 @@ def canonical_name(name: str) -> str:
     return re.sub(r"[-_.]+", "-", name).lower()
 
 
+def verify_local_project(path: Path, name: str) -> None:
+    """Only the project beside this lock may be excluded as a local source."""
+    try:
+        project = tomllib.loads(path.with_name("pyproject.toml").read_text()).get("project")
+    except (OSError, ValueError) as error:
+        raise AuditError("Cannot verify the local project beside the lockfile") from error
+    project_name = project.get("name") if isinstance(project, dict) else None
+    if (
+        not isinstance(project_name, str)
+        or not PACKAGE_NAME.fullmatch(project_name)
+        or canonical_name(project_name) != canonical_name(name)
+    ):
+        raise AuditError(f"Local lockfile package {name} does not match the root project")
+
+
 def load_packages(path: Path) -> dict:
     lock = tomllib.loads(path.read_text())
+    if type(lock.get("version")) is not int or lock["version"] != 1:
+        raise AuditError("Unsupported uv lockfile schema version; expected version 1")
     entries = lock.get("package")
     if not isinstance(entries, list) or not entries:
         raise AuditError("Lockfile must contain a nonempty package list")
     packages = {}
+    local_project_seen = False
     for entry in entries:
-        if not isinstance(entry, dict) or not all(
-            isinstance(entry.get(field), str) and entry[field].strip() for field in ("name", "version")
+        if (
+            not isinstance(entry, dict)
+            or not isinstance(entry.get("name"), str)
+            or not PACKAGE_NAME.fullmatch(entry["name"])
         ):
-            raise AuditError("Lockfile package is missing a name or version")
-        # A private index or VCS package must not silently be treated as PyPI.
-        if entry.get("source"):
+            raise AuditError("Lockfile package is missing a valid name")
+        source = entry.get("source")
+        if source in ({"editable": "."}, {"virtual": "."}):
+            verify_local_project(path, entry["name"])
+            if local_project_seen:
+                raise AuditError("Lockfile contains duplicate local project entries")
+            local_project_seen = True
+            continue
+        # PyPI advisories cannot establish the safety of a private index, VCS,
+        # URL, or local dependency with the same public package name/version.
+        if (
+            not isinstance(source, dict)
+            or set(source) != {"registry"}
+            or not isinstance(source["registry"], str)
+            or source["registry"] not in PYPI_REGISTRIES
+        ):
             raise AuditError(f"Cannot audit non-PyPI source for {entry['name']}")
+        if not isinstance(entry.get("version"), str) or not EXACT_VERSION.fullmatch(entry["version"]):
+            raise AuditError(f"Lockfile package {entry['name']} is missing an exact version")
         key = (canonical_name(entry["name"]), entry["version"])
         item = packages.setdefault(key, {"name": key[0], "version": key[1], "lock_entries": []})
         item["lock_entries"].append(
             {
-                "groups": entry.get("groups", []),
-                "markers": entry.get("markers"),
-                "optional": entry.get("optional"),
+                "source": source,
+                "resolution_markers": entry.get("resolution-markers", []),
             }
         )
+    if not packages:
+        raise AuditError("Lockfile contains no auditable PyPI packages")
     return packages
 
 
@@ -190,8 +234,8 @@ def audit(lock_path: Path, exceptions_path: Path, fetch=request_json, today: dat
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="Audit every exact version in poetry.lock against OSV")
-    parser.add_argument("--lock", type=Path, default=Path("poetry.lock"))
+    parser = argparse.ArgumentParser(description="Audit every exact version in uv.lock against OSV")
+    parser.add_argument("--lock", type=Path, default=Path("uv.lock"))
     parser.add_argument("--exceptions", type=Path, default=Path(".github/lock-audit-exceptions.json"))
     parser.add_argument("--output", type=Path, default=Path("lock-audit.json"))
     args = parser.parse_args(argv)
