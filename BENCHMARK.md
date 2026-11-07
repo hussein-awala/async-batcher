@@ -1,53 +1,49 @@
-# Benchmark
+# Historical benchmarks
 
-## v0.1.0
+These are archived measurements from February/March 2024, originally labelled v0.1.0 and v0.2.0.
+They are **not measurements of the current checkout**. The core implementation, dependency stack,
+and example endpoints have since changed; `/predict` now offloads synchronous inference instead
+of blocking the event loop. Do not use these numbers as current capacity or speedup guarantees.
 
-To evaluate the performance of the `AsyncBatcher` library, we used the [Keras example](examples/keras)
-with [locust](https://locust.io/) to simulate multiple users making requests to the server.
+The original notes report a MacBook Pro with an Apple M2 Max (12 cores), Uvicorn with 12 workers,
+and a TensorFlow model taking approximately 11 ms per single prediction or 13 ms per 200-item batch.
+Those model timings were not preserved as a separate reproducible microbenchmark.
 
-In this example, we have a tensorflow model that takes ~11ms to make a single prediction and ~13ms to process
-a batch of 200 predictions.
+## Recorded report totals
 
-For this benchmark, we ran the FastAPI server with Uvicorn with 12 workers,
-on a MacBook Pro with Apple M2 Max chip (12 cores).
+The table below uses aggregate values embedded in the saved Locust HTML reports. Failure percentage
+is `num_failures / num_requests * 100`; response times are whole-run aggregates, not the final
+sample in the throughput graphs. The reports include client timeouts and connection failures.
 
-Predict endpoint:
+| Run | Duration | Requests | Failures | Failure rate | Mean latency | p95 latency |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| [v0.1.0 direct, 2024-02-18](assets/predict__report.html) | 7 min | 109,987 | 45,422 | 41.298% | 1,373.92 ms | 3,800 ms |
+| [v0.1.0 batched, 2024-02-18](assets/optimized_predict__report.html) | 7 min | 133,568 | 285 | 0.213% | 121.00 ms | 300 ms |
+| [v0.2.0 batched, 2024-02-29/03-01](assets/optimized_predict__report_v0.2.0.html) | 6 min | 164,351 | 768 | 0.467% | 96.26 ms | 200 ms |
 
-![predict__total_requests_per_second.png](assets%2Fpredict__total_requests_per_second.png)
+The v0.2.0 notes used a `ThreadPoolExecutor(max_workers=12)` with batcher `concurrency=12` and
+`max_queue_time=0.01`, and a different load ramp. These were not controlled comparisons with
+identical server/client settings. In particular, worker and thread counts multiply across server
+processes. The saved artifacts do not capture a complete environment or every invocation option.
 
-Optimized Predict endpoint:
+## Archived throughput graphs
 
-![optimized_predict__total_requests_per_second.png](assets%2Foptimized_predict__total_requests_per_second.png)
+v0.1.0 direct endpoint:
 
-As we can see from the graphs, for the `/predict` endpoint, the failure rate started to increase linearly at the RPS
-of ~284 requests/second, and the 95th percentile response time was ~1100ms at this point. Then with the increase of
-the RPS, the number of successful requests was ~130 requests/second in average, with a high failure rate
-(~300 from ~400 requests/second).
+![Historical direct endpoint throughput](assets/predict__total_requests_per_second.png)
 
-For the `/optimized_predict` endpoint, the failure was smaller than 3 requests/second (0.00625%) during the whole test,
-the average response time was increasing slightly with the increase of the RPS, and it reached ~120ms in average at
-the end of the test (> 480 requests/second), with a 95th percentile response time almost stable and smaller than 500ms.
+v0.1.0 batched endpoint:
 
-You can find check the reports for more details:
-- [predict__report.html](assets/predict__report.html)
-- [optimized_predict__report.html](assets/optimized_predict__report.html)
+![Historical batched endpoint throughput](assets/optimized_predict__total_requests_per_second.png)
 
-## v0.2.0
-In the version 0.2.0, we replaced the threading implementation with a full asyncio implementation, and we added support
-for multiple concurrent batch processing.
+v0.2.0 batched endpoint:
 
-These two changes improved the performance of the `AsyncBatcher` package, and to evaluate the performance, we re-ran the
-load tests with the new version, the new configuration, and a faster increase in the number of requests.
-```python
-from concurrent.futures import ThreadPoolExecutor
+![Historical v0.2.0 batched endpoint throughput](assets/optimized_predict__total_requests_per_second_v0.2.0.png)
 
-executor = ThreadPoolExecutor(max_workers=12)
-batcher = MlBatcher(model=model, max_queue_time=0.01, concurrency=12, executor=executor)
-```
-And the results were impressive:
+## Measuring the current checkout
 
-![optimized_predict__total_requests_per_second_v0.2.0.png](assets%2Foptimized_predict__total_requests_per_second_v0.2.0.png)
-
-The average response time was increasing very slowly with the increase of the RPS, and it reached ~96ms in average at
-the end of the test with almost ~500 requests/second (-20% of the first version), with a 95th percentile response time
-almost stable and smaller than 300ms for the whole test (-40% of the first version).
+Follow the [FastAPI example](examples/keras/README.md#load-testing). Run the direct and batched
+endpoints separately with the same model, backend, worker count, inputs, client timeouts, and
+load profile. Warm up inference first. Record the commit, Python/dependency versions, hardware,
+batch limits, executor/concurrency settings, achieved throughput, latency percentiles, and failures.
+Keep the generated HTML reports with those settings. No new performance result is asserted here.

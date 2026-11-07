@@ -1,38 +1,57 @@
-# Async Batcher with Keras model and FastAPI
+# Keras inference with FastAPI
 
-Use Python 3.11–3.13 for this TensorFlow example. TensorFlow 2.21 does not publish wheels for
-Python 3.14 or 3.15; the core library supports those versions independently.
-The requirements file installs TensorFlow 2.21+ and Keras 3.15.1+.
+The example loads the bundled [HDF5 model](../diabetes_tf_model.h5) with `compile=False` and
+accepts one sample containing ten numbers. `/predict` offloads a single prediction to a thread;
+`/optimized_predict` combines concurrent requests through `MlBatcher`. Both return one JSON number.
+The application drains the batcher on shutdown.
 
+Use Python 3.12 on a platform with a TensorFlow wheel. The requirements select TensorFlow 2.21+
+and Keras 3.15.1+. TensorFlow 2.21's [published wheels](https://pypi.org/project/tensorflow/2.21.0/#files)
+cover Python 3.10–3.13 (this project requires 3.11+), not 3.14/3.15, and exclude Intel macOS.
+The core package supports newer Python independently. See the [Keras guide](../../docs/machine-learning.md#keras)
+for backend-neutral inference with JAX.
 
-This example shows how to use the `async_batcher` library with FastAPI to process data
-in batches by a Keras (Tensorflow) model.
+## Install and run
 
-In this example, we serve a TensorFlow model using FastAPI and create two endpoints:
-- `/predict` to make predictions using the TensorFlow model directly
-- `/optimized_predict` to make predictions using the TensorFlow model with the `async_batcher` library
+From the repository root:
 
-## How to use
 ```bash
-# Install from the repository root
-pip install -e . -r examples/keras/requirements.txt
-
-# Run the FastAPI server with Uvicorn
+uv venv --python 3.12 examples/keras/.venv
+uv pip install --python examples/keras/.venv/bin/python -e '.[keras]' -r examples/keras/requirements.txt
 cd examples/keras
-uvicorn main:app --reload
+KERAS_BACKEND=tensorflow .venv/bin/python -m uvicorn main:app --reload
 ```
+
+This environment is separate from the locked repository environment. Its requirements are ranges,
+not `uv.lock`. Invoke the example interpreter directly to retain its additional packages. On
+Windows, use `.venv/Scripts/python.exe` and set `KERAS_BACKEND=tensorflow` before starting Python.
+
+From another terminal:
+
+```bash
+curl --fail-with-body -X POST http://127.0.0.1:8000/optimized_predict \
+  -H 'Content-Type: application/json' \
+  -d '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]'
+```
+
+Use `/predict` for the unbatched endpoint. Multiple concurrent requests are needed to exercise
+batching. Stop the server with Ctrl+C to run its graceful shutdown handler.
 
 ## Load testing
 
-To evaluate the performance of the `/predict` and `/optimized_predict` endpoints, we can use the `locust` library to
-simulate multiple users making requests to the server.
+Keep the server running, then run one of these commands from `examples/keras` in another terminal:
 
-You can run one of the provided Locust files to simulate the load testing:
-- [predict_load_test.py](predict_load_test.py) to test the `/predict` endpoint
-- [optimized_predict_load_test.py](optimized_predict_load_test.py) to test the `/optimized_predict` endpoint
-
-To run the load test, you can use the following command:
 ```bash
-locust -f predict_load_test.py
+.venv/bin/python -m locust -f predict_load_test.py --host http://127.0.0.1:8000
+# Or test the batched endpoint:
+.venv/bin/python -m locust -f optimized_predict_load_test.py --host http://127.0.0.1:8000
 ```
-Then, open the web interface at http://localhost:8089 and start the load test.
+
+Open `http://localhost:8089` and choose the user count and spawn rate. Test each endpoint separately
+with the same settings. For measurements, omit Uvicorn's `--reload`, choose an explicit worker
+count, warm up the model, and record dependencies/backend versions. Each server worker has its
+own model, queue, and executor; batches do not span workers.
+
+The provided clients use one-second connection/read timeouts and random ten-feature samples.
+Their results describe that workload, not model quality or a universal throughput target.
+The [benchmark page](../../BENCHMARK.md) contains historical reports, not results from this checkout.

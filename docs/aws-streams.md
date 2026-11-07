@@ -1,6 +1,7 @@
 # Kinesis and Firehose
 
-Install `async-batcher[aws]`. These adapters accept an asynchronous client from
+From the [current checkout](../README.md#install), run `uv sync --locked --extra aws`.
+These adapters accept an asynchronous client from
 aioboto3 or aiobotocore. You own the client: keep it open until the batcher has
 stopped. One batcher targets one stream.
 
@@ -39,12 +40,14 @@ For Firehose, create the client with `session.client("firehose", ...)` and use:
 ```python
 from async_batcher.aws.firehose import AsyncFirehoseBatcher
 
-batcher = AsyncFirehoseBatcher(client, delivery_stream_name="events")
-try:
-    result = await batcher.process(b'{"event": "opened"}\n')
-    print(result["RecordId"])
-finally:
-    await batcher.stop()
+
+async def put_event(client):
+    batcher = AsyncFirehoseBatcher(client, delivery_stream_name="events")
+    try:
+        result = await batcher.process(b'{"event": "opened"}\n')
+        print(result["RecordId"])
+    finally:
+        await batcher.stop()
 ```
 
 Firehose accepts bytes up to 1,000 KiB per record before base64 encoding. Requests
@@ -52,7 +55,7 @@ split at 500 records or 4 MiB. Include any delimiters needed by your destination
 in the bytes; the batcher does not add them. A RecordId confirms acceptance by
 Firehose, not delivery to the destination.
 
-Both batchers accept the core options, including `max_queue_time`, `concurrency`,
+Both batchers accept the [core options](api.md#configuration), including `max_queue_time`, `concurrency`,
 and `max_queue_size`. `max_batch_size` defaults to 500 and must be 1–500.
 `max_retries` defaults to 5 retries after the initial request; zero disables
 record retries. Exponential backoff starts at 0.1 seconds and caps at 5 seconds.
