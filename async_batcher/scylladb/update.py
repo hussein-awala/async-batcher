@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
-from cassandra.cqlengine.query import BatchQuery
+from cassandra.cqlengine.query import BatchQuery, BatchType
 
 from async_batcher.batcher import AsyncBatcher
 
@@ -43,6 +43,7 @@ class AsyncScyllaDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
     Empty batches and batches containing only invalid operations create no query.
     All valid operations must use the same model connection; a mixed-connection
     batch fails before any writes are submitted.
+    Counter models use COUNTER batches and cannot be mixed with non-counter models.
     """
 
     def process_batch(self, batch: list[WriteOperation]) -> list[None | Exception]:
@@ -57,7 +58,12 @@ class AsyncScyllaDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
         if len(connections) != 1:
             raise ValueError("All operations in a batch must use the same connection")
 
-        with BatchQuery(connection=connections.pop()) as b:
+        counter_models = {bool(op.model._has_counter) for op in valid_ops}
+        if len(counter_models) != 1:
+            raise ValueError("A batch cannot mix counter and non-counter models")
+        batch_type = BatchType.Counter if counter_models.pop() else None
+
+        with BatchQuery(connection=connections.pop(), batch_type=batch_type) as b:
             for op in valid_ops:
                 if op.operation == "INSERT":
                     op.model.batch(b).create(**op.data)

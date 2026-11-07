@@ -56,3 +56,23 @@ def scylladb_tables(scylladb_session):
     yield TestModel1, TestModel2
     drop_table(TestModel1)
     drop_table(TestModel2)
+
+
+@pytest.fixture
+def scylladb_counter_table(scylladb_session):
+    class CounterModel(Model):
+        __table_name__ = "test_counters"
+        __keyspace__ = TEST_KEYSPACE
+        __connection__ = "counter_cluster"
+        id = columns.UUID(primary_key=True)
+        total = columns.Counter()
+
+    connection.register_connection("counter_cluster", session=scylladb_session)
+    try:
+        sync_table(CounterModel)
+        yield CounterModel
+    finally:
+        try:
+            drop_table(CounterModel)
+        finally:
+            connection.unregister_connection("counter_cluster")
