@@ -7,9 +7,11 @@ import logging
 import math
 import warnings
 from collections import namedtuple
+from collections.abc import Mapping, Set
 from concurrent import futures
 from contextvars import ContextVar, copy_context
 from functools import partial
+from itertools import islice
 from numbers import Real
 from typing import TYPE_CHECKING, Generic, TypeVar
 from weakref import ref
@@ -122,7 +124,11 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
 
     @abc.abstractmethod
     async def process_batch(self, batch: list[T]) -> list[S] | None:
-        """Return one result per item, or None for a batch without return values.
+        """Return one result per item in an ordered, sized collection, or None.
+
+        Results must follow input order. Mappings, sets, and text/byte containers
+        are invalid. The complete result collection is validated before any
+        request succeeds; result iteration errors fail the entire batch.
 
         Subclasses may implement this as a synchronous method. Exceptions raised
         by the processor fail the entire batch; exception objects in the result
@@ -201,7 +207,18 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 )
             if results is None:
                 results = [None] * len(batch)
+            elif isinstance(results, (Mapping, Set, str, bytes, bytearray)):
+                raise TypeError(
+                    "process_batch must return an ordered result collection, not a mapping, set or text"
+                )
             if len(results) != len(batch):
+                raise ValueError(f"Expected to get {len(batch)} results, but got {len(results)}.")
+            # Snapshot before resolving any request. Iteration can fail or disagree
+            # with __len__; bound it so malformed collections cannot grow forever.
+            results = list(islice(results, len(batch) + 1))
+            if len(results) > len(batch):
+                raise ValueError(f"Expected to get {len(batch)} results, but got more.")
+            if len(results) < len(batch):
                 raise ValueError(f"Expected to get {len(batch)} results, but got {len(results)}.")
         except Exception as error:
             self.logger.error("Error processing batch", exc_info=True)
