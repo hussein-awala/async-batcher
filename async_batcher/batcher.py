@@ -417,6 +417,15 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self._queue_changed.set()
         self._queue_space_available.set()
 
+    def _start_dispatcher(self, loop: asyncio.AbstractEventLoop) -> asyncio.Task:
+        dispatcher = self._run()
+        try:
+            self._current_task = loop.create_task(dispatcher, **self._task_options())
+        except BaseException:
+            dispatcher.close()
+            raise
+        return self._current_task
+
     async def process(
         self,
         item: T,
@@ -481,6 +490,10 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 raise
             finally:
                 self._admission_waiters -= 1
+        # Refused task creation must not leave an accepted request behind. With
+        # eager tasks the empty dispatcher waits until the enqueue below.
+        if self._current_task is None:
+            self._start_dispatcher(loop)
         future = loop.create_future()
         self._pending_futures.add(future)
         accepted_at = loop.time()
@@ -490,8 +503,6 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self._accepted += 1
         self._work_sequences[future] = self._accepted
         self._queue_changed.set()
-        if self._current_task is None:
-            self._current_task = loop.create_task(self._run(), **self._task_options())
         return await future
 
     async def _fill_batch_from_queue(self) -> list[QueueItem]:
@@ -709,8 +720,17 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         loop = self._get_loop()
         if self._current_task is not None:
             raise RuntimeError("Batcher already has a dispatcher")
-        self._current_task = loop.create_task(self._run(), **self._task_options())
-        await self._current_task
+        dispatcher = self._start_dispatcher(loop)
+        try:
+            await dispatcher
+        finally:
+            # Cancellation before the dispatcher's first step cannot enter
+            # _run's cleanup. Its public owner must settle that lifecycle too.
+            # A completed older owner must not stop a subsequent restart.
+            if dispatcher is self._current_task and dispatcher.cancelled() and not self._force_stopped:
+                self._force_stopped = True
+                self._begin_shutdown()
+                self._cancel_pending()
 
     async def _run(self):
         current_task = asyncio.current_task()
