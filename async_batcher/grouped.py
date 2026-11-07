@@ -53,6 +53,7 @@ class GroupedBatcher(Generic[K, T, S]):
         group_key: Callable[[T], K],
         max_groups: int = 128,
         idle_timeout: float = 60,
+        log_exceptions: bool = True,
     ) -> None:
         if not callable(factory) or not callable(group_key):
             raise TypeError("factory and group_key must be callable")
@@ -61,6 +62,9 @@ class GroupedBatcher(Generic[K, T, S]):
             for fn in (factory, group_key)
         ):
             raise TypeError("factory and group_key must be synchronous")
+        if not isinstance(log_exceptions, bool):
+            raise TypeError("log_exceptions must be a boolean")
+        self._log_exceptions = log_exceptions
         if isinstance(max_groups, bool) or not isinstance(max_groups, int) or max_groups < 1:
             raise ValueError("max_groups must be a positive integer")
         try:
@@ -130,7 +134,9 @@ class GroupedBatcher(Generic[K, T, S]):
 
     def _cleanup_done(self, task: asyncio.Task[None]) -> None:
         if not task.cancelled() and (error := task.exception()) is not None:
-            self.logger.error("Error stopping an idle batch group", exc_info=error)
+            self.logger.error(
+                "Error stopping an idle batch group", exc_info=error if self._log_exceptions else None
+            )
 
     def _begin_close(self, group: _Group[K, T, S]) -> asyncio.Task[None]:
         if group.close_task is None or self._failed(group.close_task):

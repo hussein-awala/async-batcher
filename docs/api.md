@@ -36,6 +36,7 @@ and the runnable [cookbook](cookbook.md) for focused examples.
 | `max_batch_cost` | `None` | Optional positive finite per-batch budget; requires `item_cost`. Count and cost limits both apply. |
 | `item_cost` | `None` | Synchronous nonnegative finite cost estimator, evaluated once per submission; requires `max_batch_cost`. |
 | `on_batch` | `None` | Fast synchronous observer receiving one payload-free `BatchEvent` per completed dispatched batch. |
+| `log_exceptions` | `True` | Include exception messages and tracebacks in library error logs. `False` emits fixed messages; caller exceptions are unchanged. |
 | `processor_context` | `None` | Optional `contextvars.Context`, snapshotted at construction and copied for each dispatcher/worker. `None` inherits the initiating caller context. |
 | `executor` | `None` | Same-interpreter executor for synchronous processors; `None` uses asyncio's default thread executor. |
 
