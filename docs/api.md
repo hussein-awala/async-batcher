@@ -9,8 +9,10 @@ from async_batcher import (
     AsyncBatchException,
     BatchEvent,
     BatcherStats,
+    CoalescingBatcher,
     GroupedBatcher,
     GroupLimitError,
+    MapOutcome,
     QueueFullException,
 )
 ```
@@ -23,7 +25,7 @@ directly bypasses queueing, core limits, result validation, and shutdown trackin
 
 See [functions and contexts](functions.md), [bounded streams and queue admission](bulk-processing.md),
 [cost budgets](cost-aware-batching.md), [statistics](observability.md), [grouped batching](grouped-batching.md),
-and the runnable [cookbook](cookbook.md) for focused examples.
+[in-flight coalescing](coalescing.md), and the runnable [cookbook](cookbook.md) for focused examples.
 
 ## Configuration
 
@@ -94,6 +96,12 @@ Adapter failures can occur after external side effects; a failed batch is not an
 - `map(source, *, max_pending=128, ordered=True)` returns a bounded async iterator. It yields in input
   order by default, or completion order with `ordered=False`; source/request errors fail iteration
   promptly. Use `contextlib.aclosing` when breaking early. Closing a map does not stop a shared batcher.
+- `map_outcomes(source, *, max_pending=128, ordered=True)` uses the same bounded stream contract
+  and yields indexed `MapOutcome` envelopes for successes and ordinary request errors. Source errors
+  and cancellation still terminate iteration. Use `contextlib.aclosing` when breaking early.
+- `await flush(timeout=None)` dispatches partial batches and waits for previously accepted work
+  without stopping intake. Later submissions and admission waiters are outside its boundary;
+  individual results still determine success. See [the flush contract](#flush-without-stopping-intake).
 - `stats()` returns an immutable `BatcherStats` snapshot on the owning event-loop thread, without
   binding the loop or resetting counters. Counters survive stop/restart; gauges describe current work.
 - `await run()` explicitly starts a dispatcher and waits until shutdown. It is optional and is not
@@ -106,9 +114,9 @@ Adapter failures can occur after external side effects; a failed batch is not an
 - `await stop(force=True)` cancels pending request futures and awaits batch-task cleanup. Repeated calls
   are safe. Cleanup can itself take time; the `timeout` argument also applies to a forced stop.
 
-The first `process()`, `run()`, `stop()`, or context entry binds the batcher to one event loop. It cannot
-be moved to another loop, including after stopping. Once dispatcher and worker completion callbacks
-finish, the next `process()` call automatically restarts it on the same loop. During graceful
+The first `process()`, `run()`, `stop()`, `flush()`, or context entry binds the batcher to one event
+loop. It cannot be moved to another loop, including after stopping. Once dispatcher and worker
+completion callbacks finish, the next `process()` call automatically restarts it on the same loop. During graceful
 draining or forced cleanup, submissions raise `RuntimeError("Batcher is stopping")`, including
 after a shutdown timeout.
 
