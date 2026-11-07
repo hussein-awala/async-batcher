@@ -88,3 +88,11 @@ into that batch. Each input must represent exactly one sample. Sparse prediction
 rows with shape `(1, n_outputs)`; dense predictions follow the estimator's per-sample output shape.
 Missing `predict`, invalid shapes, and prediction errors fail the batch. Training and model
 mutation remain application responsibilities; finish them before submitting predictions.
+
+Both prediction wrappers forward additional [core options](api.md), including
+`max_batch_cost`, `item_cost`, and `on_batch`. A cost function receives each original sample
+before dense stacking or sparse conversion, so it can estimate work from feature count,
+nonzero entries, or application-specific input size. The count limit still applies alongside
+the cost limit. [Batch completion hooks](observability.md) run synchronously on the event loop,
+after prediction outcomes are assigned; keep them short even though prediction itself runs
+in an executor. Core validation rejects invalid options and oversized samples before prediction.
