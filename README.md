@@ -1,7 +1,7 @@
 # AsyncBatcher
 
 AsyncBatcher combines concurrent Python requests into batches and routes each result back to its caller.
-Subclass `AsyncBatcher` for your own bulk operation, or use an adapter for a supported database,
+Wrap an existing bulk function, subclass `AsyncBatcher`, or use an adapter for a supported database,
 messaging client, or prediction model. The core package has no runtime dependencies.
 
 ## Install
@@ -34,18 +34,16 @@ import asyncio
 from async_batcher import AsyncBatcher
 
 
-class DoubleBatcher(AsyncBatcher[int, int]):
-    async def process_batch(self, batch: list[int]) -> list[int]:
-        return [value * 2 for value in batch]
+async def double_many(values: list[int]) -> list[int]:
+    return [value * 2 for value in values]
 
 
 async def main():
-    batcher = DoubleBatcher(max_batch_size=5, max_queue_time=0.01, concurrency=2)
-    try:
+    async with AsyncBatcher.from_callable(
+        double_many, max_batch_size=5, max_queue_time=0.01, concurrency=2
+    ) as batcher:
         results = await asyncio.gather(*(batcher.process(i) for i in range(10)))
         print(results)  # [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
-    finally:
-        await batcher.stop()
 
 
 asyncio.run(main())
@@ -54,10 +52,16 @@ asyncio.run(main())
 `process()` is a coroutine: submit calls concurrently to form batches. A loop that awaits each
 call before submitting the next normally produces single-item batches. Processing starts
 automatically. Stop the batcher before closing its clients, model resources, or executor.
+Existing [subclasses](docs/api.md) and adapters support the same managed lifecycle.
 
 ## Guides
 
 - [Batch an existing function](docs/functions.md): callable processors and managed cleanup.
+- [Bulk and streaming producers](docs/bulk-processing.md): bounded maps and waiting for queue space.
+- [Cost budgets](docs/cost-aware-batching.md): byte, token, or work limits alongside batch counts.
+- [Operational visibility](docs/observability.md): snapshots and payload-free completion events.
+- [Grouped batching](docs/grouped-batching.md): isolate compatible requests with bounded child ownership.
+- [Cookbook](docs/cookbook.md): runnable SQLite imports, embedding pipelines, and measured batch sizes.
 - [Core API and lifecycle](docs/api.md): limits, result mapping, errors, shutdown, restart, and executors.
 - [Contributing](CONTRIBUTING.md): locked development environments, test selection, integration services, and CI.
 - [Benchmarks](BENCHMARK.md): reproducible core measurements and archived application results.
