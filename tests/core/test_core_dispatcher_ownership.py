@@ -17,6 +17,7 @@ async def test_manual_run_owns_dispatcher_and_rejects_duplicates(harness):
 
     requests = harness.submit(batcher, *range(8))
     assert await asyncio.wait_for(asyncio.gather(*requests), timeout=1) == list(range(0, 16, 2))
-    assert batcher._current_task is running
+    assert batcher._current_task is not running
+    assert not batcher._current_task.done()
     await asyncio.wait_for(batcher.stop(), timeout=2)
     await running
