@@ -8,7 +8,15 @@ from contextvars import Context
 from fractions import Fraction
 from typing import assert_type
 
-from async_batcher import AsyncBatcher, BatcherStats, BatchEvent, GroupedBatcher, GroupLimitError, MapOutcome
+from async_batcher import (
+    AsyncBatcher,
+    BatcherStats,
+    BatchEvent,
+    CoalescingBatcher,
+    GroupedBatcher,
+    GroupLimitError,
+    MapOutcome,
+)
 
 
 class AsyncDouble(AsyncBatcher[int, int]):
@@ -185,3 +193,16 @@ async def grouped_streams() -> None:
 
 limited_grouped = GroupedBatcher(factory, group_key=key, max_pending_items=8)
 assert_type(limited_grouped.pending_items, int)
+
+
+coalesced = CoalescingBatcher(sync_batcher, key=key, max_keys=8, max_waiters=16)
+assert_type(coalesced, CoalescingBatcher[str, int, str])
+assert_type(coalesced.in_flight_keys, int)
+assert_type(coalesced.waiting_callers, int)
+
+
+async def coalesced_requests() -> None:
+    async with coalesced as entered:
+        assert_type(entered, CoalescingBatcher[str, int, str])
+        assert_type(await coalesced.process(1), str)
+    assert_type(await coalesced.aclose(), None)
