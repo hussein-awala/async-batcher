@@ -382,3 +382,45 @@ async def test_failed_eviction_retains_group_capacity_until_cleanup_succeeds():
     await grouped.stop(force=True)
     assert grouped.group_count == 0
     assert not await children[0].is_running()
+
+
+@pytest.mark.asyncio
+async def test_grouped_callable_cost_limits_and_observability_compose():
+    children = {}
+    events = {}
+    batches = {}
+
+    def factory(key):
+        events[key] = []
+        batches[key] = []
+
+        async def compute(items):
+            assert all(item[0] == key for item in items)
+            batches[key].append(items)
+            await asyncio.sleep(0)
+            return [item[1] * 2 for item in items]
+
+        child = AsyncBatcher.from_callable(
+            compute,
+            max_batch_size=3,
+            max_batch_cost=5,
+            item_cost=lambda item: item[1],
+            concurrency=2,
+            max_queue_size=8,
+            on_batch=events[key].append,
+        )
+        children[key] = child
+        return child
+
+    values = [(key, cost) for _ in range(3) for key, cost in (("a", 3), ("b", 2), ("a", 2), ("b", 3))]
+    async with GroupedBatcher(factory, group_key=lambda item: item[0], max_groups=2) as grouped:
+        results = await asyncio.wait_for(asyncio.gather(*(grouped.process(item) for item in values)), 2)
+        assert results == [item[1] * 2 for item in values]
+    for key, child in children.items():
+        assert all(sum(item[1] for item in batch) <= 5 for batch in batches[key])
+        assert all(len(batch) <= 3 for batch in batches[key])
+        assert sum(event.succeeded for event in events[key]) == 6
+        stats = child.stats()
+        assert stats.accepted == stats.succeeded == 6
+        assert stats.failed == stats.cancelled == stats.pending_items == stats.in_flight_items == 0
+        assert stats.active_batches == stats.queued_items == 0
