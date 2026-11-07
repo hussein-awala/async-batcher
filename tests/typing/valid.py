@@ -180,3 +180,7 @@ async def grouped_streams() -> None:
     assert_type(await grouped.process(1, wait_for_space=True, enqueue_timeout=0.1), str)
     assert_type(grouped.map([1]), AsyncGenerator[str, None])
     assert_type(grouped.map_outcomes(source()), AsyncGenerator[MapOutcome[int, str], None])
+
+
+limited_grouped = GroupedBatcher(factory, group_key=key, max_pending_items=8)
+assert_type(limited_grouped.pending_items, int)

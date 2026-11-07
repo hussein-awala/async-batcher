@@ -88,3 +88,7 @@ async def invalid_grouped_streams() -> None:
     grouped.map(["bad"])  # error: list-item
     grouped.map_outcomes(strings())  # error: arg-type
     await grouped.process(1, enqueue_timeout="soon")  # error: arg-type
+
+
+GroupedBatcher(factory, group_key=key, max_pending_items="many")  # error: arg-type
+grouped.pending_items = 9  # error: misc

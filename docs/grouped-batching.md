@@ -97,3 +97,20 @@ source and joins its own mapping tasks, but leaves the manager and unrelated use
 a request is handed to a child, the group manager keeps owning its child task through completion,
 including an admission wait. Thus cancellation does not withdraw that child submission: it may
 still be admitted and executed later. Stop the group manager to drain or force-stop all its work.
+
+## Aggregate accepted-item cap
+
+Set `max_pending_items` to a positive integer to bound owned submissions across all groups;
+`None` (the default) leaves this aggregate bound disabled. `pending_items` reports the current
+count. A reservation starts when the manager accepts a call, before key lookup/group eviction,
+and continues through child admission and processing until that child task completes. These
+manager reservations are not the child's accepted-item statistics. Pre-child failure or
+cancellation returns its reservation; a cancelled caller with an owned child does not.
+
+An exhausted aggregate cap raises `QueueFullException` immediately, even with
+`wait_for_space=True`. Waiting remains child-queue-only; `enqueue_timeout` does not wait for
+an aggregate reservation. In a grouped `map_outcomes`, rejected reservations are ordinary
+indexed failures; in `map`, they terminate iteration. Set the cap for all concurrent users,
+not just one map's window, or explicitly handle overload. `max_groups` still independently
+bounds child instances. Closing/cancelling a map does not free permits for its still-owned
+child requests; `stop()` drains those requests and `stop(force=True)` requests cancellation.
