@@ -7,9 +7,11 @@ import logging
 import math
 import warnings
 from collections import namedtuple
+from contextvars import ContextVar
 from functools import partial
 from numbers import Real
 from typing import TYPE_CHECKING, Generic, TypeVar
+from weakref import ref
 
 from async_batcher.exceptions import QueueFullException
 
@@ -18,6 +20,11 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 S = TypeVar("S")
+
+# Child tasks inherit this context, but must not keep completed processors alive.
+_processing_ancestors: ContextVar[tuple[ref[asyncio.Task], ...]] = ContextVar(
+    "async_batcher_processing_ancestors", default=()
+)
 
 
 def _run_sync_batch(processor, batch):
@@ -165,6 +172,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             return
         task = asyncio.current_task()
         self._processing_tasks.add(task)
+        context_token = _processing_ancestors.set((*_processing_ancestors.get(), ref(task)))
         loop = asyncio.get_running_loop()
         started_at = loop.time()
         try:
@@ -197,6 +205,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                 else:
                     q_item.future.set_result(result)
         finally:
+            _processing_ancestors.reset(context_token)
             self._processing_tasks.discard(task)
             self.logger.debug(
                 "Processed batch of %s elements in %s seconds.", len(batch), loop.time() - started_at
@@ -288,8 +297,12 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         pending results and awaits task cleanup. Running executor functions cannot
         be interrupted and may finish after forced shutdown returns. A later process()
         call restarts the batcher once dispatcher and batch-task cleanup is complete.
+        A processor or its child tasks cannot await shutdown while that processor
+        is active, because shutdown must wait for the processor itself.
         """
-        if asyncio.current_task() in self._processing_tasks:
+        if asyncio.current_task() in self._processing_tasks or any(
+            ancestor() in self._processing_tasks for ancestor in _processing_ancestors.get()
+        ):
             raise RuntimeError(
                 "stop() cannot be awaited from process_batch; call it from outside the processor"
             )
