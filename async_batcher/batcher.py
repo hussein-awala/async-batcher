@@ -99,9 +99,17 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         """
 
     async def process(self, item: T) -> S:
-        """Enqueue an item and await its result; reject submissions after stopping."""
+        """Enqueue an item and await its result, restarting after completed shutdown.
+
+        Submissions during shutdown are rejected until the dispatcher and its
+        batch tasks finish cleanup. Reuse must stay on the same event loop.
+        """
         if self._stop.is_set():
-            raise RuntimeError("Batcher is stopped")
+            if (self._current_task is not None and not self._current_task.done()) or self._running_batches:
+                raise RuntimeError("Batcher is stopping")
+            self._stop.clear()
+            self._force_stopped = False
+            self._current_task = None
         if self._queue.full():
             raise QueueFullException("The queue is full, cannot process more items at the moment.")
         loop = asyncio.get_running_loop()
@@ -256,12 +264,13 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         return self._is_running.is_set()
 
     async def stop(self, force: bool = False, timeout: float | None = None):
-        """Reject new work and wait for shutdown.
+        """Reject new work while waiting for shutdown.
 
         Graceful shutdown flushes the queue and waits for active batches. A timeout
         raises asyncio.TimeoutError while draining continues. Forced shutdown cancels all
         pending results and awaits task cleanup. Running executor functions cannot
-        be interrupted and may finish after forced shutdown returns.
+        be interrupted and may finish after forced shutdown returns. A later process()
+        call restarts the batcher once dispatcher and batch-task cleanup is complete.
         """
         if asyncio.current_task() in self._processing_tasks:
             raise RuntimeError(
