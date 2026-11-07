@@ -21,6 +21,15 @@ The [7 November 2026 core report](benchmarks/results/2026-11-07-core-macos.md) i
 run on macOS/CPython 3.12, all trial metrics, variation between repetitions, and interpretation
 limits. It measures the synthetic core workload, separately from the archived application runs.
 
+## Current SQLite arrival benchmark
+
+The [open-loop SQLite report](benchmarks/results/2026-11-07-sqlite-macos.md) compares direct
+transactions, a simple application batcher, the library, and grouped-key batching on one writer.
+It preserves all 36 trials and raw arrivals, including sparse-latency losses, overload rejections,
+generator delay, and per-key tails. See the [reproduction guide](benchmarks/SQLITE.md) for the
+bounded workload and common admission policy. These results are separate from the synthetic
+core measurements and historical application runs.
+
 ## Historical application benchmarks
 
 These are archived measurements from February/March 2024, originally labelled v0.1.0 and v0.2.0.
