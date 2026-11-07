@@ -340,3 +340,161 @@ async def test_high_dimension_vectors_split_under_conservative_serialized_budget
     writes = [r for r in providers["requests"] if r[1] == "/vectors/upsert"]
     assert len(writes) >= 2
     assert all(len(r[2]["vectors"]) <= 2 and len(r[4]) <= VECTOR_REQUEST_BUDGET for r in writes)
+
+
+@pytest.mark.parametrize(
+    ("host", "cohere_key", "pinecone_key", "message"),
+    [
+        ("http://example.invalid", "dummy-cohere", "dummy-pinecone", "explicit https://"),
+        ("https://example.invalid", "", "dummy-pinecone", "Set COHERE_API_KEY"),
+        ("https://example.invalid", "dummy-cohere", "", "Set COHERE_API_KEY"),
+    ],
+)
+def test_cli_rejects_configuration_before_opening_clients(
+    monkeypatch, capsys, tmp_path, host, cohere_key, pinecone_key, message
+):
+    import sys
+
+    from examples.recipes import cohere_pinecone as recipe
+
+    monkeypatch.setenv("COHERE_API_KEY", cohere_key)
+    monkeypatch.setenv("PINECONE_API_KEY", pinecone_key)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "cohere-pinecone",
+            "--input",
+            str(tmp_path / "input.jsonl"),
+            "--host",
+            host,
+            "--namespace",
+            "tenant",
+            "--model",
+            "chosen-v4",
+            "--dimension",
+            "3",
+        ],
+    )
+
+    def unexpected_run(args):
+        pytest.fail("Invalid CLI configuration must not open provider clients")
+
+    monkeypatch.setattr(recipe, "run", unexpected_run)
+    with pytest.raises(SystemExit) as error:
+        recipe.main()
+    assert error.value.code == 2
+    assert message in capsys.readouterr().err
+
+
+def test_cli_parses_explicit_configuration_and_prints_report(monkeypatch, capsys, tmp_path):
+    import sys
+
+    from examples.recipes import cohere_pinecone as recipe
+
+    source = tmp_path / "input.jsonl"
+    monkeypatch.setenv("COHERE_API_KEY", "dummy-cohere")
+    monkeypatch.setenv("PINECONE_API_KEY", "dummy-pinecone")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "cohere-pinecone",
+            "--input",
+            str(source),
+            "--host",
+            "https://example.invalid",
+            "--namespace",
+            "tenant",
+            "--model",
+            "chosen-v4",
+            "--dimension",
+            "3",
+        ],
+    )
+    observed = []
+
+    async def run(args):
+        observed.append(vars(args))
+        return {"completed_items": 2, "storage": {"stats": {"pending": 0}}}
+
+    monkeypatch.setattr(recipe, "run", run)
+    recipe.main()
+    assert observed == [
+        {
+            "input": source,
+            "host": "https://example.invalid",
+            "namespace": "tenant",
+            "model": "chosen-v4",
+            "dimension": 3,
+        }
+    ]
+    assert json.loads(capsys.readouterr().out) == {"completed_items": 2, "storage": {"stats": {"pending": 0}}}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", [False, True])
+async def test_run_constructs_real_clients_and_closes_them_after_pipeline(
+    providers, monkeypatch, tmp_path, failure
+):
+    from types import SimpleNamespace
+
+    from examples.recipes import cohere_pinecone as recipe
+
+    source = tmp_path / "input.jsonl"
+    source.write_text('{"id":"one","text":"first"}\n{"id":"two","text":"second"}\n')
+    monkeypatch.setenv("COHERE_API_KEY", "dummy-cohere")
+    monkeypatch.setenv("PINECONE_API_KEY", "dummy-pinecone")
+    native_client, native_index = httpx2.AsyncClient, sdk.AsyncIndex
+    clients_created, index_lifetime = [], []
+
+    def client_factory(**kwargs):
+        # Inspect the production configuration, then redirect only the destination
+        # to the local wire fixture. Never send dummy credentials to a real provider.
+        assert kwargs == {
+            "base_url": "https://api.cohere.com",
+            "headers": {"Authorization": "Bearer dummy-cohere"},
+            "timeout": 30,
+            "follow_redirects": False,
+        }
+        kwargs["base_url"] = providers["host"]
+        client = native_client(**kwargs, trust_env=False)
+        clients_created.append(client)
+        return client
+
+    @asynccontextmanager
+    async def index_factory(**kwargs):
+        assert kwargs == {"host": "https://index.example.invalid", "api_key": "dummy-pinecone", "timeout": 30}
+        kwargs["host"] = providers["host"]
+        try:
+            async with native_index(**kwargs) as index:
+                index_lifetime.append("entered")
+                try:
+                    yield index
+                finally:
+                    index_lifetime.append("exiting")
+        finally:
+            index_lifetime.append("closed")
+
+    # Replace the recipe's module reference, not the shared HTTPX2 SDK module.
+    monkeypatch.setattr(recipe, "httpx2", SimpleNamespace(AsyncClient=client_factory))
+    monkeypatch.setattr(recipe, "AsyncIndex", index_factory)
+    args = SimpleNamespace(
+        input=source, host="https://index.example.invalid", namespace="tenant", model="chosen-v4", dimension=3
+    )
+    if failure:
+        providers["cohere_status"] = "429 Too Many Requests"
+        with pytest.raises(httpx2.HTTPStatusError):
+            await recipe.run(args)
+        assert providers["stored"] == {}
+    else:
+        report = await recipe.run(args)
+        assert report["completed_items"] == 2
+        assert set(providers["stored"]) == {"one", "two"}
+    assert len(clients_created) == 1 and clients_created[0].is_closed
+    assert index_lifetime == ["entered", "exiting", "closed"]
+    for _, path, _, headers, _ in providers["requests"]:
+        if path == "/v2/embed":
+            assert headers[b"authorization"] == b"Bearer dummy-cohere"
+        else:
+            assert headers[b"api-key"] == b"dummy-pinecone"
