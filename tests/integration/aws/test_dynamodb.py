@@ -67,3 +67,19 @@ async def test_dynamodb_batchers(
                 assert result == {"key1": str(i), "key2": str(i * 2), "value": i * 3}
             else:
                 assert result is None
+
+
+@pytest.mark.asyncio
+async def test_dynamodb_strongly_consistent_read(dynamodb_tables, dynamodb_aioboto3_session, write_batcher):
+    table = dynamodb_tables[0]
+    item = {"key": "consistent-read", "value": "written"}
+    await write_batcher.process(WriteOperation(table_name=table, operation="PUT", data=item))
+    reader = AsyncDynamoDbGetBatcher(
+        endpoint_url="http://localhost:8000",
+        aioboto3_session=dynamodb_aioboto3_session,
+        consistent_read=True,
+    )
+    try:
+        assert await reader.process(GetItem(table_name=table, key={"key": item["key"]})) == item
+    finally:
+        await reader.stop()

@@ -38,8 +38,10 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any] | None]):
             Defaults to 0.01.
         concurrency (int, optional): The max number of concurrent batches to process. Defaults to 1.
             If -1, it will process all batches concurrently.
+        consistent_read (bool, optional): Use strongly consistent reads for every table.
+            Defaults to False (eventually consistent reads).
         max_retries (int, optional): Number of retries for unprocessed requests, with exponential backoff.
-            Defaults to 5. Exhaustion raises DynamoDBRetryError; successful writes are not rolled back.
+            Defaults to 5. Exhaustion raises DynamoDBRetryError.
     """
 
     def __init__(
@@ -55,6 +57,7 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any] | None]):
         max_queue_time: float = 0.01,
         concurrency: int = 1,
         max_retries: int = 5,
+        consistent_read: bool = False,
         **kwargs,
     ):
         super().__init__(
@@ -62,6 +65,9 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any] | None]):
         )
         validate_max_retries(max_retries)
         self.max_retries = max_retries
+        if not isinstance(consistent_read, bool):
+            raise ValueError("consistent_read must be a boolean")
+        self.consistent_read = consistent_read
         if not 1 <= self.max_batch_size <= 100:
             raise ValueError("DynamoDB get max_batch_size must be between 1 and 100")
         self.region_name = region_name
@@ -103,8 +109,10 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any] | None]):
                     raise ValueError("DynamoDB key attributes must be strings, numbers, or binary values")
             if item.table_name not in request_items:
                 request_items[item.table_name] = {"Keys": []}
+                if self.consistent_read:
+                    request_items[item.table_name]["ConsistentRead"] = True
                 tables_keys[item.table_name] = key_names
-            # TODO: support ProjectionExpression and ConsistentRead
+            # TODO: support ProjectionExpression
             key = self._item_key(item.table_name, item.key, tables_keys[item.table_name])
             if key not in indexed_items:
                 request_items[item.table_name]["Keys"].append(item.key)
