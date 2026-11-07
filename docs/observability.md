@@ -40,6 +40,9 @@ completed but whose bookkeeping callbacks have not run yet are included in termi
 | Field | Meaning |
 | --- | --- |
 | `queued_items` | Entries waiting for collection, including a retained item that would exceed the preceding batch's cost limit. Includes already-cancelled requests until the dispatcher removes their entries. |
+| `admission_waiters` | Producers currently waiting for queue capacity. These are not accepted work. Cancellation, timeout, or shutdown removes each waiter when its admission coroutine exits. |
+| `oldest_pending_seconds` | Age since acceptance of the oldest unresolved result, or `None` when none remain. Includes partial batches and active processing; excludes admission waits and work whose callers already cancelled. |
+| `state` | `idle` before starting, `running` while the dispatcher is active, `stopping` during shutdown cleanup, and `stopped` after cleanup. A later submission restarts a stopped batcher. This does not track executor functions that outlive forced cancellation. |
 | `pending_items` | Accepted requests whose result futures are not terminal, including items currently collected into a partial batch. |
 | `in_flight_items` | Items in dispatched batch workers until their completion cleanup finishes. Includes requests whose callers have already cancelled. |
 | `active_batches` | Dispatched batch workers awaiting completion cleanup. |
@@ -62,7 +65,7 @@ but no pending results after its callers cancel. Cancellation describes the resu
 the caller: a synchronous backend function can still finish after forced shutdown. A cancelled
 request does not later become a success in these statistics. Work cancelled before admission is
 not accepted and contributes no terminal outcome or rejection. A producer waiting for capacity
-is not yet accepted and contributes to none of the work gauges.
+is not yet accepted and contributes only to `admission_waiters`.
 
 ## Receive completion events
 

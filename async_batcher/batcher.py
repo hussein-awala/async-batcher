@@ -181,6 +181,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self._running_batches: dict[int, asyncio.Task] = {}
         self._processing_tasks: set[asyncio.Task] = set()
         self._pending_futures: set[asyncio.Future] = set()
+        self._pending_since: dict[asyncio.Future, float] = {}
+        self._admission_waiters = 0
         self._concurrency_semaphore = asyncio.Semaphore(concurrency) if concurrency > 0 else None
         self._stop = asyncio.Event()
         self._is_running = asyncio.Event()
@@ -290,6 +292,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
 
     def _request_done(self, future: asyncio.Future) -> None:
         self._pending_futures.remove(future)
+        self._pending_since.pop(future)
         outcome = self._outcome(future)
         setattr(self, f"_{outcome}", getattr(self, f"_{outcome}") + 1)
 
@@ -303,12 +306,26 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         """
         outcomes = {"succeeded": self._succeeded, "failed": self._failed, "cancelled": self._cancelled}
         pending = 0
+        oldest = None
         for future in self._pending_futures:
             if future.done():
                 outcomes[self._outcome(future)] += 1
             else:
                 pending += 1
+                accepted_at = self._pending_since[future]
+                oldest = accepted_at if oldest is None else min(oldest, accepted_at)
+        active = (self._current_task is not None and not self._current_task.done()) or bool(
+            self._running_batches
+        )
+        state = (
+            ("stopping" if active else "stopped")
+            if self._stop.is_set()
+            else ("running" if active else "idle")
+        )
         return BatcherStats(
+            admission_waiters=self._admission_waiters,
+            oldest_pending_seconds=None if oldest is None else self._loop.time() - oldest,
+            state=state,
             queued_items=self._queued_count(),
             pending_items=pending,
             in_flight_items=self._in_flight_items,
@@ -444,16 +461,21 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             if not wait_for_space:
                 self._rejected += 1
                 raise QueueFullException("The queue is full, cannot process more items at the moment.")
+            self._admission_waiters += 1
             try:
                 async with asyncio.timeout(enqueue_timeout):
                     await self._wait_for_queue_space(self._shutdown_generation)
             except (TimeoutError, RuntimeError):
                 self._rejected += 1
                 raise
+            finally:
+                self._admission_waiters -= 1
         future = loop.create_future()
         self._pending_futures.add(future)
+        accepted_at = loop.time()
+        self._pending_since[future] = accepted_at
         future.add_done_callback(self._request_done)
-        self._queue.put_nowait(self.QueueItem(item, future, loop.time(), cost))
+        self._queue.put_nowait(self.QueueItem(item, future, accepted_at, cost))
         self._accepted += 1
         self._queue_changed.set()
         if self._current_task is None:
