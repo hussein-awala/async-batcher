@@ -80,6 +80,7 @@ Existing [subclasses](docs/api.md) and adapters support the same managed lifecyc
 - [Grouped batching](docs/grouped-batching.md): isolate compatible requests with bounded child ownership.
 - [Cookbook](docs/cookbook.md): runnable SQLite imports, embedding pipelines, and measured batch sizes.
 - [FastAPI recipe](docs/fastapi-recipe.md): lifespan-managed predictions, SQLite writes, and HTTP overload handling.
+- [Operational recipes](docs/operations.md): separate deadlines, shared backend capacity, thread lifetime, and bounded telemetry.
 - [Core API and lifecycle](docs/api.md): limits, result mapping, errors, shutdown, restart, and executors.
 - [Contributing](CONTRIBUTING.md): locked development environments, test selection, integration services, and CI.
 - [Benchmarks](BENCHMARK.md): reproducible core measurements and archived application results.

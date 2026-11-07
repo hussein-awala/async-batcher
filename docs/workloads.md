@@ -27,7 +27,7 @@ transactional, enforce a request-rate limit, or persist queued work across a pro
 
 | Workload | First configuration decisions |
 | --- | --- |
-| Interactive HTTP/RPC | Choose a short collection delay from the latency budget, a finite waiting queue, and an explicit overload response. Account for backend time separately. See [FastAPI](fastapi-recipe.md). |
+| Interactive HTTP/RPC | Choose a short collection delay from the latency budget, a finite waiting queue, and an explicit overload response. Account for backend time separately. See [FastAPI](fastapi-recipe.md) and [operational deadlines](operations.md). |
 | File or message stream | Bound `map(max_pending=...)`, keep the source lazy, and consume results as they arrive. Choose ordered results only if needed. See the [cookbook](cookbook.md). |
 | Database writes | Respect the adapter's transaction boundaries. Use stable record IDs and define replay behavior; concurrency can reorder commits. |
 | Model inference | Group compatible model/input shapes and reserve memory for padding and outputs. A token count is an estimate, not a GPU memory measurement. |
@@ -93,6 +93,8 @@ Keep client/model/executor contexts outside the batcher context so they outlive 
 context exit drains without an implicit timeout. Forced cancellation cannot interrupt an already
 running Python thread or prove that an external write did not happen; preserve those resources
 until their actual work has ended. See [lifecycle and executors](api.md).
+The [operational recipes](operations.md) demonstrate bounded drain/escalation, one backend capacity
+limit across groups, and a telemetry exporter with explicit overflow accounting.
 
 For an unsupported workload, open a [use-case issue](https://github.com/hussein-awala/async-batcher/issues/new?template=use-case.md)
 with a small payload example, backend limits, failure semantics, and measured requirements.
