@@ -8,6 +8,9 @@ See [installation](../README.md#install) and run the commands from the repositor
 uv sync --locked --no-default-groups --python 3.12
 ```
 
+For an HTTP application, the separate [FastAPI recipe](fastapi-recipe.md) uses an optional development
+group and demonstrates lifespan-managed prediction and SQLite batchers with real HTTP tests.
+
 ## Import a file or async stream into SQLite
 
 [The SQLite recipe](../examples/recipes/sqlite_stream.py) wraps a synchronous bulk writer with
