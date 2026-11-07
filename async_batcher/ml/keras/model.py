@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING
 
 from async_batcher.batcher import AsyncBatcher
@@ -11,7 +12,10 @@ if TYPE_CHECKING:
 
 
 class KerasAsyncBatcher(AsyncBatcher):
-    """Batcher for Keras models with one dense input per sample.
+    """Batcher for dense Keras models on Python 3.11 and newer.
+
+    The keras extra requires Keras 3.15.1 or newer and a separately installed
+    backend. Core batching remains available on Python 3.10.
 
     Samples are combined along a new batch axis. List, tuple, and dictionary outputs
     retain their structure for each request. Override process_batch for models
@@ -43,6 +47,8 @@ class KerasAsyncBatcher(AsyncBatcher):
         executor: Executor | None = None,
         **kwargs,
     ):
+        if sys.version_info < (3, 11):
+            raise RuntimeError("KerasAsyncBatcher requires Python 3.11 or newer for supported Keras releases")
         super().__init__(
             max_batch_size=max_batch_size,
             max_queue_time=max_queue_time,
