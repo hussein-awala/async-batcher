@@ -6,6 +6,8 @@ from unittest import mock
 import pytest
 from async_batcher.batcher import AsyncBatcher
 
+pytest_plugins = ["tests.core_helpers"]
+
 
 def pytest_runtest_setup(item):
     def _has_marker(item, marker_name: str) -> bool:
