@@ -28,7 +28,7 @@ transactional, enforce a request-rate limit, or persist queued work across a pro
 | Workload | First configuration decisions |
 | --- | --- |
 | Interactive HTTP/RPC | Choose a short collection delay from the latency budget, a finite waiting queue, and an explicit overload response. Account for backend time separately. See [FastAPI](fastapi-recipe.md) and [operational deadlines](operations.md). |
-| File or message stream | Bound `map(max_pending=...)`, keep the source lazy, and consume results as they arrive. Choose ordered results only if needed. See the [cookbook](cookbook.md). |
+| File or message stream | For broker deliveries, see [acknowledgement and replay](acknowledged-consumer.md). Bound `map(max_pending=...)`, keep the source lazy, and consume results as they arrive. Choose ordered results only if needed. See the [cookbook](cookbook.md). |
 | Database writes | Respect the adapter's transaction boundaries. Use stable record IDs and define replay behavior; concurrency can reorder commits. |
 | Model inference | [Collate variable-length inputs](variable-length-inference.md), group compatible model/input shapes, and reserve memory for padding and outputs. A token count is an estimate, not a GPU memory measurement. |
 | Embedding pipeline | Bound both stages and keep IDs attached to vectors. Validate model dimensions and the destination namespace before writing. |

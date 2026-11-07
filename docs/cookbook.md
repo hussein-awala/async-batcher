@@ -156,3 +156,8 @@ splitting them into a different logical operation.
 - [Statistics and completion events](observability.md)
 - [Groups of compatible requests](grouped-batching.md)
 - [Complete API and shutdown contracts](api.md)
+
+## Consume acknowledged messages
+
+See the [acknowledged-consumer recipe](acknowledged-consumer.md) for atomic SQLite receipts and
+effects, stable message identity versus delivery tokens, bounded intake, and a real crash/replay test.
