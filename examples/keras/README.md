@@ -1,6 +1,8 @@
 # Async Batcher with Keras model and FastAPI
 
-Requires Python 3.11+ and Keras 3.15.1+; the requirements file excludes older Keras releases.
+Use Python 3.11–3.13 for this TensorFlow example. TensorFlow 2.21 does not publish wheels for
+Python 3.14 or 3.15; the core library supports those versions independently.
+The requirements file installs TensorFlow 2.21+ and Keras 3.15.1+.
 
 
 This example shows how to use the `async_batcher` library with FastAPI to process data
