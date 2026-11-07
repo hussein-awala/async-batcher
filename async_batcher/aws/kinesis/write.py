@@ -42,7 +42,7 @@ class AsyncKinesisBatcher(AsyncBatcher[KinesisRecord, dict[str, Any]]):
         **kwargs: Any,
     ):
         super().__init__(max_batch_size=max_batch_size, **kwargs)
-        validate_options(max_batch_size, max_retries)
+        validate_options(self.max_batch_size, max_retries)
         if (stream_name is None) == (stream_arn is None):
             raise ValueError("provide exactly one of stream_name or stream_arn")
         value = stream_name if stream_name is not None else stream_arn
