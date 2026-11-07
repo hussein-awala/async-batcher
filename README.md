@@ -59,7 +59,7 @@ automatically. Stop the batcher before closing its clients, model resources, or 
 
 - [Core API and lifecycle](docs/api.md): limits, result mapping, errors, shutdown, restart, and executors.
 - [Contributing](CONTRIBUTING.md): locked development environments, test selection, integration services, and CI.
-- [Historical benchmarks](BENCHMARK.md): archived measurements and their limitations.
+- [Benchmarks](BENCHMARK.md): reproducible core measurements and archived application results.
 - [Security reporting](SECURITY.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Optional adapters

@@ -17,6 +17,10 @@ comparing results. Async sleeps and thread sleeps model a fixed-cost bulk operat
 predict the performance of a particular external service. No machine-dependent throughput gate
 is enforced in CI.
 
+The [7 November 2026 core report](benchmarks/results/2026-11-07-core-macos.md) includes a controlled
+run on macOS/CPython 3.12, all trial metrics, variation between repetitions, and interpretation
+limits. It measures the synthetic core workload, separately from the archived application runs.
+
 ## Historical application benchmarks
 
 These are archived measurements from February/March 2024, originally labelled v0.1.0 and v0.2.0.

@@ -1,0 +1,2430 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-11-07T17:28:03.280525+00:00",
+  "environment": {
+    "commit": "9d80bc646c22834c00d1aea6d46eb0178f3a69f6",
+    "working_tree_dirty": false,
+    "python": "3.12.16 (main, Oct 25 2026, 18:24:37) [Clang 21.0.0 (clang-2100.3.34.2)]",
+    "implementation": "CPython",
+    "platform": "macOS-27.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "logical_cpu_count": 12,
+    "packages": {
+      "async-batcher": "0.0.1"
+    }
+  },
+  "config": {
+    "requests": 2048,
+    "warmup": 256,
+    "repetitions": 3,
+    "outstanding": 128,
+    "batch_sizes": [
+      1,
+      8,
+      32
+    ],
+    "concurrencies": [
+      1,
+      4
+    ],
+    "workloads": [
+      "async",
+      "thread"
+    ],
+    "fixed_delay": 0.001,
+    "per_item_delay": 2e-05,
+    "queue_time": 0.001,
+    "lag_interval": 0.001,
+    "timeout": 30.0,
+    "seed": 42
+  },
+  "trial_order": [
+    {
+      "case": "async/batch-32/concurrency-4",
+      "phase": 1
+    },
+    {
+      "case": "thread/batch-1/concurrency-1",
+      "phase": 1
+    },
+    {
+      "case": "async/batch-1/concurrency-4",
+      "phase": 1
+    },
+    {
+      "case": "async/batch-8/concurrency-4",
+      "phase": 1
+    },
+    {
+      "case": "thread/batch-8/concurrency-4",
+      "phase": 1
+    },
+    {
+      "case": "thread/batch-8/concurrency-1",
+      "phase": 1
+    },
+    {
+      "case": "thread/direct/concurrency-4",
+      "phase": 1
+    },
+    {
+      "case": "thread/direct/concurrency-1",
+      "phase": 1
+    },
+    {
+      "case": "async/batch-1/concurrency-1",
+      "phase": 1
+    },
+    {
+      "case": "async/batch-8/concurrency-1",
+      "phase": 1
+    },
+    {
+      "case": "thread/batch-1/concurrency-4",
+      "phase": 1
+    },
+    {
+      "case": "thread/batch-32/concurrency-4",
+      "phase": 1
+    },
+    {
+      "case": "async/direct/concurrency-4",
+      "phase": 1
+    },
+    {
+      "case": "thread/batch-32/concurrency-1",
+      "phase": 1
+    },
+    {
+      "case": "async/direct/concurrency-1",
+      "phase": 1
+    },
+    {
+      "case": "async/batch-32/concurrency-1",
+      "phase": 1
+    },
+    {
+      "case": "thread/batch-1/concurrency-1",
+      "phase": 2
+    },
+    {
+      "case": "thread/direct/concurrency-1",
+      "phase": 2
+    },
+    {
+      "case": "thread/batch-1/concurrency-4",
+      "phase": 2
+    },
+    {
+      "case": "async/direct/concurrency-1",
+      "phase": 2
+    },
+    {
+      "case": "async/batch-8/concurrency-4",
+      "phase": 2
+    },
+    {
+      "case": "async/batch-32/concurrency-1",
+      "phase": 2
+    },
+    {
+      "case": "thread/batch-8/concurrency-4",
+      "phase": 2
+    },
+    {
+      "case": "thread/batch-8/concurrency-1",
+      "phase": 2
+    },
+    {
+      "case": "thread/batch-32/concurrency-4",
+      "phase": 2
+    },
+    {
+      "case": "async/batch-1/concurrency-4",
+      "phase": 2
+    },
+    {
+      "case": "async/batch-32/concurrency-4",
+      "phase": 2
+    },
+    {
+      "case": "async/batch-8/concurrency-1",
+      "phase": 2
+    },
+    {
+      "case": "thread/direct/concurrency-4",
+      "phase": 2
+    },
+    {
+      "case": "thread/batch-32/concurrency-1",
+      "phase": 2
+    },
+    {
+      "case": "async/direct/concurrency-4",
+      "phase": 2
+    },
+    {
+      "case": "async/batch-1/concurrency-1",
+      "phase": 2
+    },
+    {
+      "case": "async/batch-1/concurrency-4",
+      "phase": 3
+    },
+    {
+      "case": "thread/batch-8/concurrency-1",
+      "phase": 3
+    },
+    {
+      "case": "thread/batch-32/concurrency-4",
+      "phase": 3
+    },
+    {
+      "case": "async/batch-32/concurrency-4",
+      "phase": 3
+    },
+    {
+      "case": "thread/batch-1/concurrency-1",
+      "phase": 3
+    },
+    {
+      "case": "thread/direct/concurrency-4",
+      "phase": 3
+    },
+    {
+      "case": "async/direct/concurrency-1",
+      "phase": 3
+    },
+    {
+      "case": "async/direct/concurrency-4",
+      "phase": 3
+    },
+    {
+      "case": "async/batch-32/concurrency-1",
+      "phase": 3
+    },
+    {
+      "case": "async/batch-8/concurrency-4",
+      "phase": 3
+    },
+    {
+      "case": "async/batch-8/concurrency-1",
+      "phase": 3
+    },
+    {
+      "case": "async/batch-1/concurrency-1",
+      "phase": 3
+    },
+    {
+      "case": "thread/batch-32/concurrency-1",
+      "phase": 3
+    },
+    {
+      "case": "thread/batch-8/concurrency-4",
+      "phase": 3
+    },
+    {
+      "case": "thread/direct/concurrency-1",
+      "phase": 3
+    },
+    {
+      "case": "thread/batch-1/concurrency-4",
+      "phase": 3
+    },
+    {
+      "case": "thread/batch-8/concurrency-4",
+      "phase": "memory"
+    },
+    {
+      "case": "thread/batch-1/concurrency-4",
+      "phase": "memory"
+    },
+    {
+      "case": "thread/batch-8/concurrency-1",
+      "phase": "memory"
+    },
+    {
+      "case": "async/batch-8/concurrency-1",
+      "phase": "memory"
+    },
+    {
+      "case": "thread/batch-1/concurrency-1",
+      "phase": "memory"
+    },
+    {
+      "case": "thread/batch-32/concurrency-4",
+      "phase": "memory"
+    },
+    {
+      "case": "async/batch-32/concurrency-1",
+      "phase": "memory"
+    },
+    {
+      "case": "thread/batch-32/concurrency-1",
+      "phase": "memory"
+    },
+    {
+      "case": "async/direct/concurrency-1",
+      "phase": "memory"
+    },
+    {
+      "case": "async/batch-1/concurrency-4",
+      "phase": "memory"
+    },
+    {
+      "case": "thread/direct/concurrency-4",
+      "phase": "memory"
+    },
+    {
+      "case": "async/batch-1/concurrency-1",
+      "phase": "memory"
+    },
+    {
+      "case": "async/direct/concurrency-4",
+      "phase": "memory"
+    },
+    {
+      "case": "async/batch-32/concurrency-4",
+      "phase": "memory"
+    },
+    {
+      "case": "async/batch-8/concurrency-4",
+      "phase": "memory"
+    },
+    {
+      "case": "thread/direct/concurrency-1",
+      "phase": "memory"
+    }
+  ],
+  "cases": {
+    "async/direct/concurrency-1": {
+      "case": {
+        "workload": "async",
+        "concurrency": 1,
+        "batch_size": null
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 0,
+          "batch_worker_tasks_created": 0,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 2.3957257919828407,
+          "requests_per_second": 854.855763065003,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 149.84695799648762,
+            "p95": 151.86452498019207,
+            "p99": 152.61745771684218,
+            "max": 153.19550002459437
+          },
+          "event_loop_lag_ms": {
+            "samples": 2051,
+            "p50": 0.15929201617836952,
+            "p95": 0.21135451970621943,
+            "p99": 0.2837710198946297,
+            "max": 1.1098749819211662
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 0,
+          "batch_worker_tasks_created": 0,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 2.4372625409741886,
+          "requests_per_second": 840.2869881967669,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 151.22785448329523,
+            "p95": 161.17988354235422,
+            "p99": 170.4268312396016,
+            "max": 170.86158297024667
+          },
+          "event_loop_lag_ms": {
+            "samples": 2051,
+            "p50": 0.16729097114875913,
+            "p95": 0.237437488976866,
+            "p99": 0.45179203152656555,
+            "max": 5.128459015395492
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 0,
+          "batch_worker_tasks_created": 0,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 2.429498541983776,
+          "requests_per_second": 842.9723107912351,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 151.59639550256543,
+            "p95": 155.21716040093452,
+            "p99": 156.3103664625669,
+            "max": 157.0962500409223
+          },
+          "event_loop_lag_ms": {
+            "samples": 2051,
+            "p50": 0.1763339969329536,
+            "p95": 0.2317710022907704,
+            "p99": 0.32458300120197237,
+            "max": 4.89170802757144
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 0,
+        "batch_worker_tasks_created": 0,
+        "executor_thread_limit": 0,
+        "elapsed_seconds": 2.501775916025508,
+        "requests_per_second": 818.6184809283768,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 154.5749170181807,
+          "p95": 164.8368853784632,
+          "p99": 166.2281880027149,
+          "max": 166.77645803429186
+        },
+        "event_loop_lag_ms": {
+          "samples": 2104,
+          "p50": 0.1762080064509064,
+          "p95": 0.26077060902025545,
+          "p99": 0.34617022145539494,
+          "max": 2.0895409979857504
+        },
+        "operation_calls": 2048,
+        "batch_items": {
+          "min": 1,
+          "max": 1,
+          "mean": 1.0
+        },
+        "peak_traced_bytes": 338924
+      }
+    },
+    "async/batch-1/concurrency-1": {
+      "case": {
+        "workload": "async",
+        "concurrency": 1,
+        "batch_size": 1
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 2048,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 2.4429672909900546,
+          "requests_per_second": 838.3247731368572,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 151.03129149065353,
+            "p95": 160.4224517766852,
+            "p99": 163.7874717678642,
+            "max": 164.22612505266443
+          },
+          "event_loop_lag_ms": {
+            "samples": 2144,
+            "p50": 0.14252049732021987,
+            "p95": 0.18235627503599972,
+            "p99": 0.2793848398141565,
+            "max": 3.837584052234888
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 2048,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 2.555123124970123,
+          "requests_per_second": 801.5269322976156,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 161.92002102616243,
+            "p95": 167.69450220745057,
+            "p99": 171.43147701979615,
+            "max": 173.69333299575374
+          },
+          "event_loop_lag_ms": {
+            "samples": 2240,
+            "p50": 0.14154153177514672,
+            "p95": 0.1970187382539733,
+            "p99": 0.2604006102774292,
+            "max": 3.3235420123673975
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 2048,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 2.5571102920221165,
+          "requests_per_second": 800.9040542324354,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 159.13647899287753,
+            "p95": 167.033204503241,
+            "p99": 167.79092602082528,
+            "max": 168.11933397548273
+          },
+          "event_loop_lag_ms": {
+            "samples": 2256,
+            "p50": 0.13843699707649648,
+            "p95": 0.1964482362382114,
+            "p99": 0.2596936159534379,
+            "max": 0.8381250081583858
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 1,
+        "batch_worker_tasks_created": 2048,
+        "executor_thread_limit": 0,
+        "elapsed_seconds": 2.957021625014022,
+        "requests_per_second": 692.5887801007503,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 186.47762498585507,
+          "p95": 200.48355000908487,
+          "p99": 202.10117000213359,
+          "max": 202.6257910183631
+        },
+        "event_loop_lag_ms": {
+          "samples": 2515,
+          "p50": 0.15412498032674193,
+          "p95": 0.32834571902640153,
+          "p99": 0.4386504797730601,
+          "max": 2.5237920344807208
+        },
+        "operation_calls": 2048,
+        "batch_items": {
+          "min": 1,
+          "max": 1,
+          "mean": 1.0
+        },
+        "peak_traced_bytes": 374724
+      }
+    },
+    "async/batch-8/concurrency-1": {
+      "case": {
+        "workload": "async",
+        "concurrency": 1,
+        "batch_size": 8
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 256,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.38475629198364913,
+          "requests_per_second": 5322.849925185975,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 23.495270987041295,
+            "p95": 26.227002195082605,
+            "p99": 26.445554512902163,
+            "max": 26.70145803131163
+          },
+          "event_loop_lag_ms": {
+            "samples": 339,
+            "p50": 0.13429101090878248,
+            "p95": 0.21866663009859616,
+            "p99": 0.2933705644682051,
+            "max": 0.362291990313679
+          },
+          "operation_calls": 256,
+          "batch_items": {
+            "min": 8,
+            "max": 8,
+            "mean": 8.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 256,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.3845437919953838,
+          "requests_per_second": 5325.791347125908,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 23.498728492995724,
+            "p95": 27.52922886866145,
+            "p99": 28.483740736846812,
+            "max": 28.607749962247908
+          },
+          "event_loop_lag_ms": {
+            "samples": 335,
+            "p50": 0.13279198901727796,
+            "p95": 0.2674045274034144,
+            "p99": 0.598478921456263,
+            "max": 0.7814589771442115
+          },
+          "operation_calls": 256,
+          "batch_items": {
+            "min": 8,
+            "max": 8,
+            "mean": 8.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 256,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.3936310830176808,
+          "requests_per_second": 5202.841158527132,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 24.697145505342633,
+            "p95": 25.933714682469144,
+            "p99": 26.7910390032921,
+            "max": 27.12166600394994
+          },
+          "event_loop_lag_ms": {
+            "samples": 342,
+            "p50": 0.1382505288347602,
+            "p95": 0.25250423059333116,
+            "p99": 0.41363266354892014,
+            "max": 1.005625061225146
+          },
+          "operation_calls": 256,
+          "batch_items": {
+            "min": 8,
+            "max": 8,
+            "mean": 8.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 1,
+        "batch_worker_tasks_created": 256,
+        "executor_thread_limit": 0,
+        "elapsed_seconds": 0.4749207079876214,
+        "requests_per_second": 4312.298801789414,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 28.918937518028542,
+          "p95": 41.93222272733692,
+          "p99": 44.31016630202066,
+          "max": 44.58666703430936
+        },
+        "event_loop_lag_ms": {
+          "samples": 380,
+          "p50": 0.17316601588390768,
+          "p95": 0.4276548192137853,
+          "p99": 0.8392357575939936,
+          "max": 15.143125026952475
+        },
+        "operation_calls": 256,
+        "batch_items": {
+          "min": 8,
+          "max": 8,
+          "mean": 8.0
+        },
+        "peak_traced_bytes": 310068
+      }
+    },
+    "async/batch-32/concurrency-1": {
+      "case": {
+        "workload": "async",
+        "concurrency": 1,
+        "batch_size": 32
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 64,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.13745533401379362,
+          "requests_per_second": 14899.385423591373,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 8.531500498065725,
+            "p95": 9.240204413072206,
+            "p99": 9.440967731061392,
+            "max": 9.502667002379894
+          },
+          "event_loop_lag_ms": {
+            "samples": 120,
+            "p50": 0.1474164891988039,
+            "p95": 0.26225836190860713,
+            "p99": 0.4550142993684859,
+            "max": 0.6590000120922923
+          },
+          "operation_calls": 64,
+          "batch_items": {
+            "min": 32,
+            "max": 32,
+            "mean": 32.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 64,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.14179224998224527,
+          "requests_per_second": 14443.666704325826,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 8.731395995710045,
+            "p95": 9.209372597979382,
+            "p99": 9.334052707417868,
+            "max": 9.401415998581797
+          },
+          "event_loop_lag_ms": {
+            "samples": 123,
+            "p50": 0.15950005035847425,
+            "p95": 0.29858358320780093,
+            "p99": 0.4206885083112866,
+            "max": 0.5352500593289733
+          },
+          "operation_calls": 64,
+          "batch_items": {
+            "min": 32,
+            "max": 32,
+            "mean": 32.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 64,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.13222533301450312,
+          "requests_per_second": 15488.711227336182,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 7.9519160208292305,
+            "p95": 9.080689228721894,
+            "p99": 9.35018127260264,
+            "max": 9.440957976039499
+          },
+          "event_loop_lag_ms": {
+            "samples": 116,
+            "p50": 0.1460420317016542,
+            "p95": 0.21323903638403863,
+            "p99": 0.3577340045012527,
+            "max": 0.7440000190399587
+          },
+          "operation_calls": 64,
+          "batch_items": {
+            "min": 32,
+            "max": 32,
+            "mean": 32.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 1,
+        "batch_worker_tasks_created": 64,
+        "executor_thread_limit": 0,
+        "elapsed_seconds": 0.1560105420066975,
+        "requests_per_second": 13127.318023881231,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 9.623062505852431,
+          "p95": 10.444331445614806,
+          "p99": 10.701005515293218,
+          "max": 10.79650002066046
+        },
+        "event_loop_lag_ms": {
+          "samples": 128,
+          "p50": 0.17625003238208592,
+          "p95": 0.3353795385919511,
+          "p99": 0.5888400110416117,
+          "max": 0.8296670275740325
+        },
+        "operation_calls": 64,
+        "batch_items": {
+          "min": 32,
+          "max": 32,
+          "mean": 32.0
+        },
+        "peak_traced_bytes": 307604
+      }
+    },
+    "async/direct/concurrency-4": {
+      "case": {
+        "workload": "async",
+        "concurrency": 4,
+        "batch_size": null
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 0,
+          "batch_worker_tasks_created": 0,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.5918927919701673,
+          "requests_per_second": 3460.086062516578,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 36.944354011211544,
+            "p95": 37.44221468223259,
+            "p99": 37.578358507016674,
+            "max": 37.71012503420934
+          },
+          "event_loop_lag_ms": {
+            "samples": 512,
+            "p50": 0.1506870030425489,
+            "p95": 0.18469186034053564,
+            "p99": 0.2763911249348893,
+            "max": 0.3280420205555856
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 0,
+          "batch_worker_tasks_created": 0,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.5997432089643553,
+          "requests_per_second": 3414.7948144948805,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 37.345291464589536,
+            "p95": 38.194368648692034,
+            "p99": 38.62929473281838,
+            "max": 38.96129201166332
+          },
+          "event_loop_lag_ms": {
+            "samples": 518,
+            "p50": 0.15489550423808396,
+            "p95": 0.21070178190711883,
+            "p99": 0.33373999001923943,
+            "max": 0.471249979455024
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 0,
+          "batch_worker_tasks_created": 0,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.5962997499736957,
+          "requests_per_second": 3434.5142691915307,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 36.932353978045285,
+            "p95": 39.57261489413213,
+            "p99": 40.67769572837278,
+            "max": 40.73195799719542
+          },
+          "event_loop_lag_ms": {
+            "samples": 516,
+            "p50": 0.1526250271126628,
+            "p95": 0.1835827570175752,
+            "p99": 0.23329365649260586,
+            "max": 0.7498750346712768
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 0,
+        "batch_worker_tasks_created": 0,
+        "executor_thread_limit": 0,
+        "elapsed_seconds": 0.6233674999675713,
+        "requests_per_second": 3285.3814164301803,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 38.41154201654717,
+          "p95": 39.51749375264626,
+          "p99": 39.732450263691135,
+          "max": 39.982540998607874
+        },
+        "event_loop_lag_ms": {
+          "samples": 539,
+          "p50": 0.12879102723672986,
+          "p95": 0.19819940207526088,
+          "p99": 0.3096158988773824,
+          "max": 11.718499998096377
+        },
+        "operation_calls": 2048,
+        "batch_items": {
+          "min": 1,
+          "max": 1,
+          "mean": 1.0
+        },
+        "peak_traced_bytes": 295316
+      }
+    },
+    "async/batch-1/concurrency-4": {
+      "case": {
+        "workload": "async",
+        "concurrency": 4,
+        "batch_size": 1
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 2048,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.6207807500031777,
+          "requests_per_second": 3299.0713709945367,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 38.23179149185307,
+            "p95": 41.25002908986062,
+            "p99": 41.52075573569164,
+            "max": 41.79874999681488
+          },
+          "event_loop_lag_ms": {
+            "samples": 560,
+            "p50": 0.10900050983764231,
+            "p95": 0.15938127180561423,
+            "p99": 0.2475190639961508,
+            "max": 0.4434579750522971
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 2048,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.6420312499976717,
+          "requests_per_second": 3189.8758822213513,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 38.573937490582466,
+            "p95": 44.244793863617815,
+            "p99": 44.7405762510607,
+            "max": 44.99387496616691
+          },
+          "event_loop_lag_ms": {
+            "samples": 573,
+            "p50": 0.11529203038662672,
+            "p95": 0.2105166087858379,
+            "p99": 0.346884569153189,
+            "max": 0.582417007535696
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 2048,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.6392204170115292,
+          "requests_per_second": 3203.902668777023,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 37.9269374825526,
+            "p95": 49.849431164329864,
+            "p99": 51.34543198510073,
+            "max": 51.74074997194111
+          },
+          "event_loop_lag_ms": {
+            "samples": 563,
+            "p50": 0.11762505164369941,
+            "p95": 0.22404608898796136,
+            "p99": 0.5781059525907036,
+            "max": 3.5317500005476177
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 1,
+        "batch_worker_tasks_created": 2048,
+        "executor_thread_limit": 0,
+        "elapsed_seconds": 0.6818431669962592,
+        "requests_per_second": 3003.62326577548,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 42.40027102059685,
+          "p95": 43.68336229235865,
+          "p99": 43.80074326880276,
+          "max": 43.90508303185925
+        },
+        "event_loop_lag_ms": {
+          "samples": 607,
+          "p50": 0.11120899580419064,
+          "p95": 0.19653771887533347,
+          "p99": 0.2956495143007487,
+          "max": 2.894208999350667
+        },
+        "operation_calls": 2048,
+        "batch_items": {
+          "min": 1,
+          "max": 1,
+          "mean": 1.0
+        },
+        "peak_traced_bytes": 324072
+      }
+    },
+    "async/batch-8/concurrency-4": {
+      "case": {
+        "workload": "async",
+        "concurrency": 4,
+        "batch_size": 8
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 256,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.1101795409922488,
+          "requests_per_second": 18587.84291127223,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 6.860646011773497,
+            "p95": 7.297029401524924,
+            "p99": 7.394933984614909,
+            "max": 7.512124953791499
+          },
+          "event_loop_lag_ms": {
+            "samples": 95,
+            "p50": 0.15304202679544687,
+            "p95": 0.31417852151207615,
+            "p99": 0.5449819867499175,
+            "max": 0.6360830157063901
+          },
+          "operation_calls": 256,
+          "batch_items": {
+            "min": 8,
+            "max": 8,
+            "mean": 8.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 256,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.10728691599797457,
+          "requests_per_second": 19089.000564045138,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 6.675625016214326,
+            "p95": 7.3003522789804265,
+            "p99": 7.570224255905487,
+            "max": 7.62220798060298
+          },
+          "event_loop_lag_ms": {
+            "samples": 93,
+            "p50": 0.11858303332701325,
+            "p95": 0.3022836055606603,
+            "p99": 0.5021486058831214,
+            "max": 0.5723750218749046
+          },
+          "operation_calls": 256,
+          "batch_items": {
+            "min": 8,
+            "max": 8,
+            "mean": 8.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 256,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.10423945897491649,
+          "requests_per_second": 19647.07050612012,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 6.256895983824506,
+            "p95": 7.287310319952666,
+            "p99": 7.646481993142515,
+            "max": 7.703249983023852
+          },
+          "event_loop_lag_ms": {
+            "samples": 91,
+            "p50": 0.12008304474875331,
+            "p95": 0.22397853899747133,
+            "p99": 0.3543212020304025,
+            "max": 0.815833976957947
+          },
+          "operation_calls": 256,
+          "batch_items": {
+            "min": 8,
+            "max": 8,
+            "mean": 8.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 1,
+        "batch_worker_tasks_created": 256,
+        "executor_thread_limit": 0,
+        "elapsed_seconds": 0.10770537500502542,
+        "requests_per_second": 19014.835609684684,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 6.560832989634946,
+          "p95": 7.151301635894924,
+          "p99": 7.331964750774205,
+          "max": 7.387124991510063
+        },
+        "event_loop_lag_ms": {
+          "samples": 91,
+          "p50": 0.13741699513047934,
+          "p95": 0.33558299764990807,
+          "p99": 0.5073878157418206,
+          "max": 0.7467499817721546
+        },
+        "operation_calls": 256,
+        "batch_items": {
+          "min": 8,
+          "max": 8,
+          "mean": 8.0
+        },
+        "peak_traced_bytes": 311120
+      }
+    },
+    "async/batch-32/concurrency-4": {
+      "case": {
+        "workload": "async",
+        "concurrency": 4,
+        "batch_size": 32
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 64,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.035449374991003424,
+          "requests_per_second": 57772.5277390576,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 2.1996244904585183,
+            "p95": 2.3072353011230007,
+            "p99": 2.312708005774766,
+            "max": 2.3141250130720437
+          },
+          "event_loop_lag_ms": {
+            "samples": 31,
+            "p50": 0.145500001963228,
+            "p95": 0.19458349561318755,
+            "p99": 0.3511001064907758,
+            "max": 0.41787500958889723
+          },
+          "operation_calls": 64,
+          "batch_items": {
+            "min": 32,
+            "max": 32,
+            "mean": 32.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 64,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.05128904199227691,
+          "requests_per_second": 39930.55671245307,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 3.1377295090351254,
+            "p95": 3.556554473470896,
+            "p99": 3.8223912671674043,
+            "max": 3.861708042677492
+          },
+          "event_loop_lag_ms": {
+            "samples": 32,
+            "p50": 0.20652104285545647,
+            "p95": 1.1625372193520889,
+            "p99": 1.462446732912213,
+            "max": 1.59016705583781
+          },
+          "operation_calls": 64,
+          "batch_items": {
+            "min": 32,
+            "max": 32,
+            "mean": 32.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 64,
+          "executor_thread_limit": 0,
+          "elapsed_seconds": 0.04196437500650063,
+          "requests_per_second": 48803.30041094971,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 2.493770996807143,
+            "p95": 3.3602356619667257,
+            "p99": 3.6836545169353485,
+            "max": 3.7235000054351985
+          },
+          "event_loop_lag_ms": {
+            "samples": 32,
+            "p50": 0.18104200717061758,
+            "p95": 0.4899918567389248,
+            "p99": 1.281423484324479,
+            "max": 1.5797079540789127
+          },
+          "operation_calls": 64,
+          "batch_items": {
+            "min": 32,
+            "max": 32,
+            "mean": 32.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 1,
+        "batch_worker_tasks_created": 64,
+        "executor_thread_limit": 0,
+        "elapsed_seconds": 0.04413508396828547,
+        "requests_per_second": 46402.993171410955,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 2.315145538887009,
+          "p95": 3.7897977977991104,
+          "p99": 4.392543522408232,
+          "max": 4.465207981411368
+        },
+        "event_loop_lag_ms": {
+          "samples": 32,
+          "p50": 0.17724951612763107,
+          "p95": 1.6279357601888476,
+          "p99": 1.7681838385760784,
+          "max": 1.7722910270094872
+        },
+        "operation_calls": 64,
+        "batch_items": {
+          "min": 32,
+          "max": 32,
+          "mean": 32.0
+        },
+        "peak_traced_bytes": 313584
+      }
+    },
+    "thread/direct/concurrency-1": {
+      "case": {
+        "workload": "thread",
+        "concurrency": 1,
+        "batch_size": null
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 0,
+          "batch_worker_tasks_created": 0,
+          "executor_thread_limit": 1,
+          "elapsed_seconds": 2.901184333022684,
+          "requests_per_second": 705.9186059598741,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 181.15718799526803,
+            "p95": 187.91870174754877,
+            "p99": 189.25921222544275,
+            "max": 189.93458297336474
+          },
+          "event_loop_lag_ms": {
+            "samples": 2554,
+            "p50": 0.13104200479574502,
+            "p95": 0.21590580872725693,
+            "p99": 0.30753705883398647,
+            "max": 2.1929999929852784
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 0,
+          "batch_worker_tasks_created": 0,
+          "executor_thread_limit": 1,
+          "elapsed_seconds": 2.92565058398759,
+          "requests_per_second": 700.015241467635,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 181.36608353233896,
+            "p95": 190.16013182408642,
+            "p99": 192.7246262616245,
+            "max": 193.28020798275247
+          },
+          "event_loop_lag_ms": {
+            "samples": 2568,
+            "p50": 0.13895847951062024,
+            "p95": 0.22586875420529398,
+            "p99": 0.32220249879173923,
+            "max": 1.4860840165056288
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 0,
+          "batch_worker_tasks_created": 0,
+          "executor_thread_limit": 1,
+          "elapsed_seconds": 2.947788874967955,
+          "requests_per_second": 694.7580328398734,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 184.84124954557046,
+            "p95": 193.57493980205618,
+            "p99": 195.03482929896563,
+            "max": 195.54791698465124
+          },
+          "event_loop_lag_ms": {
+            "samples": 2579,
+            "p50": 0.14391698641702533,
+            "p95": 0.23118780809454617,
+            "p99": 0.3010588092729448,
+            "max": 2.5030000251717865
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 0,
+        "batch_worker_tasks_created": 0,
+        "executor_thread_limit": 1,
+        "elapsed_seconds": 3.293461417022627,
+        "requests_per_second": 621.8381637673607,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 206.03520900476724,
+          "p95": 225.31797269766685,
+          "p99": 227.70420697459485,
+          "max": 228.95187500398606
+        },
+        "event_loop_lag_ms": {
+          "samples": 2761,
+          "p50": 0.17016602214425802,
+          "p95": 0.36983302561566234,
+          "p99": 0.48484158469364047,
+          "max": 3.0893750372342765
+        },
+        "operation_calls": 2048,
+        "batch_items": {
+          "min": 1,
+          "max": 1,
+          "mean": 1.0
+        },
+        "peak_traced_bytes": 367132
+      }
+    },
+    "thread/batch-1/concurrency-1": {
+      "case": {
+        "workload": "thread",
+        "concurrency": 1,
+        "batch_size": 1
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 2048,
+          "executor_thread_limit": 1,
+          "elapsed_seconds": 2.8264989579911344,
+          "requests_per_second": 724.571291353161,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 176.3022914819885,
+            "p95": 181.6398795635905,
+            "p99": 182.22653377219103,
+            "max": 182.71808297140524
+          },
+          "event_loop_lag_ms": {
+            "samples": 2564,
+            "p50": 0.10497900075279176,
+            "p95": 0.15420183772221208,
+            "p99": 0.1752655819291249,
+            "max": 5.615250032860786
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 2048,
+          "executor_thread_limit": 1,
+          "elapsed_seconds": 2.9101668339571916,
+          "requests_per_second": 703.7397224457977,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 179.98906251159497,
+            "p95": 190.10691073199268,
+            "p99": 194.38536174886394,
+            "max": 195.0097499648109
+          },
+          "event_loop_lag_ms": {
+            "samples": 2619,
+            "p50": 0.10908400872722268,
+            "p95": 0.17363331280648708,
+            "p99": 0.23244571057148472,
+            "max": 2.176000038161874
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 2048,
+          "executor_thread_limit": 1,
+          "elapsed_seconds": 3.2341933750431053,
+          "requests_per_second": 633.2336265986892,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 203.67591650574468,
+            "p95": 209.94789772084914,
+            "p99": 221.8766679969849,
+            "max": 225.24004196748137
+          },
+          "event_loop_lag_ms": {
+            "samples": 2823,
+            "p50": 0.14037499204277992,
+            "p95": 0.2335750032216311,
+            "p99": 0.32784326700493865,
+            "max": 17.863832996226847
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 1,
+        "batch_worker_tasks_created": 2048,
+        "executor_thread_limit": 1,
+        "elapsed_seconds": 3.725189999968279,
+        "requests_per_second": 549.7706157316645,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 233.37512448779307,
+          "p95": 259.79556074307766,
+          "p99": 261.7302687175106,
+          "max": 263.69425002485514
+        },
+        "event_loop_lag_ms": {
+          "samples": 3105,
+          "p50": 0.17016701167449355,
+          "p95": 0.39838361553847784,
+          "p99": 0.5216733738780023,
+          "max": 3.6437500384636223
+        },
+        "operation_calls": 2048,
+        "batch_items": {
+          "min": 1,
+          "max": 1,
+          "mean": 1.0
+        },
+        "peak_traced_bytes": 402372
+      }
+    },
+    "thread/batch-8/concurrency-1": {
+      "case": {
+        "workload": "thread",
+        "concurrency": 1,
+        "batch_size": 8
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 256,
+          "executor_thread_limit": 1,
+          "elapsed_seconds": 0.4695075000054203,
+          "requests_per_second": 4362.017646100129,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 29.55266649951227,
+            "p95": 32.141698274062946,
+            "p99": 32.52368147717789,
+            "max": 32.63462497852743
+          },
+          "event_loop_lag_ms": {
+            "samples": 407,
+            "p50": 0.14474999625235796,
+            "p95": 0.27925000176765025,
+            "p99": 0.41028005303815007,
+            "max": 0.43279200326651335
+          },
+          "operation_calls": 256,
+          "batch_items": {
+            "min": 8,
+            "max": 8,
+            "mean": 8.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 256,
+          "executor_thread_limit": 1,
+          "elapsed_seconds": 0.4923213330330327,
+          "requests_per_second": 4159.884739064491,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 30.2848125284072,
+            "p95": 32.590939666260965,
+            "p99": 33.38992350269109,
+            "max": 33.49524998338893
+          },
+          "event_loop_lag_ms": {
+            "samples": 417,
+            "p50": 0.1528330030851066,
+            "p95": 0.2998672309331596,
+            "p99": 0.4010931402444839,
+            "max": 8.333958976436406
+          },
+          "operation_calls": 256,
+          "batch_items": {
+            "min": 8,
+            "max": 8,
+            "mean": 8.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 256,
+          "executor_thread_limit": 1,
+          "elapsed_seconds": 0.4562494999845512,
+          "requests_per_second": 4488.772042641901,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 28.262479027034715,
+            "p95": 31.072045952896588,
+            "p99": 31.649860244360752,
+            "max": 31.82158403797075
+          },
+          "event_loop_lag_ms": {
+            "samples": 400,
+            "p50": 0.1363540068268776,
+            "p95": 0.23052291071508077,
+            "p99": 0.3419801295967764,
+            "max": 1.8146670190617442
+          },
+          "operation_calls": 256,
+          "batch_items": {
+            "min": 8,
+            "max": 8,
+            "mean": 8.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 1,
+        "batch_worker_tasks_created": 256,
+        "executor_thread_limit": 1,
+        "elapsed_seconds": 0.6286127080093138,
+        "requests_per_second": 3257.9678614605036,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 39.65112500009127,
+          "p95": 42.39087223249953,
+          "p99": 43.38694796315394,
+          "max": 43.902834004256874
+        },
+        "event_loop_lag_ms": {
+          "samples": 484,
+          "p50": 0.24212501011788845,
+          "p95": 0.64888120687101,
+          "p99": 0.885222496581265,
+          "max": 2.5311250356025994
+        },
+        "operation_calls": 256,
+        "batch_items": {
+          "min": 8,
+          "max": 8,
+          "mean": 8.0
+        },
+        "peak_traced_bytes": 319564
+      }
+    },
+    "thread/batch-32/concurrency-1": {
+      "case": {
+        "workload": "thread",
+        "concurrency": 1,
+        "batch_size": 32
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 64,
+          "executor_thread_limit": 1,
+          "elapsed_seconds": 0.1455914160469547,
+          "requests_per_second": 14066.763382117937,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 9.073604480363429,
+            "p95": 9.218860318651423,
+            "p99": 9.289632482687011,
+            "max": 9.30145796155557
+          },
+          "event_loop_lag_ms": {
+            "samples": 128,
+            "p50": 0.13304100139066577,
+            "p95": 0.16747051849961278,
+            "p99": 0.17893142765387893,
+            "max": 0.1942500239238143
+          },
+          "operation_calls": 64,
+          "batch_items": {
+            "min": 32,
+            "max": 32,
+            "mean": 32.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 64,
+          "executor_thread_limit": 1,
+          "elapsed_seconds": 0.15647120896028355,
+          "requests_per_second": 13088.669881242085,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 9.50972898863256,
+            "p95": 11.313595494721085,
+            "p99": 11.399404231342487,
+            "max": 11.417208996135741
+          },
+          "event_loop_lag_ms": {
+            "samples": 134,
+            "p50": 0.15637552132830024,
+            "p95": 0.2984126302180808,
+            "p99": 0.4714268818497656,
+            "max": 0.7823750493116677
+          },
+          "operation_calls": 64,
+          "batch_items": {
+            "min": 32,
+            "max": 32,
+            "mean": 32.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 64,
+          "executor_thread_limit": 1,
+          "elapsed_seconds": 0.1722345409798436,
+          "requests_per_second": 11890.762377563251,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 10.530583007493988,
+            "p95": 11.97780414368026,
+            "p99": 12.283484487561509,
+            "max": 12.343959009740502
+          },
+          "event_loop_lag_ms": {
+            "samples": 143,
+            "p50": 0.16987498383969069,
+            "p95": 0.4156039503868669,
+            "p99": 0.6917335977777848,
+            "max": 0.7703750161454082
+          },
+          "operation_calls": 64,
+          "batch_items": {
+            "min": 32,
+            "max": 32,
+            "mean": 32.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 1,
+        "batch_worker_tasks_created": 64,
+        "executor_thread_limit": 1,
+        "elapsed_seconds": 0.19551054196199402,
+        "requests_per_second": 10475.13847308611,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 12.180499994428828,
+          "p95": 12.803139156312682,
+          "p99": 13.16065497638192,
+          "max": 13.193041027989239
+        },
+        "event_loop_lag_ms": {
+          "samples": 150,
+          "p50": 0.18606250523589551,
+          "p95": 0.7379669870715584,
+          "p99": 0.8391339174704624,
+          "max": 1.511499984189868
+        },
+        "operation_calls": 64,
+        "batch_items": {
+          "min": 32,
+          "max": 32,
+          "mean": 32.0
+        },
+        "peak_traced_bytes": 313444
+      }
+    },
+    "thread/direct/concurrency-4": {
+      "case": {
+        "workload": "thread",
+        "concurrency": 4,
+        "batch_size": null
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 0,
+          "batch_worker_tasks_created": 0,
+          "executor_thread_limit": 4,
+          "elapsed_seconds": 0.7659674999886192,
+          "requests_per_second": 2673.7426849447647,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 47.28864599019289,
+            "p95": 51.01886249613017,
+            "p99": 52.5204680027673,
+            "max": 52.92008304968476
+          },
+          "event_loop_lag_ms": {
+            "samples": 681,
+            "p50": 0.11000002268701792,
+            "p95": 0.25683402782306075,
+            "p99": 0.3974167746491731,
+            "max": 0.8194579859264195
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 0,
+          "batch_worker_tasks_created": 0,
+          "executor_thread_limit": 4,
+          "elapsed_seconds": 0.7443637500400655,
+          "requests_per_second": 2751.3430092340823,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 46.15502050728537,
+            "p95": 49.6124561293982,
+            "p99": 50.58825702755712,
+            "max": 51.09612498199567
+          },
+          "event_loop_lag_ms": {
+            "samples": 670,
+            "p50": 0.09720851085148752,
+            "p95": 0.22703736322000612,
+            "p99": 0.2905492513673376,
+            "max": 0.6400830461643636
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 0,
+          "batch_worker_tasks_created": 0,
+          "executor_thread_limit": 4,
+          "elapsed_seconds": 0.7613393329665996,
+          "requests_per_second": 2689.996314809926,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 46.51331200147979,
+            "p95": 53.33141469745897,
+            "p99": 55.383426010375835,
+            "max": 56.50312500074506
+          },
+          "event_loop_lag_ms": {
+            "samples": 677,
+            "p50": 0.10370905511081219,
+            "p95": 0.2561500412411985,
+            "p99": 0.43210812145844113,
+            "max": 1.594332978129387
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 0,
+        "batch_worker_tasks_created": 0,
+        "executor_thread_limit": 4,
+        "elapsed_seconds": 0.8301699999719858,
+        "requests_per_second": 2466.9645976957854,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 51.305750006577,
+          "p95": 55.36772551422473,
+          "p99": 56.7289717704989,
+          "max": 57.309625030029565
+        },
+        "event_loop_lag_ms": {
+          "samples": 717,
+          "p50": 0.13129203580319881,
+          "p95": 0.32055019401013846,
+          "p99": 0.569708724506201,
+          "max": 1.1010410380549729
+        },
+        "operation_calls": 2048,
+        "batch_items": {
+          "min": 1,
+          "max": 1,
+          "mean": 1.0
+        },
+        "peak_traced_bytes": 310407
+      }
+    },
+    "thread/batch-1/concurrency-4": {
+      "case": {
+        "workload": "thread",
+        "concurrency": 4,
+        "batch_size": 1
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 2048,
+          "executor_thread_limit": 4,
+          "elapsed_seconds": 0.7405834589735605,
+          "requests_per_second": 2765.3871757256134,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 46.2302494852338,
+            "p95": 47.046864341245964,
+            "p99": 47.31004474509973,
+            "max": 47.48158302390948
+          },
+          "event_loop_lag_ms": {
+            "samples": 673,
+            "p50": 0.09187503019347787,
+            "p95": 0.1745170447975397,
+            "p99": 0.2069935086183248,
+            "max": 0.28062501223757863
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 2048,
+          "executor_thread_limit": 4,
+          "elapsed_seconds": 0.7998060830286704,
+          "requests_per_second": 2560.6206847598905,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 48.826166486833245,
+            "p95": 56.91791646240744,
+            "p99": 58.9263017202029,
+            "max": 59.326999995391816
+          },
+          "event_loop_lag_ms": {
+            "samples": 714,
+            "p50": 0.1093749888241291,
+            "p95": 0.23734835849609226,
+            "p99": 0.40270107507240044,
+            "max": 0.5645000492222607
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 2048,
+          "executor_thread_limit": 4,
+          "elapsed_seconds": 0.862521041999571,
+          "requests_per_second": 2374.4348256735266,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 54.00754199945368,
+            "p95": 59.75529167626519,
+            "p99": 61.16720152203925,
+            "max": 61.526875011622906
+          },
+          "event_loop_lag_ms": {
+            "samples": 751,
+            "p50": 0.11970801278948784,
+            "p95": 0.28568750713020563,
+            "p99": 0.5260835168883204,
+            "max": 5.082500050775707
+          },
+          "operation_calls": 2048,
+          "batch_items": {
+            "min": 1,
+            "max": 1,
+            "mean": 1.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 1,
+        "batch_worker_tasks_created": 2048,
+        "executor_thread_limit": 4,
+        "elapsed_seconds": 0.9579725000075996,
+        "requests_per_second": 2137.8484246507633,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 58.43737500254065,
+          "p95": 65.043591032736,
+          "p99": 66.4253104920499,
+          "max": 66.65983301354572
+        },
+        "event_loop_lag_ms": {
+          "samples": 803,
+          "p50": 0.149125000461936,
+          "p95": 0.42878778185695393,
+          "p99": 0.80649315728806,
+          "max": 1.5043329913169146
+        },
+        "operation_calls": 2048,
+        "batch_items": {
+          "min": 1,
+          "max": 1,
+          "mean": 1.0
+        },
+        "peak_traced_bytes": 344817
+      }
+    },
+    "thread/batch-8/concurrency-4": {
+      "case": {
+        "workload": "thread",
+        "concurrency": 4,
+        "batch_size": 8
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 256,
+          "executor_thread_limit": 4,
+          "elapsed_seconds": 0.12272437498904765,
+          "requests_per_second": 16687.80142643033,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 7.444583025062457,
+            "p95": 8.772799462894909,
+            "p99": 9.244668249739334,
+            "max": 9.393832995556295
+          },
+          "event_loop_lag_ms": {
+            "samples": 106,
+            "p50": 0.12218751362524927,
+            "p95": 0.397510506445542,
+            "p99": 0.5013714457163589,
+            "max": 0.5809580325149
+          },
+          "operation_calls": 256,
+          "batch_items": {
+            "min": 8,
+            "max": 8,
+            "mean": 8.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 256,
+          "executor_thread_limit": 4,
+          "elapsed_seconds": 0.12189195898827165,
+          "requests_per_second": 16801.764587252692,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 7.264187472173944,
+            "p95": 8.77829372184351,
+            "p99": 9.165746263461187,
+            "max": 9.479166998062283
+          },
+          "event_loop_lag_ms": {
+            "samples": 107,
+            "p50": 0.10508298873901367,
+            "p95": 0.2898668113630265,
+            "p99": 0.43332300265319645,
+            "max": 0.5055409856140614
+          },
+          "operation_calls": 256,
+          "batch_items": {
+            "min": 8,
+            "max": 8,
+            "mean": 8.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 256,
+          "executor_thread_limit": 4,
+          "elapsed_seconds": 0.12303279200568795,
+          "requests_per_second": 16645.96866098364,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 7.380645984085277,
+            "p95": 8.926314918790013,
+            "p99": 9.407915484625846,
+            "max": 9.534833021461964
+          },
+          "event_loop_lag_ms": {
+            "samples": 107,
+            "p50": 0.12812501518055797,
+            "p95": 0.3109163022600113,
+            "p99": 0.590465508867055,
+            "max": 0.6680410006083548
+          },
+          "operation_calls": 256,
+          "batch_items": {
+            "min": 8,
+            "max": 8,
+            "mean": 8.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 1,
+        "batch_worker_tasks_created": 256,
+        "executor_thread_limit": 4,
+        "elapsed_seconds": 0.147937958012335,
+        "requests_per_second": 13843.641128460342,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 8.937208011047915,
+          "p95": 10.64052049187012,
+          "p99": 11.53541699750349,
+          "max": 11.717415996827185
+        },
+        "event_loop_lag_ms": {
+          "samples": 117,
+          "p50": 0.20100001711398363,
+          "p95": 0.6055164383724327,
+          "p99": 0.8990602963604037,
+          "max": 1.7397499759681523
+        },
+        "operation_calls": 256,
+        "batch_items": {
+          "min": 8,
+          "max": 8,
+          "mean": 8.0
+        },
+        "peak_traced_bytes": 323472
+      }
+    },
+    "thread/batch-32/concurrency-4": {
+      "case": {
+        "workload": "thread",
+        "concurrency": 4,
+        "batch_size": 32
+      },
+      "timing_trials": [
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 64,
+          "executor_thread_limit": 4,
+          "elapsed_seconds": 0.043781707994639874,
+          "requests_per_second": 46777.52636445187,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 2.5590829900465906,
+            "p95": 3.600291657494381,
+            "p99": 3.6864695127587765,
+            "max": 3.719625005032867
+          },
+          "event_loop_lag_ms": {
+            "samples": 36,
+            "p50": 0.15081249875947833,
+            "p95": 0.4706040199380368,
+            "p99": 0.9851443173829457,
+            "max": 1.2058340362273157
+          },
+          "operation_calls": 64,
+          "batch_items": {
+            "min": 32,
+            "max": 32,
+            "mean": 32.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 64,
+          "executor_thread_limit": 4,
+          "elapsed_seconds": 0.05090979201486334,
+          "requests_per_second": 40228.017419558055,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 2.8998960042372346,
+            "p95": 4.347766496357508,
+            "p99": 4.7217064729193226,
+            "max": 4.75320901023224
+          },
+          "event_loop_lag_ms": {
+            "samples": 39,
+            "p50": 0.1604169956408441,
+            "p95": 0.9500331536401078,
+            "p99": 2.002386960666626,
+            "max": 2.103625040035695
+          },
+          "operation_calls": 64,
+          "batch_items": {
+            "min": 32,
+            "max": 32,
+            "mean": 32.0
+          },
+          "peak_traced_bytes": null
+        },
+        {
+          "requests": 2048,
+          "request_worker_tasks": 128,
+          "sampler_tasks": 1,
+          "dispatcher_tasks": 1,
+          "batch_worker_tasks_created": 64,
+          "executor_thread_limit": 4,
+          "elapsed_seconds": 0.049882749968674034,
+          "requests_per_second": 41056.27699527647,
+          "latency_ms": {
+            "samples": 2048,
+            "p50": 2.9912710306234658,
+            "p95": 3.924220969201997,
+            "p99": 4.13546098745428,
+            "max": 4.155291011556983
+          },
+          "event_loop_lag_ms": {
+            "samples": 38,
+            "p50": 0.17685402417555451,
+            "p95": 0.8635062025859951,
+            "p99": 0.958243000204675,
+            "max": 0.9793330100364983
+          },
+          "operation_calls": 64,
+          "batch_items": {
+            "min": 32,
+            "max": 32,
+            "mean": 32.0
+          },
+          "peak_traced_bytes": null
+        }
+      ],
+      "memory_trial": {
+        "requests": 2048,
+        "request_worker_tasks": 128,
+        "sampler_tasks": 1,
+        "dispatcher_tasks": 1,
+        "batch_worker_tasks_created": 64,
+        "executor_thread_limit": 4,
+        "elapsed_seconds": 0.06208383297780529,
+        "requests_per_second": 32987.65397961417,
+        "latency_ms": {
+          "samples": 2048,
+          "p50": 3.250687033869326,
+          "p95": 5.318011966301128,
+          "p99": 6.5641005034558475,
+          "max": 6.579124950803816
+        },
+        "event_loop_lag_ms": {
+          "samples": 37,
+          "p50": 0.49987505190074444,
+          "p95": 1.8895334098488068,
+          "p99": 2.567913243547082,
+          "max": 2.683083002921194
+        },
+        "operation_calls": 64,
+        "batch_items": {
+          "min": 32,
+          "max": 32,
+          "mean": 32.0
+        },
+        "peak_traced_bytes": 323728
+      }
+    }
+  },
+  "finished_at": "2026-11-07T17:29:13.808914+00:00"
+}
