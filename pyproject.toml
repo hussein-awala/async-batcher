@@ -16,6 +16,9 @@ packages = [{include = "async_batcher"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 aioboto3 = {version = "^13.1", optional = true}
+aiohttp = {version = ">=3.14.4 <4", optional = true}
+urllib3 = {version = ">=2.8.0 <3", optional = true}
+idna = {version = ">=3.15 <4", optional = true}
 scylla-driver = {version = "^3", optional = true}
 keras = [
     {version = "^2.12", optional = true, markers = "python_version < '3.12'"},
@@ -28,7 +31,7 @@ scikit-learn = [
 sqlalchemy = {version = ">=2.0.10 <3", extras = ["asyncio"], optional = true}
 
 [tool.poetry.extras]
-aws= ["aioboto3"]
+aws= ["aioboto3", "aiohttp", "urllib3", "idna"]
 scylla = ["scylla-driver"]
 keras = ["keras"]
 sklearn = ["scikit-learn"]
