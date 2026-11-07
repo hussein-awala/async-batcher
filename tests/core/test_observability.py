@@ -22,7 +22,10 @@ def test_new_snapshot_is_immutable_and_does_not_bind_a_loop():
     batcher = RecordingBatcher()
     stats = batcher.stats()
     assert isinstance(stats, BatcherStats)
-    assert set(asdict(stats).values()) == {0}
+    fields = asdict(stats)
+    assert fields.pop("state") == "idle"
+    assert fields.pop("oldest_pending_seconds") is None
+    assert set(fields.values()) == {0}
     assert batcher._loop is None
     with pytest.raises(FrozenInstanceError):
         stats.accepted = 1

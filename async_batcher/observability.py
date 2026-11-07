@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +26,9 @@ class BatcherStats:
     cancelled: int
     batches_dispatched: int
     batches_completed: int
+    admission_waiters: int = 0
+    oldest_pending_seconds: float | None = None
+    state: Literal["idle", "running", "stopping", "stopped"] = "idle"
 
 
 @dataclass(frozen=True, slots=True)

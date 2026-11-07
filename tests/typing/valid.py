@@ -160,6 +160,8 @@ async def consume() -> None:
     assert_type(stats, BatcherStats)
     assert_type(stats.pending_items, int)
     assert_type(stats.accepted, int)
+    assert_type(stats.admission_waiters, int)
+    assert_type(stats.oldest_pending_seconds, float | None)
     assert_type(await sync_batcher.stop(), None)
     assert_type(await sync_batcher.run(), None)
 
