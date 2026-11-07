@@ -86,6 +86,7 @@ async def invalid_outcomes() -> None:
 
 
 async def invalid_grouped_streams() -> None:
+    await grouped.flush(timeout="soon")  # error: arg-type
     grouped.map(["bad"])  # error: list-item
     grouped.map_outcomes(strings())  # error: arg-type
     await grouped.process(1, enqueue_timeout="soon")  # error: arg-type
