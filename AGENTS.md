@@ -36,6 +36,8 @@ Use these repo-local skills when the task needs their workflow:
   ownership boundary, tests, and documentation for a feature or bug.
 - [async-batcher-verify](.agents/skills/async-batcher-verify/SKILL.md): choose tests for a change,
   interpret skips/coverage, and prepare a PR with accurate validation evidence.
+- [async-batcher-release](.agents/skills/async-batcher-release/SKILL.md): prepare versioned builds and
+  release notes, then publish only with explicit release authorization.
 
 Read only the relevant guides. [CONTRIBUTING.md](CONTRIBUTING.md) and the current workflow/configuration
 files are the executable-command sources of truth; update guidance when those commands change.

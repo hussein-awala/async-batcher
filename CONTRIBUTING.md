@@ -238,8 +238,12 @@ boundary between PR work and tag-triggered publication. The repo-local skills pr
   ownership contracts, tests, and documentation.
 - [async-batcher-verify](.agents/skills/async-batcher-verify/SKILL.md) selects change-appropriate
   tests, checks installed API/package behavior, and prepares PR validation evidence.
+- [async-batcher-release](.agents/skills/async-batcher-release/SKILL.md) checks release history,
+  prepares versioned builds and notes, and separates preparation from authorized publication.
 
 In Codex, invoke `$async-batcher-navigate` or `$async-batcher-verify`, or let the task select the
-relevant skill. The skills live in the repository's discoverable `.agents/skills` directory;
+relevant skill. For release preparation, ask `$async-batcher-release` to prepare notes and a
+verified publication plan; that does not authorize pushing a tag or posting an announcement.
+The skills live in the repository's discoverable `.agents/skills` directory;
 see the [official skills guide](https://learn.chatgpt.com/docs/build-skills). They can also be read
 as ordinary maintenance documentation. Keep their commands aligned with the workflows above.
