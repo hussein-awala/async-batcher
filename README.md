@@ -15,6 +15,7 @@ messaging client, or prediction model. The core package has no runtime dependenc
 | Keep tenants, model revisions, or backend destinations separate | [Compatible request groups](docs/grouped-batching.md) and the [workload guide](docs/workloads.md) |
 | Limit bytes, tokens, or estimated work as well as request count | [Cost budgets](docs/cost-aware-batching.md) |
 
+Start with a [bounded importer or interactive service](docs/starting-configurations.md).
 The [workload guide](docs/workloads.md) helps choose limits, preserve routing metadata, and decide
 whether batching fits your backend. Batching requires a useful bulk operation; it is not a rate
 limiter, durable queue, or exactly-once delivery system.
@@ -25,6 +26,8 @@ limiter, durable queue, or exactly-once delivery system.
 New adapters and behavior on `main` may not yet be included in the published package.
 For the latest published release, use `python -m pip install async-batcher` and consult the
 [corresponding release](https://github.com/hussein-awala/async-batcher/releases).
+The [compatibility and migration guide](docs/migration.md) compares release 0.2.2 with this checkout
+and shows how to pin a source installation.
 
 To use the source documented here, install [uv](https://docs.astral.sh/uv/getting-started/installation/)
 0.13.7 or newer and run:
@@ -56,7 +59,7 @@ async def double_many(values: list[int]) -> list[int]:
 
 async def main():
     async with AsyncBatcher.from_callable(
-        double_many, max_batch_size=5, max_queue_time=0.01, concurrency=2
+        double_many, max_batch_size=5, max_queue_size=20, max_queue_time=0.01, concurrency=2
     ) as batcher:
         results = await asyncio.gather(*(batcher.process(i) for i in range(10)))
         print(results)  # [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
@@ -72,6 +75,8 @@ Existing [subclasses](docs/api.md) and adapters support the same managed lifecyc
 
 ## Guides
 
+- [Compatibility and migration](docs/migration.md): published features, Python requirements, and upgrade checks.
+- [Bounded starting configurations](docs/starting-configurations.md): copyable importer and interactive service examples.
 - [Choose by workload](docs/workloads.md): request compatibility, safe metadata, and configuration ownership.
 - [Batch an existing function](docs/functions.md): callable processors and managed cleanup.
 - [Bulk and streaming producers](docs/bulk-processing.md): bounded maps and waiting for queue space.

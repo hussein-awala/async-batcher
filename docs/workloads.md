@@ -25,6 +25,9 @@ transactional, enforce a request-rate limit, or persist queued work across a pro
 
 ## Choose a starting shape
 
+Start with the [two bounded configurations](starting-configurations.md) for a runnable importer
+or interactive service before adding composition options.
+
 | Workload | First configuration decisions |
 | --- | --- |
 | Interactive HTTP/RPC | Choose a short collection delay from the latency budget, a finite waiting queue, and an explicit overload response. Account for backend time separately. See [FastAPI](fastapi-recipe.md) and [operational deadlines](operations.md). |
