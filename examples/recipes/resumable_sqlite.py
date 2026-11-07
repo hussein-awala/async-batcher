@@ -53,7 +53,11 @@ class Source:
         return source
 
     def check(self) -> None:
-        if _stamp(self.path.stat()) != self.stamp:
+        # Query the current path through a fresh handle, as inspect/read_chunk do.
+        # Windows path-stat and handle-stat can disagree on timestamp semantics.
+        with self.path.open("rb") as stream:
+            stamp = _stamp(os.fstat(stream.fileno()))
+        if stamp != self.stamp:
             raise SourceChanged("Source changed during import; restore the original immutable file")
 
 

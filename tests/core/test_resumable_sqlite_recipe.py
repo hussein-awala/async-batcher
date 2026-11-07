@@ -10,6 +10,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from examples.recipes.resumable_sqlite import (
@@ -215,6 +216,48 @@ def test_invalid_checkpoint_batch_never_writes_a_prefix(tmp_path):
         writer.write([records[0], Record(source.size, source.size + 1, Document("bad", "gap"))])
     assert saved(database) == ((0, 0), {})
     assert writer.write([]) == []
+
+
+def test_path_stat_timestamp_difference_does_not_reject_unchanged_source(tmp_path, monkeypatch):
+    path = make_source(tmp_path, [{"id": "a", "text": "unchanged"}])
+    original_stat = Path.stat
+
+    def differing_path_stat(self, *args, **kwargs):
+        result = original_stat(self, *args, **kwargs)
+        if self != path:
+            return result
+        # Some Windows stat/fstat implementations report different ctime values
+        # for the same file. The source guard must compare like-for-like queries.
+        return SimpleNamespace(
+            st_dev=result.st_dev,
+            st_ino=result.st_ino,
+            st_size=result.st_size,
+            st_mtime_ns=result.st_mtime_ns,
+            st_ctime_ns=result.st_ctime_ns + 1,
+        )
+
+    monkeypatch.setattr(Path, "stat", differing_path_stat)
+    source = Source.inspect(path)
+    source.check()
+    records = read_chunk(source, 0)
+    writer = CheckpointWriter(tmp_path / "import.sqlite", "job", source)
+    assert writer.initialize() == (0, 0)
+    assert writer.write(records) == ["a"]
+    assert saved(writer.database) == ((source.size, 1), {"a": "unchanged"})
+
+
+def test_replacement_with_identical_bytes_and_mtime_still_rejected(tmp_path):
+    path = make_source(tmp_path, [{"id": "a", "text": "original"}])
+    source = Source.inspect(path)
+    replacement = tmp_path / "replacement.jsonl"
+    replacement.write_bytes(path.read_bytes())
+    original_stat = path.stat()
+    os.utime(replacement, ns=(original_stat.st_atime_ns, original_stat.st_mtime_ns))
+    replacement.replace(path)
+    with pytest.raises(SourceChanged):
+        source.check()
+    with pytest.raises(SourceChanged):
+        read_chunk(source, 0)
 
 
 @pytest.mark.asyncio
