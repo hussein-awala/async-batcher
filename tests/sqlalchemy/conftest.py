@@ -11,14 +11,14 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import DeclarativeBase
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def async_sqlite_engine() -> AsyncEngine:
     async_engine = create_async_engine("sqlite+aiosqlite://")
     yield async_engine
     await async_engine.dispose()
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def create_models(async_sqlite_engine) -> DeclarativeBase:
     async with async_sqlite_engine.begin() as conn:
         await conn.run_sync(_TestModel.metadata.create_all)

@@ -4,6 +4,7 @@ import asyncio
 from unittest import mock
 
 import pytest
+import pytest_asyncio
 from async_batcher.batcher import AsyncBatcher
 
 pytest_plugins = ["tests.core_helpers"]
@@ -36,12 +37,12 @@ class SlowAsyncBatcher(MockAsyncBatcher):
         return await super().process_batch(*args, **kwargs)
 
 
-@pytest.fixture(scope="function")
-def mock_async_batcher():
+@pytest_asyncio.fixture
+async def mock_async_batcher():
     batcher = MockAsyncBatcher(
         max_batch_size=10,
         max_queue_time=0.01,
     )
     yield batcher
-    asyncio.get_event_loop().run_until_complete(batcher.stop())
+    await batcher.stop()
     batcher.mock_batch_processor.reset_mock()

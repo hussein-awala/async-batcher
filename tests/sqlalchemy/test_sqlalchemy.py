@@ -9,7 +9,7 @@ from sqlalchemy import select
 from tests.sqlalchemy.models import _TestModel
 
 
-@pytest.mark.asyncio(scope="session")
+@pytest.mark.asyncio(loop_scope="session")
 async def test_async_sqlalchemy_write_batcher(async_sqlite_engine, create_models):
     insert_batcher = AsyncSqlalchemyWriteBatcher(
         model=_TestModel,

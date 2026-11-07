@@ -39,7 +39,7 @@ class CallsMaker:
         self.result = result
 
 
-@pytest.mark.asyncio(scope="session")
+@pytest.mark.asyncio
 async def test_process_batch(mock_async_batcher):
     result = await asyncio.gather(*[mock_async_batcher.process(item=i) for i in range(10)])
 
@@ -48,7 +48,7 @@ async def test_process_batch(mock_async_batcher):
     assert result == [i * 2 for i in range(10)]
 
 
-@pytest.mark.asyncio(scope="session")
+@pytest.mark.asyncio
 async def test_process_batch_with_bigger_buffer(mock_async_batcher):
     result = await asyncio.gather(*[mock_async_batcher.process(item=i) for i in range(25)])
 
@@ -59,7 +59,7 @@ async def test_process_batch_with_bigger_buffer(mock_async_batcher):
     assert result == [i * 2 for i in range(25)]
 
 
-@pytest.mark.asyncio(scope="session")
+@pytest.mark.asyncio
 async def test_process_batch_with_short_buffering_time():
     batcher = MockAsyncBatcher(
         max_batch_size=10,
@@ -87,7 +87,7 @@ async def test_process_batch_with_short_buffering_time():
     await batcher.stop()
 
 
-@pytest.mark.asyncio(scope="session")
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "concurrency, expected_execution_time",
     [
@@ -155,7 +155,7 @@ async def test_concurrent_process_batch(concurrency, expected_execution_time):
     batcher.mock_batch_processor.reset_mock()
 
 
-@pytest.mark.asyncio(scope="session")
+@pytest.mark.asyncio
 async def test_stop_batcher(mock_async_batcher):
     await asyncio.gather(*[mock_async_batcher.process(item=i) for i in range(10)])
 
@@ -166,7 +166,7 @@ async def test_stop_batcher(mock_async_batcher):
         await mock_async_batcher.process(item=0)
 
 
-@pytest.mark.asyncio(scope="session")
+@pytest.mark.asyncio
 async def test_force_stop_batcher():
     batcher = SlowAsyncBatcher(
         sleep_time=1,
@@ -185,7 +185,7 @@ async def test_force_stop_batcher():
     batcher.mock_batch_processor.reset_mock()
 
 
-@pytest.mark.asyncio(scope="session")
+@pytest.mark.asyncio
 async def test_max_queue_size():
     batcher = SlowAsyncBatcher(
         sleep_time=1,
