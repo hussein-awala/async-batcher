@@ -541,10 +541,19 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                         lambda future: None if future.cancelled() else future.exception()
                     )
                 else:
-                    iterator = returned.__await__()
-                    close = getattr(iterator, "close", None)
-                    if callable(close):
-                        close()
+                    # Never drive an unknown __await__: even creating its
+                    # iterator can execute application code. Only an explicit
+                    # synchronous cleanup protocol grants that ownership.
+                    close = getattr(returned, "close", None)
+                    if callable(close) and not (
+                        inspect.iscoroutinefunction(close)
+                        or inspect.isasyncgenfunction(close)
+                        or inspect.iscoroutinefunction(close.__call__)
+                        or inspect.isasyncgenfunction(close.__call__)
+                    ):
+                        cleanup = close()
+                        if inspect.iscoroutine(cleanup):
+                            cleanup.close()
                 raise TypeError("on_batch must not return an awaitable")
         except Exception:
             self.logger.error("Error in on_batch callback", exc_info=True)

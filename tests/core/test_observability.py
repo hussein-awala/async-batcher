@@ -386,11 +386,14 @@ async def test_unexpected_awaitables_are_cleaned_up_and_logged(harness, caplog, 
             self.coroutine = coroutine
 
         def __await__(self):
-            return self.coroutine.__await__()
+            raise AssertionError("Observer must not drive a custom awaitable")
+
+        def close(self):
+            self.coroutine.close()
 
     class IteratorAwaitable:
         def __await__(self):
-            return iter(())
+            raise AssertionError("Observer must not create an await iterator")
 
     def callback(event):
         if kind in {"coroutine", "custom"}:
@@ -444,3 +447,43 @@ async def test_returned_borrowed_request_task_is_not_cancelled(harness, caplog):
     assert owner.stats().succeeded == 1
     assert owner.stats().cancelled == 0
     assert "on_batch must not return an awaitable" in caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", ["async_close", "async_object_close", "coroutine_result", "failure"])
+async def test_custom_awaitable_cleanup_is_synchronous_and_failures_are_isolated(
+    harness, caplog, recwarn, kind
+):
+    class CustomAwaitable:
+        def __await__(self):
+            raise AssertionError("Must not invoke __await__")
+
+    async def async_close():
+        raise AssertionError("Must not await cleanup")
+
+    class AsyncClose:
+        async def __call__(self):
+            raise AssertionError("Must not await cleanup")
+
+    def failing_close():
+        raise ValueError("cleanup failed")
+
+    value = CustomAwaitable()
+    value.close = {
+        "async_close": async_close,
+        "async_object_close": AsyncClose(),
+        "coroutine_result": lambda: async_close(),
+        "failure": failing_close,
+    }[kind]
+    batcher = harness.create(max_batch_size=1, on_batch=lambda _event: value)
+    assert await batcher.process(1) == 2
+    await batcher.stop()
+    assert "Error in on_batch callback" in caplog.text
+    assert (
+        "cleanup failed" in caplog.text
+        if kind == "failure"
+        else "must not return an awaitable" in caplog.text
+    )
+    assert batcher.stats().succeeded == 1
+    gc.collect()
+    assert not [warning for warning in recwarn if issubclass(warning.category, RuntimeWarning)]

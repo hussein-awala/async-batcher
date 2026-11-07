@@ -110,7 +110,9 @@ other `BaseException` subclasses are not swallowed. Cleanup happens before invoc
 
 Async functions, async generators, and objects with async `__call__` are rejected at construction.
 If a synchronous wrapper unexpectedly returns an awaitable, it is logged as misuse: a coroutine
-is closed, and a custom awaitable's iterator is closed when it provides `close()`. Returned
+is closed, and an explicit synchronous `close()` on a custom awaitable is called when available.
+The library never invokes a custom `__await__()` or awaits asynchronous cleanup. Custom resources
+without that synchronous cleanup protocol remain the callback owner's responsibility. Returned
 asyncio futures/tasks are left running because the observer might have borrowed them; their
 eventual exceptions are retrieved to avoid unobserved-error warnings. They remain the callback
 owner's responsibility. Such return values are unsupported; the hook must return `None`.
