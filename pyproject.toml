@@ -1,11 +1,11 @@
 [project]
 name = "async-batcher"
 version = "0.0.1"
-description = "A service to batch your http requests."
+description = "Async Python batching for bulk functions, database writes, messaging, and model inference."
 authors = [{name = "Hussein Awala", email = "hussein@awala.fr"}]
 readme = "README.md"
 requires-python = ">=3.11,<4.0"
-keywords = ["python", "asyncio", "rest", "grpc", "fastapi"]
+keywords = ["asyncio", "batching", "bulk-processing", "inference", "backpressure"]
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 dependencies = []

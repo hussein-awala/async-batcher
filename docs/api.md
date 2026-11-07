@@ -56,6 +56,11 @@ waiting for more. With concurrent batches, completion order can differ from subm
 Invalid limits and unknown options raise during construction. The legacy `batch_size` alias is
 deprecated; use `max_batch_size`. `sleep_time` and `buffering_time` issue warnings and have no effect.
 
+Treat settings as construction-only configuration. Directly assigning attributes is not a supported
+reconfiguration API: for example, changing `concurrency` does not rebuild the existing semaphore.
+Close intake, drain the old instance, and construct a replacement when limits or backend settings
+must change. See [workload and metadata ownership](workloads.md).
+
 ## Results and errors
 
 Return an ordered, sized collection with exactly one result per input, in input order. Lists,

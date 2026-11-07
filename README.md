@@ -4,6 +4,21 @@ AsyncBatcher combines concurrent Python requests into batches and routes each re
 Wrap an existing bulk function, subclass `AsyncBatcher`, or use an adapter for a supported database,
 messaging client, or prediction model. The core package has no runtime dependencies.
 
+## Start with your workload
+
+| You need to… | Start here |
+| --- | --- |
+| Combine concurrent web requests into model predictions or writes | [Function quickstart](#quickstart), then the [FastAPI lifespan recipe](docs/fastapi-recipe.md) |
+| Import a large file or consume an async stream without keeping all results | [Bounded maps](docs/bulk-processing.md) and [SQLite imports](docs/cookbook.md#import-a-file-or-async-stream-into-sqlite) |
+| Use an existing database, messaging, or prediction client | Choose its [adapter](#optional-adapters) and read its failure/ownership rules |
+| Send embeddings to a vector store | [Two-stage pipeline](docs/cookbook.md#connect-embedding-and-vector-storage-stages) and [Pinecone](docs/pinecone.md) |
+| Keep tenants, model revisions, or backend destinations separate | [Compatible request groups](docs/grouped-batching.md) and the [workload guide](docs/workloads.md) |
+| Limit bytes, tokens, or estimated work as well as request count | [Cost budgets](docs/cost-aware-batching.md) |
+
+The [workload guide](docs/workloads.md) helps choose limits, preserve routing metadata, and decide
+whether batching fits your backend. Batching requires a useful bulk operation; it is not a rate
+limiter, durable queue, or exactly-once delivery system.
+
 ## Install
 
 **These docs describe the current repository checkout**, which requires Python 3.11 or newer.
@@ -17,11 +32,12 @@ To use the source documented here, install [uv](https://docs.astral.sh/uv/gettin
 ```bash
 git clone https://github.com/hussein-awala/async-batcher.git
 cd async-batcher
-uv sync --locked --python 3.12
+uv sync --locked --no-default-groups --python 3.12
 ```
 
-This installs the checkout and its default test tools in `.venv`. Run Python with
-`uv run --no-sync python`; add extras using the commands in the adapter guides.
+This installs only the checkout in `.venv`, without test tools or optional clients. Run Python with
+`uv run --no-sync python`; add extras using the commands in the adapter guides. Development and
+test tools are described in [Contributing](CONTRIBUTING.md).
 To install just the checkout in an existing environment, `python -m pip install .` also works.
 
 ## Quickstart
@@ -56,6 +72,7 @@ Existing [subclasses](docs/api.md) and adapters support the same managed lifecyc
 
 ## Guides
 
+- [Choose by workload](docs/workloads.md): request compatibility, safe metadata, and configuration ownership.
 - [Batch an existing function](docs/functions.md): callable processors and managed cleanup.
 - [Bulk and streaming producers](docs/bulk-processing.md): bounded maps and waiting for queue space.
 - [Cost budgets](docs/cost-aware-batching.md): byte, token, or work limits alongside batch counts.
@@ -66,7 +83,6 @@ Existing [subclasses](docs/api.md) and adapters support the same managed lifecyc
 - [Core API and lifecycle](docs/api.md): limits, result mapping, errors, shutdown, restart, and executors.
 - [Contributing](CONTRIBUTING.md): locked development environments, test selection, integration services, and CI.
 - [Benchmarks](BENCHMARK.md): reproducible core measurements and archived application results.
-- [Operational statistics](docs/observability.md): immutable snapshots, batch events, and optional monitoring recipes.
 - [Public type contracts](docs/typing.md): inferred results, typed options, and installed-package checks.
 - [Security reporting](SECURITY.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
 
