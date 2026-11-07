@@ -9,7 +9,7 @@ messaging client, or prediction model. The core package has no runtime dependenc
 | You need to… | Start here |
 | --- | --- |
 | Combine concurrent web requests into model predictions or writes | [Function quickstart](#quickstart), then the [FastAPI lifespan recipe](docs/fastapi-recipe.md) |
-| Import a large file or consume an async stream without keeping all results | [Bounded maps](docs/bulk-processing.md) and [SQLite imports](docs/cookbook.md#import-a-file-or-async-stream-into-sqlite) |
+| Import a large file or consume an async stream without keeping all results | [Bounded maps](docs/bulk-processing.md), [SQLite imports](docs/cookbook.md#import-a-file-or-async-stream-into-sqlite), and [recovery choices](docs/cookbook.md#choose-an-import-or-recovery-policy) |
 | Use an existing database, messaging, or prediction client | Choose its [adapter](#optional-adapters) and read its failure/ownership rules |
 | Send embeddings to a vector store | [Two-stage pipeline](docs/cookbook.md#connect-embedding-and-vector-storage-stages) and [Pinecone](docs/pinecone.md) |
 | Keep tenants, model revisions, or backend destinations separate | [Compatible request groups](docs/grouped-batching.md) and the [workload guide](docs/workloads.md) |
@@ -87,6 +87,9 @@ Existing [subclasses](docs/api.md) and adapters support the same managed lifecyc
 - [In-flight coalescing](docs/coalescing.md): share equivalent concurrent requests with bounded ownership.
 - [Cookbook](docs/cookbook.md): runnable SQLite imports, embedding pipelines, and measured batch sizes.
 - [Resumable imports](docs/resumable-import.md): immutable JSONL input with atomic SQLite checkpoints.
+- [Rejected-record imports](docs/rejected-import.md): continue past known input errors and retain a metadata-only audit.
+- [Durable embedding handoff](docs/durable-embeddings.md): save vectors before delivery and replay unfinished upserts.
+- [Provider quota and retry policy](docs/provider-policy.md): shared pacing, finite throttling retries, and cancellation.
 - [Cohere to Pinecone](docs/cohere-pinecone.md): real embeddings into an existing compatible vector index.
 - [FastAPI recipe](docs/fastapi-recipe.md): lifespan-managed predictions, SQLite writes, and HTTP overload handling.
 - [Operational recipes](docs/operations.md): separate deadlines, shared backend capacity, thread lifetime, and bounded telemetry.
