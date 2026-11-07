@@ -46,6 +46,11 @@ test = [
     "coverage>=7.17.2,<8",
 ]
 adapter-test = ["aiosqlite>=0.22.1,<0.23", "asyncpg>=0.32,<0.33"]
+example-test = [
+    "fastapi>=0.162.2,<1",
+    "httpx2>=2.16,<3",
+    "uvicorn>=0.54,<1",
+]
 ml-test = [
     "jax>=0.10.2,<0.11; python_version < '3.12'",
     "jax>=0.12.0.1,<0.13; python_version >= '3.12'",

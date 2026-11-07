@@ -16,6 +16,15 @@ core:
   - 'examples/dynamodb/main.py'
   - 'examples/keras/main.py'
   - 'examples/keras_with_grpc/server.py'
+  - 'examples/recipes/**'
+examples:
+  - *infrastructure
+  - 'async_batcher/*.py'
+  - 'examples/recipes/**'
+  - 'tests/examples/**'
+  - 'tests/conftest.py'
+  - 'tests/core_helpers.py'
+  - 'tests/__init__.py'
 shared: &shared
   - *infrastructure
   - 'async_batcher/*.py'

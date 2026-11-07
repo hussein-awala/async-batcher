@@ -13,6 +13,7 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(result["adapters"]["include"], [])
         self.assertFalse(result["has_adapters"])
         self.assertFalse(result["has_services"])
+        self.assertFalse(result["has_examples"])
         self.assertEqual(
             {row["os"] for row in result["core"]["include"]},
             {"ubuntu-24.04"},
@@ -20,6 +21,7 @@ class PlanTests(unittest.TestCase):
 
     def test_core_changes_keep_both_macos_architectures(self):
         result = plan("pull_request", {"core"})
+        self.assertTrue(result["has_examples"])
         self.assertEqual(
             result["core"]["include"],
             [
@@ -42,6 +44,15 @@ class PlanTests(unittest.TestCase):
                     ],
                 )
                 self.assertEqual([row["suite"] for row in result["adapters"]["include"]], [suite])
+                self.assertFalse(result["has_examples"])
+
+    def test_examples_and_shared_changes_select_http_tests_without_adapter_extras(self):
+        for changed in ({"examples"}, {"shared"}):
+            with self.subTest(changed=changed):
+                result = plan("pull_request", changed)
+                self.assertTrue(result["has_examples"])
+                self.assertFalse(result["has_adapters"])
+                self.assertFalse(result["has_services"])
 
     def test_scoped_change_only_selects_related_adapter_and_service(self):
         result = plan("pull_request", {"aws"})
@@ -57,6 +68,7 @@ class PlanTests(unittest.TestCase):
         ):
             with self.subTest(event=event):
                 result = plan(event, changes)
+                self.assertTrue(result["has_examples"])
                 self.assertEqual(
                     {row["python"] for row in result["core"]["include"]},
                     {"3.11", "3.12", "3.13", "3.14", "3.15"},
@@ -97,6 +109,7 @@ class PlanTests(unittest.TestCase):
 
     def test_main_expands_core_without_unrelated_service_jobs(self):
         result = plan("push", {"keras"})
+        self.assertTrue(result["has_examples"])
         self.assertEqual(len(result["core"]["include"]), 7)
         self.assertEqual([row["suite"] for row in result["adapters"]["include"]], ["keras"])
         self.assertFalse(result["has_services"])
