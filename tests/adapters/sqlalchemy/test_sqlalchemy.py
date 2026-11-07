@@ -6,7 +6,7 @@ import pytest
 from async_batcher.sqlalchemy.write import AsyncSqlalchemyWriteBatcher
 
 from sqlalchemy import select
-from tests.sqlalchemy.models import _TestModel
+from tests.adapters.sqlalchemy.models import _TestModel
 
 
 @pytest.mark.asyncio(loop_scope="session")

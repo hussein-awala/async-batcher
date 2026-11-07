@@ -19,7 +19,7 @@ def test_keras_adapter_rejects_unsupported_python(monkeypatch):
 def test_bundled_hdf5_model_still_loads_and_predicts():
     keras = pytest.importorskip("keras")
     np = pytest.importorskip("numpy")
-    model_path = Path(__file__).resolve().parents[1] / "examples" / "diabetes_tf_model.h5"
+    model_path = Path(__file__).resolve().parents[3] / "examples" / "diabetes_tf_model.h5"
     model = keras.models.load_model(model_path, compile=False)
     predictions = model.predict(np.zeros((2, 10), dtype="float32"), verbose=0)
     assert predictions.shape == (2, 1)

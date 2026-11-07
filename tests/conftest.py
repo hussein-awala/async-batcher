@@ -3,21 +3,10 @@ from __future__ import annotations
 import asyncio
 from unittest import mock
 
-import pytest
 import pytest_asyncio
 from async_batcher.batcher import AsyncBatcher
 
 pytest_plugins = ["tests.core_helpers"]
-
-
-def pytest_runtest_setup(item):
-    def _has_marker(item, marker_name: str) -> bool:
-        return len(list(item.iter_markers(name=marker_name))) > 0
-
-    markexpr = item.config.getoption("markexpr")
-    if markexpr == "":
-        if _has_marker(item=item, marker_name="integration"):
-            pytest.skip("skipping integration tests")
 
 
 class MockAsyncBatcher(AsyncBatcher):

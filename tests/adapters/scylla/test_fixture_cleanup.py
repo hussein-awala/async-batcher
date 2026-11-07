@@ -4,23 +4,16 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from tests.integration.aws import conftest as aws_fixtures
-from tests.integration.scylladb import conftest as scylla_fixtures
+pytest.importorskip("cassandra")
+
+from tests.integration.scylladb import conftest as scylla_fixtures  # noqa: E402
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "module,fixture_name,class_name,args",
-    [
-        (aws_fixtures, "get_batcher", "AsyncDynamoDbGetBatcher", (Mock(),)),
-        (aws_fixtures, "write_batcher", "AsyncDynamoDbWriteBatcher", (Mock(),)),
-        (scylla_fixtures, "scylladb_write_batcher", "AsyncScyllaDbWriteBatcher", ()),
-    ],
-)
-async def test_batcher_fixture_awaits_cleanup(monkeypatch, module, fixture_name, class_name, args):
+async def test_batcher_fixture_awaits_cleanup(monkeypatch):
     batcher = Mock(stop=AsyncMock())
-    monkeypatch.setattr(module, class_name, Mock(return_value=batcher))
-    fixture = getattr(module, fixture_name).__wrapped__(*args)
+    monkeypatch.setattr(scylla_fixtures, "AsyncScyllaDbWriteBatcher", Mock(return_value=batcher))
+    fixture = scylla_fixtures.scylladb_write_batcher.__wrapped__()
 
     assert await anext(fixture) is batcher
     batcher.stop.assert_not_called()

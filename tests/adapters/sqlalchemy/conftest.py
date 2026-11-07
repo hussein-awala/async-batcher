@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
 import pytest_asyncio
 
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
-from tests.sqlalchemy.models import _TestModel
+pytest.importorskip("sqlalchemy")
+pytest.importorskip("aiosqlite")
+
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine  # noqa: E402
+from tests.adapters.sqlalchemy.models import _TestModel  # noqa: E402
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import DeclarativeBase

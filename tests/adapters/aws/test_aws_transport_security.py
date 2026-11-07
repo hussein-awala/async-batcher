@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 import json
 
-import aioboto3
 import pytest
-from async_batcher.aws.dynamodb.get import AsyncDynamoDbGetBatcher, GetItem
-from async_batcher.aws.dynamodb.write import AsyncDynamoDbWriteBatcher, WriteOperation
+
+aioboto3 = pytest.importorskip("aioboto3")
+
+from async_batcher.aws.dynamodb.get import AsyncDynamoDbGetBatcher, GetItem  # noqa: E402
+from async_batcher.aws.dynamodb.write import AsyncDynamoDbWriteBatcher, WriteOperation  # noqa: E402
 
 
 @pytest.mark.asyncio
