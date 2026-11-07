@@ -4,6 +4,18 @@ infrastructure: &infrastructure
   - 'pyproject.toml'
   - 'poetry.lock'
   - 'pytest.ini'
+# macOS core checks are needed when the core implementation or its test inputs change.
+core:
+  - *infrastructure
+  - 'async_batcher/*.py'
+  - 'tests/core/**'
+  - 'tests/conftest.py'
+  - 'tests/core_helpers.py'
+  - 'tests/__init__.py'
+  # These scripts are executed by the core example lifecycle tests.
+  - 'examples/dynamodb/main.py'
+  - 'examples/keras/main.py'
+  - 'examples/keras_with_grpc/server.py'
 shared: &shared
   - *infrastructure
   - 'async_batcher/*.py'

@@ -9,7 +9,8 @@ def plan(event: str, changed: set[str]) -> dict:
     full = event in {"schedule", "workflow_dispatch"} or "infrastructure" in changed
     versions = ["3.11", "3.12", "3.13", "3.14", "3.15"] if full or event == "push" else ["3.11", "3.15"]
     core = [{"os": "ubuntu-24.04", "python": version} for version in versions]
-    core.extend({"os": runner, "python": "3.15"} for runner in ("macos-15", "macos-15-intel"))
+    if full or event == "push" or "core" in changed:
+        core.extend({"os": runner, "python": "3.15"} for runner in ("macos-15", "macos-15-intel"))
     adapters = []
     services = []
     for suite, groups in (
