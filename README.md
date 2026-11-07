@@ -17,13 +17,15 @@ batches to improve efficiency and throughput.
 
 ### 1. Receiving Items for Processing
 - Users call `process(item)`, which adds the item to an internal queue.
-- A `Future` object is returned immediately and the result is awaited asynchronously.
+- `process(item)` is a coroutine: awaiting it enqueues the item and waits for its result.
+- Use `asyncio.gather()` or `asyncio.create_task()` to submit multiple items concurrently.
 
 ### 2. Queue Management and Batching
 - A background task (`run()`) continuously monitors the queue.
 - Items are collected into batches based on:
   - `max_batch_size`: Maximum items per batch.
-  - `max_queue_time`: Maximum time an item can wait before being processed.
+  - `max_queue_time`: Time to collect a partial batch, measured from its oldest queued item.
+    Busy processors can delay dispatch beyond this limit; queued items do not receive a fresh waiting period.
 - Once a batch is ready, it is passed to the processing function.
 
 ### 3. Processing the Batch
@@ -36,8 +38,13 @@ batches to improve efficiency and throughput.
 - Otherwise, all batches run concurrently.
 
 ### 5. Stopping the Batcher
-- Calling `stop(force=True)` cancels all ongoing tasks.
-- Calling `stop(force=False)` waits for pending items to be processed before shutting down.
+- `await stop()` immediately rejects new items, flushes partial batches, and waits for queued and active work.
+- `await stop(timeout=seconds)` raises `asyncio.TimeoutError` if shutdown takes longer; accepted work continues draining.
+  You can await `stop()` again or force cancellation. Canceling a caller awaiting `stop()` also leaves draining intact.
+- `await stop(force=True)` cancels pending requests and waits for batch-task cleanup. It is terminal and repeatable.
+  Synchronous functions already running in an executor cannot be interrupted and may still finish afterward.
+- Canceling one `process()` caller does not prevent other items in its batch from receiving results.
+  Already accepted work may still execute, so cancellation does not guarantee that side effects are prevented.
 
 ```mermaid
 sequenceDiagram
@@ -51,7 +58,7 @@ sequenceDiagram
     User->>AsyncBatcher: process(item)
     activate AsyncBatcher
     AsyncBatcher->>Queue: put(QueueItem(item, future))
-    AsyncBatcher-->>User: returns future
+    Note over User,AsyncBatcher: process() awaits the item result
     deactivate AsyncBatcher
 
     Note over AsyncBatcher: Starts RunLoop on first process()
@@ -123,6 +130,18 @@ logging.basicConfig(level=logging.DEBUG)
 asyncio.run(main())
 ```
 
+## Configuration and results
+
+- `max_batch_size` accepts a positive integer (including `1`) or `-1` for no limit.
+- `concurrency` accepts a positive integer or `-1` for no limit.
+- `max_queue_time` must be finite and nonnegative; `0` dispatches available items without a collection delay.
+- `max_queue_size` limits buffered items; `-1` and `0` mean unlimited. A full queue raises `QueueFullException`.
+- Each processor returns one result per input, in the same order. Returning `None` resolves every item with `None`.
+  An exception raised by the processor fails the entire batch; an exception in the result list fails only that item.
+- A batcher belongs to one event loop and cannot be restarted after stopping. Prefer `try/finally` to ensure
+  `await batcher.stop()` runs before closing application resources.
+  Invalid limits and unknown options raise during construction rather than being silently accepted.
+
 ## Benchmark
 
 The benchmark is available in the [BENCHMARK.md](https://github.com/hussein-awala/async-batcher/blob/main/BENCHMARK.md)
@@ -148,4 +167,4 @@ such as:
 ## Final Notes
 - Implement `process_batch` according to your needs.
 - Ensure `max_batch_size` and `max_queue_time` are configured based on performance requirements.
-- Handle exceptions inside `process_batch` to avoid failures affecting other tasks.
+- Return per-item exceptions when only individual items should fail; otherwise a raised exception fails the batch.

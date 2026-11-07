@@ -6,6 +6,7 @@ import logging
 import math
 import warnings
 from collections import namedtuple
+from functools import partial
 from numbers import Real
 from typing import TYPE_CHECKING, Generic, TypeVar
 
@@ -19,20 +20,16 @@ S = TypeVar("S")
 
 
 class AsyncBatcher(Generic[T, S], abc.ABC):
-    """A generic class for batching and processing items asynchronously.
+    """Group items by size or age and process batches asynchronously.
 
     Args:
-        max_batch_size (int, optional): The max number of items to process in a batch.
-            Defaults to -1 (no limit); 1 processes each item separately.
-        max_queue_time (float, optional): The max time for a task to stay in the queue before processing
-            it if the batch is not full and the number of running batches is less than the concurrency.
-            Defaults to 0.01.
-        max_queue_size (int, optional): The max number of items to keep in the queue.
-            Defaults to -1 (no limit).
-        concurrency (int, optional): The max number of concurrent batches to process.
-            Defaults to 1. If -1, it will process all batches concurrently.
-        executor (Executor, optional): The executor to use to process the batch if the `process_batch` method
-            is not a Coroutine. If None, it will use the default asyncio executor. Defaults to None.
+        max_batch_size: Maximum items per batch, or -1 for no limit. Defaults to -1.
+        max_queue_time: Maximum seconds to collect a partial batch, measured from
+            its oldest item's arrival. A busy processor can delay dispatch beyond
+            this limit. Defaults to 0.01.
+        max_queue_size: Maximum queued items, or -1/0 for no limit. Defaults to -1.
+        concurrency: Maximum concurrent batches, or -1 for no limit. Defaults to 1.
+        executor: Executor for synchronous processors; None uses asyncio's default.
     """
 
     logger = logging.getLogger(__name__)
@@ -82,79 +79,88 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self.concurrency = concurrency
         self.executor = executor
         self._queue = asyncio.Queue(maxsize=max_queue_size)
+        self._queue_changed = asyncio.Event()
         self._current_task: asyncio.Task | None = None
         self._running_batches: dict[int, asyncio.Task] = {}
+        self._pending_futures: set[asyncio.Future] = set()
         self._concurrency_semaphore = asyncio.Semaphore(concurrency) if concurrency > 0 else None
         self._stop = asyncio.Event()
         self._is_running = asyncio.Event()
+        self._force_stopped = False
 
     @abc.abstractmethod
     async def process_batch(self, batch: list[T]) -> list[S] | None:
-        """Process a batch of items.
+        """Return one result per item, or None for a batch without return values.
 
-        This method should be overridden by the user to define how to process a batch of items.
+        Subclasses may implement this as a synchronous method. Exceptions raised
+        by the processor fail the entire batch; exception objects in the result
+        list fail only their corresponding requests.
         """
 
     async def process(self, item: T) -> S:
-        """Add an item to the queue and get the result when it's ready.
-
-        Args:
-            item (T): The item to process.
-
-        Returns:
-            S: The result of processing the item.
-        """
+        """Enqueue an item and await its result; reject submissions after stopping."""
         if self._stop.is_set():
             raise RuntimeError("Batcher is stopped")
-        if self._current_task is None:
-            self._current_task = asyncio.get_running_loop().create_task(self.run())
-        logging.debug(item)
-        future = asyncio.get_running_loop().create_future()
         if self._queue.full():
             raise QueueFullException("The queue is full, cannot process more items at the moment.")
-        await self._queue.put(self.QueueItem(item, future, asyncio.get_running_loop().time()))
-        await future
-        return future.result()
+        logging.debug(item)
+        loop = asyncio.get_running_loop()
+        future = loop.create_future()
+        self._pending_futures.add(future)
+        future.add_done_callback(self._pending_futures.discard)
+        self._queue.put_nowait(self.QueueItem(item, future, loop.time()))
+        self._queue_changed.set()
+        if self._current_task is None:
+            self._current_task = loop.create_task(self.run())
+        return await future
 
-    async def _fill_batch_from_queue(self, started_at: float | None) -> list[QueueItem]:
-        try:
-            batch = [await asyncio.wait_for(self._queue.get(), timeout=1.0)]
-        except asyncio.TimeoutError:
-            return []
-        started_at = batch[0].enqueued_at
+    async def _fill_batch_from_queue(self) -> list[QueueItem]:
+        batch = []
+        loop = asyncio.get_running_loop()
+        deadline = None
         while self.max_batch_size < 0 or len(batch) < self.max_batch_size:
             try:
-                max_wait = self.max_queue_time - (asyncio.get_running_loop().time() - started_at)
-                if max_wait > 0:
-                    item = await asyncio.wait_for(self._queue.get(), timeout=max_wait)
+                item = self._queue.get_nowait()
+            except asyncio.QueueEmpty:
+                if self._stop.is_set():
+                    break
+                self._queue_changed.clear()
+                if deadline is None:
+                    await self._queue_changed.wait()
                 else:
-                    item = self._queue.get_nowait()
+                    remaining = deadline - loop.time()
+                    if remaining <= 0:
+                        break
+                    try:
+                        await asyncio.wait_for(self._queue_changed.wait(), timeout=remaining)
+                    except asyncio.TimeoutError:
+                        break
+            else:
                 batch.append(item)
-            except (asyncio.QueueEmpty, asyncio.TimeoutError):
-                break
-            if 0 < self.max_batch_size <= len(batch):
-                break
+                if deadline is None:
+                    deadline = item.enqueued_at + self.max_queue_time
         return batch
 
-    async def _batch_run(self, task_id: int, batch: list[QueueItem]):
-        started_at = asyncio.get_event_loop().time()
+    async def _batch_run(self, batch: list[QueueItem]):
+        if self._force_stopped:
+            return
+        loop = asyncio.get_running_loop()
+        started_at = loop.time()
         try:
             batch_items = [q_item.item for q_item in batch]
             if asyncio.iscoroutinefunction(self.process_batch):
                 results = await self.process_batch(batch=batch_items)
             else:
-                results = await asyncio.get_event_loop().run_in_executor(
-                    self.executor, self.process_batch, batch_items
-                )
+                results = await loop.run_in_executor(self.executor, self.process_batch, batch_items)
             if results is None:
                 results = [None] * len(batch)
             if len(results) != len(batch):
                 raise ValueError(f"Expected to get {len(batch)} results, but got {len(results)}.")
-        except Exception as e:
+        except Exception as error:
             self.logger.error("Error processing batch", exc_info=True)
             for q_item in batch:
                 if not q_item.future.done():
-                    q_item.future.set_exception(e)
+                    q_item.future.set_exception(error)
         else:
             for q_item, result in zip(batch, results, strict=True):
                 if q_item.future.done():
@@ -163,92 +169,105 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                     q_item.future.set_exception(result)
                 else:
                     q_item.future.set_result(result)
-        elapsed_time = asyncio.get_event_loop().time() - started_at
-        self.logger.debug(f"Processed batch of {len(batch)} elements" f" in {elapsed_time} seconds.")
-        self._running_batches.pop(task_id)
+        finally:
+            self.logger.debug(
+                "Processed batch of %s elements in %s seconds.", len(batch), loop.time() - started_at
+            )
 
-    async def _concurrent_batch_run(self, task_id: int, batch: list[QueueItem]):
-        async with self._concurrency_semaphore:
-            await self._batch_run(task_id, batch)
+    def _batch_done(self, task_id: int, batch: list[QueueItem], task: asyncio.Task):
+        # A done callback also runs when a task is cancelled before its first step.
+        self._running_batches.pop(task_id, None)
+        if self._concurrency_semaphore is not None:
+            self._concurrency_semaphore.release()
+        error = None if task.cancelled() else task.exception()
+        for q_item in batch:
+            if not q_item.future.done():
+                if error is not None:
+                    q_item.future.set_exception(error)
+                else:
+                    q_item.future.cancel()
+
+    def _cancel_pending(self):
+        for future in self._pending_futures:
+            future.cancel()
+        while not self._queue.empty():
+            self._queue.get_nowait()
 
     async def run(self):
-        """Run the batcher asynchronously."""
+        """Run until stopped and all accepted work has finished.
+
+        Processing starts this task automatically. Only one dispatcher may run.
+        """
         current_task = asyncio.current_task()
         if self._current_task is not None and self._current_task is not current_task:
             raise RuntimeError("Batcher already has a dispatcher")
         self._current_task = current_task
         self._is_running.set()
         task_id = 0
-        if self.concurrency > 0:
-            started_at = None
+        try:
             while not self._should_stop():
-                if started_at is None:
-                    started_at = asyncio.get_event_loop().time()
                 semaphore_acquired = False
                 try:
-                    # to check if the batcher should stop, we raise a timeout after 1 second
-                    # if the semaphore is not acquired
-                    await asyncio.wait_for(self._concurrency_semaphore.acquire(), timeout=1.0)
-                    semaphore_acquired = True
-                    # if the queue is empty, we need to let the batch filler create it
-                    batch = await self._fill_batch_from_queue(
-                        started_at=started_at if self._queue.qsize() > 0 else None
-                    )
+                    if self._concurrency_semaphore is not None:
+                        await self._concurrency_semaphore.acquire()
+                        semaphore_acquired = True
+                    batch = await self._fill_batch_from_queue()
+                    if self._force_stopped:
+                        break
                     if batch:
-                        # create a new task to process the batch
-                        self._running_batches[task_id] = asyncio.get_event_loop().create_task(
-                            self._concurrent_batch_run(task_id, batch)
-                        )
-                        await asyncio.sleep(0)
+                        task = asyncio.create_task(self._batch_run(batch))
+                        self._running_batches[task_id] = task
+                        task.add_done_callback(partial(self._batch_done, task_id, batch))
+                        # The completion callback now owns this semaphore permit.
+                        semaphore_acquired = False
                         task_id += 1
-                    started_at = None
-                except asyncio.TimeoutError:
-                    pass
                 finally:
                     if semaphore_acquired:
                         self._concurrency_semaphore.release()
-        else:
-            while not self._should_stop():
-                batch = await self._fill_batch_from_queue(started_at=None)
-                if batch:
-                    self._running_batches[task_id] = asyncio.get_event_loop().create_task(
-                        self._batch_run(task_id, batch)
-                    )
-                    task_id += 1
-        self._is_running.clear()
+            if self._running_batches:
+                await asyncio.shield(asyncio.gather(*self._running_batches.values(), return_exceptions=True))
+        except BaseException:
+            self._stop.set()
+            self._cancel_pending()
+            for task in self._running_batches.values():
+                task.cancel()
+            if self._running_batches:
+                await asyncio.gather(*self._running_batches.values(), return_exceptions=True)
+            raise
+        finally:
+            self._is_running.clear()
 
     def _should_stop(self):
-        return self._stop.is_set() and self._queue.qsize() == 0
+        return self._stop.is_set() and self._queue.empty()
 
     async def is_running(self):
-        """Check if the batcher is running.
-
-        Returns:
-            bool: True if the batcher is running, False otherwise.
-        """
+        """Return whether the dispatcher is running or draining active batches."""
         return self._is_running.is_set()
 
     async def stop(self, force: bool = False, timeout: float | None = None):
-        """Stop the batcher asyncio task.
+        """Reject new work and wait for shutdown.
 
-        Args:
-            force (bool, optional): Whether to force stop the batcher without waiting for processing
-                the remaining buffer items. If True, it will cancel the current task and all running tasks.
-                Defaults to False.
-            timeout (float, optional): The time to wait for the batcher to stop. If None, it will wait
-                indefinitely. Defaults to None.
+        Graceful shutdown flushes the queue and waits for active batches. A timeout
+        raises asyncio.TimeoutError while draining continues. Forced shutdown cancels all
+        pending results and awaits task cleanup. Running executor functions cannot
+        be interrupted and may finish after forced shutdown returns.
         """
-        if force:
-            if self._current_task and not self._current_task.done():
+        self._stop.set()
+        self._queue_changed.set()
+        if force and not self._force_stopped:
+            self._force_stopped = True
+            self._cancel_pending()
+            if self._current_task is not None:
                 self._current_task.cancel()
-            for task in self._running_batches.values():
-                if not task.done():
-                    task.cancel()
-        else:
-            self._stop.set()
-            if (
-                self._current_task
-                and not self._current_task.done()
-                and not self._current_task.get_loop().is_closed()
-            ):
-                await asyncio.wait_for(self._current_task, timeout=timeout)
+        tasks = list(self._running_batches.values())
+        if self._current_task is not None:
+            tasks.append(self._current_task)
+        if tasks:
+            # shield prevents a timeout or a cancelled stop caller from destroying
+            # accepted work. return_exceptions permits expected forced cancellation.
+            results = await asyncio.wait_for(
+                asyncio.shield(asyncio.gather(*tasks, return_exceptions=True)), timeout=timeout
+            )
+            for result in results:
+                if isinstance(result, Exception):
+                    raise result
