@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import aioboto3
-from boto3.dynamodb.types import Binary
+from boto3.dynamodb.types import Binary, TypeSerializer
 
 from async_batcher.aws.dynamodb._retry import batch_responses, validate_max_retries
 from async_batcher.batcher import AsyncBatcher
@@ -89,10 +89,21 @@ class AsyncDynamoDbGetBatcher(AsyncBatcher[GetItem, dict[str, Any] | None]):
         indexed_items: dict[tuple, list[int]] = {}
         request_items = {}
         tables_keys = {}
+        serializer = TypeSerializer()
         for ind, item in enumerate(batch):
+            key_names = sorted(item.key)
+            if not key_names:
+                raise ValueError("DynamoDB keys must contain at least one attribute")
+            if item.table_name in tables_keys and key_names != tables_keys[item.table_name]:
+                raise ValueError("Requests for the same DynamoDB table must use the same key attributes")
+            # Validate before deduplication: Python considers True and 1.0 equal to 1.
+            for value in item.key.values():
+                serialized = serializer.serialize(value)
+                if not serialized.keys() <= {"S", "N", "B"}:
+                    raise ValueError("DynamoDB key attributes must be strings, numbers, or binary values")
             if item.table_name not in request_items:
                 request_items[item.table_name] = {"Keys": []}
-                tables_keys[item.table_name] = sorted(item.key.keys())
+                tables_keys[item.table_name] = key_names
             # TODO: support ProjectionExpression and ConsistentRead
             key = self._item_key(item.table_name, item.key, tables_keys[item.table_name])
             if key not in indexed_items:
