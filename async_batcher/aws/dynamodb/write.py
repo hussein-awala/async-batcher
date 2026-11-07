@@ -25,7 +25,7 @@ class AsyncDynamoDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
 
     Args:
         region_name: The region to use.
-        use_ssl: Whether to use SSL/TLS.
+        use_ssl: Whether to use SSL/TLS. Defaults to True when omitted or None.
         verify: Whether to verify SSL certificates.
         endpoint_url: The complete URL to use for the constructed client. This is useful for local testing.
         config: The configuration for the session.
@@ -57,7 +57,7 @@ class AsyncDynamoDbWriteBatcher(AsyncBatcher[WriteOperation, None]):
             max_batch_size=max_batch_size, max_queue_time=max_queue_time, concurrency=concurrency, **kwargs
         )
         self.region_name = region_name
-        self.use_ssl = use_ssl
+        self.use_ssl = True if use_ssl is None else use_ssl
         self.verify = verify
         self.endpoint_url = endpoint_url
         self.config = config
