@@ -22,6 +22,18 @@ The core tests include cancellation, shutdown, restart, queue limits, and exampl
 They do not require database drivers or ML backends. Python 3.11 is the minimum supported version;
 CI also checks the current stable Python releases through 3.15.
 
+## Public types
+
+The [public typing guide](docs/typing.md) documents a separate installed-wheel consumer gate:
+
+```bash
+uv sync --locked --no-default-groups --group typecheck
+uv run --no-sync python .github/scripts/check_public_typing.py
+```
+
+It checks strict positive examples, exact negative diagnostics, and a missing-marker control.
+CI runs this gate in its quality job. Resync the desired test groups before running runtime tests.
+
 ## Adapter tests
 
 Install only the extra and test group needed for the adapter you are changing. Each command
@@ -128,7 +140,7 @@ environments instead of adding example web servers or TensorFlow to the core tes
 ## Dependency and CI maintenance
 
 `pyproject.toml` declares the public extras and separate `test`, `adapter-test`, `ml-test`, `lint`,
-and `typing` dependency groups. `uv.lock` records their resolved versions across supported
+`typing` (SDK stubs), and `typecheck` (public API checker) dependency groups. `uv.lock` records their resolved versions across supported
 interpreters and extras. After changing dependency requirements, refresh and check the lock, then
 validate the affected suites and build both distributions:
 

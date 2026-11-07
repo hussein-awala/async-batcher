@@ -34,6 +34,7 @@ class DistributionValidationTests(unittest.TestCase):
             b"Requires-Dist: aioboto3>=15.5,<16 ; extra == 'aws'\n\n"
         )
         self.contents = {
+            "async_batcher/py.typed": b"",
             "async_batcher/__init__.py": b"from .batcher import AsyncBatcher\n",
             "async_batcher/batcher.py": b"class AsyncBatcher: pass\n",
             "async_batcher/aws/dynamodb/get.py": b"class AsyncDynamoDbGetBatcher: pass\n",
@@ -67,6 +68,11 @@ class DistributionValidationTests(unittest.TestCase):
             validate_wheel(
                 self.wheel(changed={"async_batcher/batcher.py": b"stale = True\n"}), self.root, self.project
             )
+
+    def test_missing_source_marker_fails(self):
+        (self.root / "async_batcher/py.typed").unlink()
+        with self.assertRaisesRegex(ValueError, "missing its py.typed"):
+            validate_wheel(self.wheel(), self.root, self.project)
 
     def test_wrong_identity_python_support_extra_or_requirement_is_rejected(self):
         for before, after in (

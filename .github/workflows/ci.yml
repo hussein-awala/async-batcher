@@ -205,7 +205,7 @@ jobs:
       - uses: ./.github/actions/setup-project
         with:
           python-version: '3.12'
-          groups: lint
+          groups: lint typecheck
       - name: Cache pre-commit hook environments
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -219,6 +219,8 @@ jobs:
           uv run --no-sync python -m unittest discover -s .github/scripts -p 'test_*.py'
       - name: Check benchmark measurements and cleanup
         run: uv run --no-sync python -m unittest discover -s benchmarks -p 'test_*.py'
+      - name: Check installed public type contracts
+        run: uv run --no-sync python .github/scripts/check_public_typing.py
       - name: Validate the lock and installed wheel and source distributions
         run: |
           uv lock --check
