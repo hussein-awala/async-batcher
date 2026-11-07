@@ -60,7 +60,9 @@ jobs:
         run: pip install -e . "pytest>=8,<9" "pytest-asyncio>=0.23.5,<0.24"
 
       - name: Run core tests
-        run: python -m pytest tests/test_batcher*.py
+        run: |
+          shopt -s nullglob
+          python -m pytest tests/test_batcher*.py tests/test_core_*.py
 
   unit-tests:
     needs: changed-files
