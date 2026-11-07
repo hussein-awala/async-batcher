@@ -17,9 +17,10 @@ from typing import TYPE_CHECKING, Generic, Self, TypeVar
 from weakref import ref
 
 from async_batcher.exceptions import QueueFullException
+from async_batcher.map import map_items
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Sequence
+    from collections.abc import AsyncGenerator, AsyncIterable, Awaitable, Callable, Iterable, Sequence
     from concurrent.futures import Executor
     from types import TracebackType
 
@@ -132,6 +133,8 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self._queue = asyncio.Queue(maxsize=max_queue_size)
         self._next_batch_item: AsyncBatcher.QueueItem | None = None
         self._queue_changed = asyncio.Event()
+        self._queue_space_available = asyncio.Event()
+        self._shutdown_generation = 0
         self._current_task: asyncio.Task | None = None
         self._running_batches: dict[int, asyncio.Task] = {}
         self._processing_tasks: set[asyncio.Task] = set()
@@ -222,14 +225,71 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             raise RuntimeError("Batcher must be used from the same event loop")
         return loop
 
-    async def process(self, item: T) -> S:
+    def map(
+        self,
+        source: Iterable[T] | AsyncIterable[T],
+        *,
+        max_pending: int = 128,
+        ordered: bool = True,
+    ) -> AsyncGenerator[S, None]:
+        """Yield results with at most max_pending consumed, unyielded items.
+
+        Errors fail iteration promptly, including in ordered mode. Closing the
+        iterator cancels its request tasks and closes its source, without stopping
+        this batcher. Use contextlib.aclosing when breaking iteration early.
+        """
+        return map_items(self, source, max_pending=max_pending, ordered=ordered)
+
+    async def _wait_for_queue_space(self, generation: int):
+        while True:
+            if self._stop.is_set() or generation != self._shutdown_generation:
+                raise RuntimeError("Batcher is stopping")
+            if not self._queue_is_full():
+                return
+            self._queue_space_available.clear()
+            await self._queue_space_available.wait()
+
+    def _begin_shutdown(self):
+        if not self._stop.is_set():
+            self._shutdown_generation += 1
+        self._stop.set()
+        self._queue_changed.set()
+        self._queue_space_available.set()
+
+    async def process(
+        self,
+        item: T,
+        *,
+        wait_for_space: bool = False,
+        enqueue_timeout: float | None = None,
+    ) -> S:
         """Enqueue an item and await its result, restarting after completed shutdown.
 
         Submissions during shutdown are rejected until the dispatcher and its
         batch tasks finish cleanup. The first process(), run(), or stop() call
         binds the batcher to its event loop; later calls from other loops fail
         before changing batcher state, including after shutdown.
+
+        A full queue rejects immediately unless wait_for_space is true. An optional
+        finite, nonnegative enqueue_timeout limits only that admission wait, not
+        processing. Cancellation or shutdown before admission never enqueues the item.
         """
+        if not isinstance(wait_for_space, bool):
+            raise TypeError("wait_for_space must be a boolean")
+        if enqueue_timeout is not None:
+            try:
+                valid_timeout = (
+                    not isinstance(enqueue_timeout, bool)
+                    and isinstance(enqueue_timeout, Real)
+                    and math.isfinite(enqueue_timeout)
+                    and enqueue_timeout >= 0
+                )
+            except OverflowError:
+                valid_timeout = False
+            if not valid_timeout:
+                raise ValueError("enqueue_timeout must be a finite, nonnegative number or None")
+            if not wait_for_space:
+                raise ValueError("enqueue_timeout requires wait_for_space=True")
         loop = self._get_loop()
         cost = 0
         if self.item_cost is not None:
@@ -247,7 +307,10 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             self._force_stopped = False
             self._current_task = None
         if self._queue_is_full():
-            raise QueueFullException("The queue is full, cannot process more items at the moment.")
+            if not wait_for_space:
+                raise QueueFullException("The queue is full, cannot process more items at the moment.")
+            async with asyncio.timeout(enqueue_timeout):
+                await self._wait_for_queue_space(self._shutdown_generation)
         future = loop.create_future()
         self._pending_futures.add(future)
         future.add_done_callback(self._pending_futures.discard)
@@ -290,6 +353,9 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
                     self._next_batch_item = item
                     break
                 batch.append(item)
+                # Moving a request into a batch frees shared queue capacity,
+                # including a request retained after a cost-limited split.
+                self._queue_space_available.set()
                 batch_cost += item.cost
                 if deadline is None:
                     deadline = item.enqueued_at + self.max_queue_time
@@ -426,7 +492,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             # A caller may cancel the public run() task directly. Later stop()
             # calls must join this cleanup rather than cancel it a second time.
             self._force_stopped = True
-            self._stop.set()
+            self._begin_shutdown()
             self._cancel_pending()
             for task in self._running_batches.values():
                 task.cancel()
@@ -461,8 +527,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             raise RuntimeError(
                 "stop() cannot be awaited from process_batch; call it from outside the processor"
             )
-        self._stop.set()
-        self._queue_changed.set()
+        self._begin_shutdown()
         if force and not self._force_stopped:
             self._force_stopped = True
             self._cancel_pending()
