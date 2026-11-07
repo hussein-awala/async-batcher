@@ -43,6 +43,7 @@ test = [
     "pytest>=9.0.3,<10",
     "pytest-asyncio>=1.4.1.post1,<2",
     "pygments>=2.20,<3",
+    "coverage>=7.17.2,<8",
 ]
 adapter-test = ["aiosqlite>=0.22.1,<0.23", "asyncpg>=0.32,<0.33"]
 ml-test = [
@@ -102,3 +103,12 @@ combine-as-imports = true
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.coverage.run]
+branch = true
+source = ["async_batcher"]
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true
+precision = 2

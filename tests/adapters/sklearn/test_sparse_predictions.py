@@ -87,3 +87,28 @@ def test_sparse_prediction_formats_remain_sparse(sparse_type, monkeypatch):
         assert result.shape == (1, 2)
         np.testing.assert_array_equal(result.toarray(), [[int(index == 0), int(index == 1)]])
     predictions.toarray.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_missing_predict_fails_callers_and_replacement_model_recovers():
+    batcher = SklearnAsyncBatcher(model=object(), max_batch_size=2, max_queue_time=1)
+    try:
+        failures = await asyncio.wait_for(
+            asyncio.gather(batcher.process([1, 2]), batcher.process([3, 4]), return_exceptions=True), 5
+        )
+        assert all(isinstance(error, AttributeError) for error in failures)
+        assert all("predict method" in str(error) for error in failures)
+        batcher.model = Mock()
+        batcher.model.predict.return_value = [0, 1]
+        results = await asyncio.wait_for(asyncio.gather(batcher.process([1, 2]), batcher.process([3, 4])), 5)
+        assert results == [0, 1]
+        batcher.model.predict.assert_called_once_with([[1, 2], [3, 4]])
+    finally:
+        await batcher.stop(force=True, timeout=5)
+
+
+def test_sparse_output_requires_a_sample_axis_even_when_lengths_match():
+    model = Mock()
+    model.predict.return_value = sparse.csr_array([0, 1])
+    with pytest.raises(ValueError, match="2 predictions as rows of a sparse matrix"):
+        SklearnAsyncBatcher(model=model).process_batch([[1, 2], [3, 4]])

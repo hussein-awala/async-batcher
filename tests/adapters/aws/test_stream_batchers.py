@@ -144,7 +144,18 @@ async def test_stop_does_not_close_borrowed_client(stream, monkeypatch):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("entries", [[], [{}], [{"ErrorCode": 1}], [{"RecordId": ""}]])
+@pytest.mark.parametrize(
+    "entries",
+    [
+        [],
+        [{}],
+        [None],
+        ["ack"],
+        [{"ErrorCode": 1}],
+        [{"RecordId": ""}],
+        [{"ErrorCode": "InternalFailure", "ErrorMessage": None}],
+    ],
+)
 async def test_malformed_response_does_not_report_success(stream, entries, monkeypatch):
     call = AsyncMock(return_value={stream["key"]: entries})
     monkeypatch.setattr(stream["client"], stream["method"], call)
@@ -364,3 +375,9 @@ async def test_malformed_error_with_ack_fields_preserves_prior_chunk_success(str
     assert results[:500] == [acknowledgement] * 500
     assert isinstance(results[500], ValueError)
     assert call.await_count == 2
+
+
+@pytest.mark.parametrize("target", [None, "", b"events", 123])
+def test_firehose_rejects_invalid_stream_names(target):
+    with pytest.raises(ValueError, match="delivery_stream_name"):
+        AsyncFirehoseBatcher(None, delivery_stream_name=target)
