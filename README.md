@@ -22,7 +22,9 @@ batches to improve efficiency and throughput.
 - Use `asyncio.gather()` or `asyncio.create_task()` to submit multiple items concurrently.
 
 ### 2. Queue Management and Batching
-- A background task (`run()`) continuously monitors the queue.
+- A dispatcher task continuously monitors the queue. `process()` starts it automatically.
+  You can also start it explicitly with `await batcher.run()`, which waits for the dispatcher to finish.
+  Shutdown waits for the dispatcher and batch work, not for the caller's later work.
 - Items are collected into batches based on:
   - `max_batch_size`: Maximum items per batch, or `-1` for no limit.
   - `max_queue_time`: Time to collect a partial batch, measured from its oldest queued item.
@@ -56,7 +58,7 @@ sequenceDiagram
     participant User
     participant AsyncBatcher
     participant Queue as asyncio.Queue
-    participant RunLoop as run()
+    participant RunLoop as Dispatcher task
     participant Semaphore
     participant BatchTask as _batch_run()
     participant Executor
@@ -66,7 +68,7 @@ sequenceDiagram
     User->>AsyncBatcher: await process(item)
     AsyncBatcher->>Queue: put_nowait(item, future, enqueued_at)
     opt Dispatcher has not started
-        AsyncBatcher->>RunLoop: create_task(run())
+        AsyncBatcher->>RunLoop: create_task(_run())
     end
     Note over User,Futures: process() awaits its item's future
 

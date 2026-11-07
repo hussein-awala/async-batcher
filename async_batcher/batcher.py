@@ -170,7 +170,7 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         self._queue.put_nowait(self.QueueItem(item, future, loop.time()))
         self._queue_changed.set()
         if self._current_task is None:
-            self._current_task = loop.create_task(self.run())
+            self._current_task = loop.create_task(self._run())
         return await future
 
     async def _fill_batch_from_queue(self) -> list[QueueItem]:
@@ -278,11 +278,19 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
             self._queue.get_nowait()
 
     async def run(self):
-        """Run until stopped and all accepted work has finished.
+        """Start a dispatcher and wait until all accepted work has finished.
 
-        Processing starts this task automatically. Only one dispatcher may run.
+        Processing starts a dispatcher automatically. Only one may run. The
+        dispatcher has its own task, so shutdown does not wait for unrelated
+        work performed by this method's caller after run() returns.
         """
-        self._get_loop()
+        loop = self._get_loop()
+        if self._current_task is not None:
+            raise RuntimeError("Batcher already has a dispatcher")
+        self._current_task = loop.create_task(self._run())
+        await self._current_task
+
+    async def _run(self):
         current_task = asyncio.current_task()
         if self._current_task is not None and self._current_task is not current_task:
             raise RuntimeError("Batcher already has a dispatcher")
