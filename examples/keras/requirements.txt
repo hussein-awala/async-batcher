@@ -1,1 +1,4 @@
 tensorflow
+fastapi
+uvicorn
+locust

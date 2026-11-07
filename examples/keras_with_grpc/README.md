@@ -18,9 +18,10 @@ python run_codegen.py
 ```
 
 ## How to use
-Install the required packages:
+Install the required packages from the repository root:
 ```bash
-pip install -r requirements.txt
+pip install -e . -r examples/keras_with_grpc/requirements.txt
+cd examples/keras_with_grpc
 ```
 Then, you can run the GRPC server:
 ```bash
