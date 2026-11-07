@@ -173,6 +173,10 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
 
     async def run(self):
         """Run the batcher asynchronously."""
+        current_task = asyncio.current_task()
+        if self._current_task is not None and self._current_task is not current_task:
+            raise RuntimeError("Batcher already has a dispatcher")
+        self._current_task = current_task
         self._is_running.set()
         task_id = 0
         if self.concurrency > 0:
