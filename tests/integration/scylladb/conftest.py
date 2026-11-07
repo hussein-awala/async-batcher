@@ -4,7 +4,6 @@ import pytest
 import pytest_asyncio
 from async_batcher.scylladb.update import AsyncScyllaDbWriteBatcher
 from cassandra.cluster import Cluster
-from cassandra.connection import DefaultEndPoint
 from cassandra.cqlengine import columns, connection
 from cassandra.cqlengine.management import drop_table, sync_table
 from cassandra.cqlengine.models import Model
@@ -21,18 +20,13 @@ async def scylladb_write_batcher():
 
 @pytest.fixture
 def scylladb_session():
-    cluster = Cluster(
-        [
-            DefaultEndPoint("localhost", 9042),
-            DefaultEndPoint("localhost", 9043),
-        ]
-    )
+    cluster = Cluster(["127.0.0.1"], port=9042)
 
     try:
         session = cluster.connect()
         session.execute(
             f"CREATE KEYSPACE IF NOT EXISTS {TEST_KEYSPACE} "
-            "WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 3}"
+            "WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}"
         )
         session.execute(f"USE {TEST_KEYSPACE}")
         yield session

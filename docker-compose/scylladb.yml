@@ -1,46 +1,21 @@
-version: "3.8"
-
 services:
-  scylla-node1:
-    image: scylladb/scylla
-    container_name: scylla-node1
-    restart: always
+  scylla:
+    image: scylladb/scylla:2026.3.4@sha256:d864230da81af7f6cdcf68446a440e0e4a55a0827fcf49af00725f660e8647d3
     ports:
-      - "9042:9042"
-    environment:
-      - CLUSTER_NAME=scylla-cluster
+      - "127.0.0.1:9042:9042"
+    mem_limit: 3g
     command:
-      --seeds=scylla-node1
-      --alternator-write-isolation unsafe
-      --alternator-port 8000
-      --smp 1
-      --memory 750M
-      --overprovisioned 1
-      --api-address 0.0.0.0
+      - --smp
+      - "1"
+      - --memory
+      - 2G
+      - --overprovisioned
+      - "1"
+      - --developer-mode
+      - "1"
     healthcheck:
-      test: [ "CMD-SHELL", "[ $$(nodetool statusgossip) = running ]" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  scylla-node2:
-    image: scylladb/scylla
-    container_name: scylla-node2
-    restart: always
-    ports:
-      - "9043:9042"
-    environment:
-      - CLUSTER_NAME=scylla-cluster
-    command:
-      --seeds=scylla-node1
-      --alternator-write-isolation unsafe
-      --alternator-port 8000
-      --smp 1
-      --memory 750M
-      --overprovisioned 1
-      --api-address 0.0.0.0
-    healthcheck:
-      test: [ "CMD-SHELL", "[ $$(nodetool statusgossip) = running ]" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      test: ["CMD", "cqlsh", "-e", "SELECT key FROM system.local;"]
+      start_period: 60s
+      interval: 5s
+      timeout: 10s
+      retries: 24
