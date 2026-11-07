@@ -17,6 +17,8 @@ class AsyncFirehoseBatcher(AsyncBatcher[bytes, dict[str, Any]]):
     base64 encoding. Add any destination delimiters to your bytes yourself.
     ``max_retries`` (default 5) retries only per-record unavailable/internal errors;
     SDK request-level retries remain governed by the client's configuration.
+    Set ``retry_jitter=True`` to randomize each rejected-record retry delay
+    between zero and its capped exponential backoff; the default is False.
     Delivery may contain duplicates. Acknowledgement means Firehose accepted the
     record, not that its destination has received it. Stop this batcher before
     closing the client; stop() never closes the client.
@@ -29,15 +31,17 @@ class AsyncFirehoseBatcher(AsyncBatcher[bytes, dict[str, Any]]):
         delivery_stream_name: str,
         max_batch_size: int = 500,
         max_retries: int = 5,
+        retry_jitter: bool = False,
         **kwargs: Any,
     ):
         super().__init__(max_batch_size=max_batch_size, **kwargs)
-        validate_options(self.max_batch_size, max_retries)
+        validate_options(self.max_batch_size, max_retries, retry_jitter)
         if not isinstance(delivery_stream_name, str) or not delivery_stream_name:
             raise ValueError("delivery_stream_name must be a nonempty string")
         self.client = client
         self.delivery_stream_name = delivery_stream_name
         self.max_retries = max_retries
+        self.retry_jitter = retry_jitter
 
     async def process_batch(self, batch: list[bytes]) -> list[dict[str, Any] | Exception]:
         for data in batch:
@@ -51,6 +55,7 @@ class AsyncFirehoseBatcher(AsyncBatcher[bytes, dict[str, Any]]):
             [len(data) for data in batch],
             max_bytes=4 * 1024 * 1024,
             max_retries=self.max_retries,
+            retry_jitter=self.retry_jitter,
             response_key="RequestResponses",
             success_keys=("RecordId",),
             retry_codes={"ServiceUnavailableException", "InternalFailure"},

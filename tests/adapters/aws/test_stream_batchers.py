@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 import pytest_asyncio
@@ -82,14 +82,21 @@ async def test_sdk_requests_and_per_item_acknowledgements(stream):
 
 
 @pytest.mark.asyncio
-async def test_partial_retry_preserves_order_and_does_not_resend_successes(stream, monkeypatch):
+@pytest.mark.parametrize("jitter", [False, True])
+async def test_partial_retry_preserves_order_and_does_not_resend_successes(stream, monkeypatch, jitter):
     sleep = AsyncMock()
+    random = Mock(side_effect=lambda low, high: high / 4)
     monkeypatch.setattr(_records.asyncio, "sleep", sleep)
+    monkeypatch.setattr(_records.random, "uniform", random)
+    stream["batcher"].retry_jitter = jitter
     respond(stream, stream["records"], [stream["error"], stream["successes"][1], stream["error"]])
     respond(stream, [stream["records"][0], stream["records"][2]], [stream["error"], stream["successes"][2]])
     respond(stream, [stream["records"][0]], [stream["successes"][0]])
     assert await stream["batcher"].process_batch(stream["inputs"]) == stream["successes"]
-    assert [call.args for call in sleep.await_args_list] == [(0.1,), (0.2,)]
+    assert [call.args for call in sleep.await_args_list] == (
+        [(0.025,), (0.05,)] if jitter else [(0.1,), (0.2,)]
+    )
+    assert random.call_count == (2 if jitter else 0)
 
 
 @pytest.mark.asyncio

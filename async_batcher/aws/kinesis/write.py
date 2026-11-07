@@ -27,6 +27,8 @@ class AsyncKinesisBatcher(AsyncBatcher[KinesisRecord, dict[str, Any]]):
     Records are split at 500 records / 10 MiB including UTF-8 partition keys.
     ``max_retries`` (default 5) retries only per-record throttling/internal errors;
     SDK request-level retries remain governed by the client's configuration.
+    Set ``retry_jitter=True`` to randomize each rejected-record retry delay
+    between zero and its capped exponential backoff; the default is False.
     PutRecords does not guarantee ordering or exactly-once delivery.
     Stop this batcher before closing the client; stop() never closes the client.
     """
@@ -39,10 +41,11 @@ class AsyncKinesisBatcher(AsyncBatcher[KinesisRecord, dict[str, Any]]):
         stream_arn: str | None = None,
         max_batch_size: int = 500,
         max_retries: int = 5,
+        retry_jitter: bool = False,
         **kwargs: Any,
     ):
         super().__init__(max_batch_size=max_batch_size, **kwargs)
-        validate_options(self.max_batch_size, max_retries)
+        validate_options(self.max_batch_size, max_retries, retry_jitter)
         if (stream_name is None) == (stream_arn is None):
             raise ValueError("provide exactly one of stream_name or stream_arn")
         value = stream_name if stream_name is not None else stream_arn
@@ -51,6 +54,7 @@ class AsyncKinesisBatcher(AsyncBatcher[KinesisRecord, dict[str, Any]]):
         self.client = client
         self.stream = {"StreamName" if stream_name is not None else "StreamARN": value}
         self.max_retries = max_retries
+        self.retry_jitter = retry_jitter
 
     async def process_batch(self, batch: list[KinesisRecord]) -> list[dict[str, Any] | Exception]:
         records = []
@@ -86,6 +90,7 @@ class AsyncKinesisBatcher(AsyncBatcher[KinesisRecord, dict[str, Any]]):
             sizes,
             max_bytes=_MAX_BYTES,
             max_retries=self.max_retries,
+            retry_jitter=self.retry_jitter,
             response_key="Records",
             success_keys=("ShardId", "SequenceNumber"),
             retry_codes={"ProvisionedThroughputExceededException", "InternalFailure"},

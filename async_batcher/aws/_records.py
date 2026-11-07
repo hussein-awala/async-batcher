@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import random
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -21,11 +22,13 @@ class RecordBatchError(Exception):
         super().__init__(f"{code}: {message} (after {attempts} attempt(s))")
 
 
-def validate_options(max_batch_size: int, max_retries: int) -> None:
+def validate_options(max_batch_size: int, max_retries: int, retry_jitter: bool = False) -> None:
     if not 1 <= max_batch_size <= 500:
         raise ValueError("max_batch_size must be between 1 and 500")
     if isinstance(max_retries, bool) or not isinstance(max_retries, int) or max_retries < 0:
         raise ValueError("max_retries must be a non-negative integer")
+    if not isinstance(retry_jitter, bool):
+        raise TypeError("retry_jitter must be a boolean")
 
 
 async def send_records(
@@ -38,6 +41,7 @@ async def send_records(
     response_key: str,
     success_keys: tuple[str, ...],
     retry_codes: set[str],
+    retry_jitter: bool = False,
     **kwargs: Any,
 ) -> list[dict[str, Any] | Exception]:
     """Split by service limits and retry only explicitly rejected records."""
@@ -90,6 +94,7 @@ async def send_records(
             if not retry:
                 break
             pending = retry
-            await asyncio.sleep(min(0.1 * 2 ** min(attempt, 6), 5.0))
+            delay = min(0.1 * 2 ** min(attempt, 6), 5.0)
+            await asyncio.sleep(random.uniform(0, delay) if retry_jitter else delay)
         start = end
     return results
