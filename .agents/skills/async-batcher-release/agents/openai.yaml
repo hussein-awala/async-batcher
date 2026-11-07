@@ -1,0 +1,4 @@
+interface:
+  display_name: "Async Batcher Release"
+  short_description: "Prepare and publish verified Async Batcher releases"
+  default_prompt: "Use $async-batcher-release to prepare release notes and a verified publication plan for async-batcher."
