@@ -78,6 +78,39 @@ batcher, a stopped group manager cannot restart: create a new manager. Factories
 and their clients remain caller-owned; close shared clients after the manager.
 Do not stop the manager from a child processor or its descendant tasks.
 
+## Flush accepted child work without closing the manager
+
+The current source checkout provides `await grouped.flush(timeout=None)`. It dispatches
+partial batches and waits for work already accepted by every currently owned child,
+including children already closing. Intake stays open. Each child's acceptance boundary
+is captured when the grouped flush coroutine starts, before its child waiters are scheduled.
+Later submissions to existing or new keys cannot extend those boundaries.
+
+```python
+await grouped.flush(timeout=5)
+```
+
+This is the same acceptance boundary as [core flush](api.md#flush-without-stopping-intake).
+Manager reservations still waiting for group eviction or child queue admission are **excluded**,
+even if `grouped.pending_items` already counts them. Scheduling a `process()` coroutine also
+does not prove child acceptance. A flush does not create groups, cancel eviction, or free group
+slots early. It keeps references to its selected children while waiting; replacement children
+and later work do not enter the boundary. Use `stop()` to close intake and drain the manager's
+owned requests, including admission waits, when ending the service lifecycle.
+
+Completion includes child batch cleanup and completion hooks, even if a grouped caller stopped
+waiting. It does not assert that each request succeeded or that an external write is durable;
+inspect the individual results or `map_outcomes()` for failures. Ordinary item errors do not
+fail flush. `timeout` must be finite and nonnegative; its expiration raises `TimeoutError`.
+Timeout or cancellation abandons only this flush wait and leaves accepted work running.
+Forced shutdown of an included child interrupts flush with `RuntimeError`, including if that
+shutdown occurs between snapshotting and starting the child waiters. Other child work is not
+cancelled by this interruption. Graceful shutdown can finish a flush normally.
+
+An empty flush binds the manager's event loop without creating children. A flush after completed
+shutdown returns immediately; it does not reopen the manager. A processor or its active
+descendants cannot flush their own manager because that would wait for themselves.
+
 ## Bounded grouped streams and child admission
 
 `grouped.process(item, wait_for_space=True, enqueue_timeout=0.5)` forwards those admission

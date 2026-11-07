@@ -824,6 +824,17 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         Forced shutdown interrupts a pending flush with RuntimeError, since native
         executor functions may still run. Processors cannot flush their own batcher.
         """
+        boundary = self._begin_flush(timeout)
+        if boundary is None:
+            return
+        try:
+            async with asyncio.timeout(timeout):
+                await self._flush_accepted(*boundary)
+        finally:
+            self._end_flush(boundary[0])
+
+    def _begin_flush(self, timeout: float | None = None) -> tuple[int, int] | None:
+        """Capture and register a boundary before a composition schedules waiters."""
         self._get_loop()
         self._check_not_processing("flush")
         if timeout is not None:
@@ -833,23 +844,26 @@ class AsyncBatcher(Generic[T, S], abc.ABC):
         ):
             raise RuntimeError("Flush interrupted by forced shutdown")
         if not self._work_sequences:
-            return
+            return None
         target = self._accepted
-        generation = self._abort_generation
         self._flush_targets[target] += 1
         self._queue_changed.set()
-        try:
-            async with asyncio.timeout(timeout):
-                # Insertion order is acceptance order; completed work is removed.
-                while next(iter(self._work_sequences.values()), math.inf) <= target:
-                    self._work_changed.clear()
-                    await self._work_changed.wait()
-                if generation != self._abort_generation:
-                    raise RuntimeError("Flush interrupted by forced shutdown")
-        finally:
-            self._flush_targets[target] -= 1
-            if not self._flush_targets[target]:
-                del self._flush_targets[target]
+        return target, self._abort_generation
+
+    async def _flush_accepted(self, target: int, generation: int) -> None:
+        if generation != self._abort_generation:
+            raise RuntimeError("Flush interrupted by forced shutdown")
+        # Insertion order is acceptance order; completed work is removed.
+        while next(iter(self._work_sequences.values()), math.inf) <= target:
+            self._work_changed.clear()
+            await self._work_changed.wait()
+        if generation != self._abort_generation:
+            raise RuntimeError("Flush interrupted by forced shutdown")
+
+    def _end_flush(self, target: int) -> None:
+        self._flush_targets[target] -= 1
+        if not self._flush_targets[target]:
+            del self._flush_targets[target]
 
     async def stop(self, force: bool = False, timeout: float | None = None) -> None:
         """Reject new work while waiting for shutdown.

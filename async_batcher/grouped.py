@@ -259,6 +259,49 @@ class GroupedBatcher(Generic[K, T, S]):
             if task.done():
                 self._request_done(group, task)
 
+    async def flush(self, timeout: float | None = None) -> None:
+        """Finish work already accepted by owned children while keeping intake open.
+
+        Snapshot each child's acceptance boundary when this coroutine starts.
+        Manager reservations waiting for eviction or child admission, and later
+        submissions, are excluded. References include children already closing.
+        Timeout/cancellation abandons only this wait; forced child shutdown raises
+        RuntimeError. Completion includes batch cleanup, not successful outcomes.
+        """
+        self._get_loop()
+        if timeout is not None:
+            AsyncBatcher._validate_cost(timeout, "timeout")
+        boundaries = []
+        tasks = []
+        try:
+            for group in self._groups.values():
+                child = group.batcher
+                boundary = child._begin_flush()
+                if boundary is not None:
+                    boundaries.append((child, boundary))
+            async with asyncio.timeout(timeout):
+                for child, boundary in boundaries:
+                    coroutine = child._flush_accepted(*boundary)
+                    try:
+                        task = asyncio.create_task(coroutine)
+                    except BaseException:
+                        coroutine.close()
+                        raise
+                    tasks.append(task)
+                if tasks:
+                    await asyncio.gather(*tasks)
+        finally:
+            # The owner releases targets even when a waiter never takes a step.
+            # Cancelling these waiters never cancels the accepted child work.
+            for task in tasks:
+                task.cancel()
+            try:
+                if tasks:
+                    await asyncio.gather(*tasks, return_exceptions=True)
+            finally:
+                for child, boundary in boundaries:
+                    child._end_flush(boundary[0])
+
     async def _stop_groups(self) -> None:
         groups = list(self._groups.values())
         results = await asyncio.gather(

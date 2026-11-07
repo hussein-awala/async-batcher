@@ -126,3 +126,8 @@ already accepted while keeping intake open. Admission waiters and later submissi
 are not included. It waits for batch cleanup even if individual callers were cancelled;
 it does not turn item failures into success. See the [flush contract](api.md#flush-without-stopping-intake)
 for cancellation, forced shutdown, and checkpoint ownership.
+
+`GroupedBatcher.flush()` captures the same boundary separately for each owned child,
+including children already closing. Manager reservations awaiting group eviction or child
+admission are excluded. See [grouped flush](grouped-batching.md#flush-accepted-child-work-without-closing-the-manager)
+for ownership and shutdown behavior.
