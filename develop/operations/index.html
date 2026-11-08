@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="0118bf3fc72f117e2f7dd30bed53df246e741eee">
+    <meta name="documentation-source" content="413aa27db1310d7b5ec8ac8e96318f3e30ad0f1c">
   
 
   </head>
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/0118bf3fc72f117e2f7dd30bed53df246e741eee"><code>0118bf3fc72f</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/413aa27db1310d7b5ec8ac8e96318f3e30ad0f1c"><code>413aa27db131</code></a>.
   
 
           </div>
@@ -2081,7 +2081,7 @@
 
 
 <h1 id="deadlines-shared-capacity-and-telemetry">Deadlines, shared capacity, and telemetry<a class="headerlink" href="#deadlines-shared-capacity-and-telemetry" title="Permanent link">&para;</a></h1>
-<p>The <a href="https://github.com/hussein-awala/async-batcher/blob/0118bf3fc72f117e2f7dd30bed53df246e741eee/examples/recipes/operations.py">operational helpers</a> are application recipes in the
+<p>The <a href="https://github.com/hussein-awala/async-batcher/blob/413aa27db1310d7b5ec8ac8e96318f3e30ad0f1c/examples/recipes/operations.py">operational helpers</a> are application recipes in the
 repository, outside the installed package. They use the standard library and core contracts.
 Set up the matching <a href="../installation/#run-the-repository-recipes">recipe checkout</a>, then run the examples with
 <code>uv run --no-sync python</code> from its root.</p>
@@ -2172,7 +2172,7 @@ be running. Keep references to the batcher and its resources; retry <code>stop(f
 appropriate, or let the process supervisor enforce its separate termination policy. Do not
 silently reopen intake or close a client while surviving work still needs it.</p>
 <h2 id="apply-the-policy-to-http">Apply the policy to HTTP<a class="headerlink" href="#apply-the-policy-to-http" title="Permanent link">&para;</a></h2>
-<p>The <a href="https://github.com/hussein-awala/async-batcher/blob/0118bf3fc72f117e2f7dd30bed53df246e741eee/examples/recipes/fastapi_app.py">FastAPI app</a> exposes separate response and shutdown settings:</p>
+<p>The <a href="https://github.com/hussein-awala/async-batcher/blob/413aa27db1310d7b5ec8ac8e96318f3e30ad0f1c/examples/recipes/fastapi_app.py">FastAPI app</a> exposes separate response and shutdown settings:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">examples.recipes.fastapi_app</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_app</span>

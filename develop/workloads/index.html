@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="0118bf3fc72f117e2f7dd30bed53df246e741eee">
+    <meta name="documentation-source" content="413aa27db1310d7b5ec8ac8e96318f3e30ad0f1c">
   
 
   </head>
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/0118bf3fc72f117e2f7dd30bed53df246e741eee"><code>0118bf3fc72f</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/413aa27db1310d7b5ec8ac8e96318f3e30ad0f1c"><code>413aa27db131</code></a>.
   
 
           </div>
@@ -2064,7 +2064,7 @@ dependencies; install an adapter extra only when you use that backend.</p>
 <h2 id="check-the-backend-contract-first">Check the backend contract first<a class="headerlink" href="#check-the-backend-contract-first" title="Permanent link">&para;</a></h2>
 <p>Batching helps when a bulk call amortizes network, transaction, or model overhead. A function that
 simply performs the same independent calls in sequence may add latency without reducing that work.
-Measure your own end-to-end latency and throughput; the included <a href="https://github.com/hussein-awala/async-batcher/blob/0118bf3fc72f117e2f7dd30bed53df246e741eee/BENCHMARK.md">benchmarks</a> do
+Measure your own end-to-end latency and throughput; the included <a href="https://github.com/hussein-awala/async-batcher/blob/413aa27db1310d7b5ec8ac8e96318f3e30ad0f1c/BENCHMARK.md">benchmarks</a> do
 not predict a particular database or model's performance.</p>
 <p>Before choosing limits, identify:</p>
 <ul>
@@ -2074,7 +2074,7 @@ not predict a particular database or model's performance.</p>
 <li>Which effects can already have happened when a request fails or its caller is cancelled.</li>
 <li>Who owns the client, model, executor, and any durable replay/checkpoint state.</li>
 </ul>
-<p>Use a built-in <a href="https://github.com/hussein-awala/async-batcher/blob/0118bf3fc72f117e2f7dd30bed53df246e741eee/README.md#optional-adapters">adapter</a> when its operation and failure contract fit.
+<p>Use a built-in <a href="https://github.com/hussein-awala/async-batcher/blob/413aa27db1310d7b5ec8ac8e96318f3e30ad0f1c/README.md#optional-adapters">adapter</a> when its operation and failure contract fit.
 Otherwise, wrap a bulk function with <a href="../functions/"><code>from_callable</code></a>, return one result per item,
 and use <a href="../bulk-processing/"><code>map</code></a> for bounded producers. A batcher does not make a backend
 transactional, enforce a request-rate limit, or persist queued work across a process crash.</p>
