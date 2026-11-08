@@ -21,7 +21,7 @@ classifiers = [
 [project.urls]
 Repository = "https://github.com/hussein-awala/async-batcher"
 "Bug Tracker" = "https://github.com/hussein-awala/async-batcher/issues"
-Documentation = "https://github.com/hussein-awala/async-batcher/blob/main/README.md"
+Documentation = "https://hussein.awala.fr/async-batcher/"
 
 [project.optional-dependencies]
 aws = [
@@ -39,6 +39,11 @@ pinecone = ["pinecone>=10.3,<11"]
 mongodb = ["pymongo>=4.19,<5"]
 
 [dependency-groups]
+docs = [
+    "mkdocs==1.6.1",
+    "mkdocs-material>=9.8.0,<10",
+    "mike>=2.2.0,<3",
+]
 test = [
     "pytest>=9.0.3,<10",
     "pytest-asyncio>=1.4.1.post1,<2",

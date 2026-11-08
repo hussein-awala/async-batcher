@@ -150,3 +150,13 @@ References: [uv version](https://docs.astral.sh/uv/reference/cli/#uv-version),
 [uv build and packaging](https://docs.astral.sh/uv/guides/package/),
 [GitHub release CLI](https://cli.github.com/manual/gh_release_create),
 and [PyPI trusted publishing](https://docs.pypi.org/trusted-publishers/using-a-publisher/).
+
+## Documentation for the release
+
+The tag also starts `Deploy documentation`. Follow
+[documentation publication](../../../../docs/documentation.md) and verify the public
+version's source SHA plus the run's archive and Pages jobs. Stable `latest` promotion
+is limited to the highest stable numeric Git tag; prereleases do not promote it.
+A failed documentation run does not justify moving a tag or repeating PyPI upload.
+Main updates publish `develop`, explicitly labeled unreleased. A manual docs workflow
+run publishes and should only recover the intended existing ref within authorization.

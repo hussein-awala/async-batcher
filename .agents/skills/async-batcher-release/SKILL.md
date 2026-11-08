@@ -39,6 +39,10 @@ explicit authorization, even when release publication is authorized.
 - GitHub release notes and an Announcements discussion are separate from that workflow.
   Publishing the tag does not create either. Creating a GitHub release for a missing tag
   can create the tag and start PyPI publication; use an existing verified tag.
+- `.github/workflows/deploy-doc.yml` also runs on tags, publishing versioned documentation.
+  Read [documentation publication](../../../docs/documentation.md) for channel rules,
+  signed archive commits, and recovery; do not use a test tag. A successful docs build is
+  not evidence that PyPI publication succeeded.
 - Source installation and current documentation can describe unreleased features. Check
   the selected tag and PyPI metadata before promising support or APIs in a published release.
 
@@ -75,7 +79,8 @@ explicit authorization, even when release publication is authorized.
 Only with the required authorization, follow [publication.md](references/publication.md).
 Create and verify a signed tag on the exact tested commit; never move a published tag or
 force a tag push. Push only that tag, monitor both release jobs, and verify the wheel and
-sdist on PyPI before announcing success. Stop on a failed or ambiguous publication and
+sdist on PyPI before announcing success. Also check the documentation deployment and
+its public version manifest/source SHA; a failed docs deployment can leave older pages live. Stop on a failed or ambiguous publication and
 inspect uploaded files before considering a bounded retry; do not create a new version or
 replace credentials to work around a failure without authorization.
 

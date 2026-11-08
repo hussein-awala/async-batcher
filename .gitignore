@@ -159,3 +159,6 @@ cython_debug/
 # Downloaded CI coverage data and combined reports.
 /coverage-data/
 /coverage-report/
+
+# Versioned documentation publication staging.
+/pages/

@@ -301,6 +301,36 @@ jobs:
           uv lock --check
           uv run --no-sync python .github/scripts/check_distributions.py
 
+  docs:
+    name: Documentation build and links
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-project
+        with:
+          python-version: '3.12'
+          groups: docs
+      - name: Check documentation tooling
+        run: |
+          uv run --no-sync python -m unittest discover -s docs/tests -p 'test_*.py'
+          uv run --no-sync python -m unittest discover -s .github/scripts -p '*docs*.py'
+      - name: Build and validate every documentation page
+        env:
+          DOCS_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          uv run --no-sync mkdocs build --strict
+          uv run --no-sync python .github/scripts/check_docs.py site
+      - name: Preserve the documentation preview
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: documentation-preview
+          path: site/
+          if-no-files-found: error
+          retention-days: 7
+
   coverage:
     name: Combined coverage
     needs: [plan, core, examples, provider-recipes, adapters, services]
@@ -344,7 +374,7 @@ jobs:
 
   ci:
     name: CI passed
-    needs: [plan, core, examples, provider-recipes, adapters, services, quality, coverage]
+    needs: [plan, core, examples, provider-recipes, adapters, services, quality, docs, coverage]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 2
@@ -355,6 +385,7 @@ jobs:
           CORE_RESULT: ${{ needs.core.result }}
           COVERAGE_RESULT: ${{ needs.coverage.result }}
           QUALITY_RESULT: ${{ needs.quality.result }}
+          DOCS_RESULT: ${{ needs.docs.result }}
           ADAPTER_RESULT: ${{ needs.adapters.result }}
           SERVICE_RESULT: ${{ needs.services.result }}
           EXAMPLE_RESULT: ${{ needs.examples.result }}
@@ -364,7 +395,7 @@ jobs:
           HAS_EXAMPLES: ${{ needs.plan.outputs.has_examples }}
           HAS_PROVIDER_RECIPES: ${{ needs.plan.outputs.has_provider_recipes }}
         run: |
-          [[ "$PLAN_RESULT" == success && "$CORE_RESULT" == success && "$QUALITY_RESULT" == success && "$COVERAGE_RESULT" == success ]]
+          [[ "$PLAN_RESULT" == success && "$CORE_RESULT" == success && "$QUALITY_RESULT" == success && "$DOCS_RESULT" == success && "$COVERAGE_RESULT" == success ]]
           if [[ "$HAS_ADAPTERS" == true ]]; then [[ "$ADAPTER_RESULT" == success ]]; fi
           if [[ "$HAS_SERVICES" == true ]]; then [[ "$SERVICE_RESULT" == success ]]; fi
           if [[ "$HAS_EXAMPLES" == true ]]; then [[ "$EXAMPLE_RESULT" == success ]]; fi

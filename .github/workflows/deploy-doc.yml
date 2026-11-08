@@ -1,0 +1,102 @@
+name: Deploy documentation
+
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never cancel an in-progress archive update. Rerun displaced pending tag jobs;
+# GitHub retains only one pending run for a concurrency group.
+concurrency:
+  group: documentation-pages
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: Build and archive versioned documentation
+    if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      archive_commit: ${{ steps.archive.outputs.commit }}
+    permissions:
+      contents: write
+      pages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-project
+        with:
+          python-version: '3.12'
+          groups: docs
+      - name: Put the locked builder on PATH for mike
+        run: echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+      - name: Read the configured Pages site
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Fetch the signed documentation archive
+        run: |
+          git fetch origin refs/heads/gh-pages:refs/remotes/origin/gh-pages
+          git branch gh-pages refs/remotes/origin/gh-pages
+      - name: Build the requested version without pushing local staging commits
+        run: |
+          python .github/scripts/publish_docs.py prepare \
+            --ref "$GITHUB_REF" --source-sha "$GITHUB_SHA" \
+            --output-dir pages --state "$RUNNER_TEMP/docs-state.json"
+      - name: Validate all generated links, anchors and assets
+        run: python .github/scripts/check_docs.py pages
+      - name: Preserve the checked documentation
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: documentation-site
+          path: pages/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+      - name: Archive the checked tree with a verified GitHub signature
+        id: archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python .github/scripts/publish_docs.py publish \
+            --repository "$GITHUB_REPOSITORY" \
+            --state "$RUNNER_TEMP/docs-state.json" --output-dir pages > "$RUNNER_TEMP/docs-published.json"
+          python -c 'import json, os; from pathlib import Path; data = json.loads((Path(os.environ["RUNNER_TEMP"]) / "docs-published.json").read_text()); print("commit=" + data["commit"])' >> "$GITHUB_OUTPUT"
+      - name: Upload the same tree for GitHub Pages
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: pages/
+          include-hidden-files: true
+
+  deploy:
+    name: Publish GitHub Pages
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Reject a superseded deployment artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCHIVE_COMMIT: ${{ needs.build.outputs.archive_commit }}
+        run: |
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/gh-pages" --jq '.object.sha')
+          [[ -n "$ARCHIVE_COMMIT" && "$current" == "$ARCHIVE_COMMIT" ]]
+      - name: Deploy the verified documentation archive
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -1,5 +1,8 @@
 # AsyncBatcher
 
+[Documentation](https://hussein.awala.fr/async-batcher/) ·
+[Development docs](https://hussein.awala.fr/async-batcher/develop/)
+
 AsyncBatcher combines concurrent Python requests into batches and routes each result back to its caller.
 Wrap an existing bulk function, subclass `AsyncBatcher`, or use an adapter for a supported database,
 messaging client, or prediction model. The core package has no runtime dependencies.
