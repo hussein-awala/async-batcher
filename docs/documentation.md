@@ -15,7 +15,7 @@ uv sync --locked --no-default-groups --python 3.12 --group docs
 uv run --no-sync python -m unittest discover -s docs/tests -p 'test_*.py'
 uv run --no-sync python -m unittest discover -s .github/scripts -p '*docs*.py'
 uv run --no-sync mkdocs build --strict
-uv run --no-sync python .github/scripts/check_docs.py site
+uv run --no-sync python .github/scripts/check_docs.py site --version-preview
 uv run --no-sync mkdocs serve
 ```
 
@@ -114,3 +114,34 @@ move release tags or create a new package release to repair documentation. If an
 archive API request has an ambiguous outcome, inspect `gh-pages` and its manifest
 before retrying. A conflicting or unsigned archive result is a publishing failure,
 not permission to force-push or bypass signature verification.
+
+## Shared release notes
+
+[Release notes](https://hussein.awala.fr/async-batcher/release-notes/) are a project-wide
+page independent of the selected documentation version. Every version's navigation
+links to that permanent URL. Main deployments rebuild it from `release-notes/*.md`;
+tag deployments preserve its existing archive bytes, so an older release cannot
+replace newer history. It is not an entry in the documentation version selector.
+
+Each file contains metadata followed by the canonical GitHub release body. Published
+0.2.0, 0.2.1, and 0.2.2 bodies were copied from GitHub, preserving their wording and
+normalizing line endings. Planned releases are labeled **In preparation**. To preview:
+
+```bash
+uv run --no-sync python .github/scripts/release_notes.py build --output-dir release-notes-site
+uv run --no-sync python .github/scripts/check_docs.py release-notes-site --base-path /async-batcher/release-notes/
+```
+
+Before creating an authorized GitHub release, export its reviewed body rather than
+maintaining a second copy. For example:
+
+```bash
+uv run --no-sync python .github/scripts/release_notes.py extract 0.3.0 --output /tmp/async-batcher-0.3.0-notes.md
+```
+
+Use that file with the existing release process's `--notes-file` argument. Extraction
+only writes a local file; it does not publish. After package and GitHub publication
+are confirmed, update the file's `status`, `date`, and `github_url` to the actual
+release in a signed documentation PR. Its main deployment updates the shared page
+without rebuilding archived version docs. Preserve historical bodies; release-note
+corrections should be deliberate and reviewed.

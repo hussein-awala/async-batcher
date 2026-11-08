@@ -187,6 +187,45 @@ class GitTreeTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     docs.verify_output(tree, output)
 
+    def test_global_notes_overlay_preserves_versions_and_the_callers_index(self):
+        previous = self.make_tree(
+            {
+                "develop/index.html": b"development archive",
+                "0.3.0/index.html": b"stable archive",
+                "versions.json": b"manifest",
+                "release-notes/index.html": b"old notes",
+                "release-notes/assets/obsolete.css": b"old asset",
+            }
+        )
+        # A different index represents the caller's unrelated staged files.
+        callers_index = self.make_tree({"local-only.txt": b"preserve staged edits"})
+        directory = self.root / "notes"
+        (directory / "assets").mkdir(parents=True)
+        (directory / "index.html").write_bytes(b"new notes")
+        (directory / "assets" / "new.bin").write_bytes(b"\x00\xff")
+        updated = docs.overlay_release_notes(previous, directory)
+        self.assertEqual(docs.git("write-tree").decode().strip(), callers_index)
+        before, after = docs.files_at(previous), docs.files_at(updated)
+        self.assertEqual(
+            {path: blob for path, blob in after.items() if not path.startswith("release-notes/")},
+            {path: blob for path, blob in before.items() if not path.startswith("release-notes/")},
+        )
+        self.assertNotIn("release-notes/assets/obsolete.css", after)
+        self.assertEqual(docs.git("cat-file", "blob", after["release-notes/index.html"]), b"new notes")
+        self.assertEqual(docs.git("cat-file", "blob", after["release-notes/assets/new.bin"]), b"\x00\xff")
+
+    def test_global_notes_invalid_build_cannot_change_the_callers_index(self):
+        previous = self.make_tree({"develop/index.html": b"archive"})
+        directory = self.root / "notes"
+        directory.mkdir()
+        with self.assertRaisesRegex(ValueError, "homepage"):
+            docs.overlay_release_notes(previous, directory)
+        (directory / "index.html").write_bytes(b"notes")
+        (directory / "outside.html").symlink_to(self.repo / "missing.html")
+        with self.assertRaisesRegex(ValueError, "symbolic"):
+            docs.overlay_release_notes(previous, directory)
+        self.assertEqual(docs.git("write-tree").decode().strip(), previous)
+
     def test_existing_non_archive_tree_is_rejected(self):
         self.assertEqual(docs.read_versions(self.make_tree({})), [])
         with self.assertRaisesRegex(ValueError, "versions.json"):
@@ -325,6 +364,30 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual(first.kwargs["env"]["DOCS_SOURCE_SHA"], SOURCE)
         self.assertEqual(first.kwargs["env"]["GIT_COMMITTER_NAME"], "github-actions[bot]")
         self.assertEqual(run.call_args_list[1].args[0][-1], "develop")
+
+    def test_global_notes_flag_is_rejected_for_tags_before_building(self):
+        with patch.object(docs, "git") as git, patch.object(docs.subprocess, "run") as run:
+            with self.assertRaisesRegex(ValueError, "Only main"):
+                docs.prepare("refs/tags/0.3.0", SOURCE, self.output, self.state, release_notes=True)
+        git.assert_not_called()
+        run.assert_not_called()
+
+    def test_global_notes_build_failure_leaves_no_publishable_state(self):
+        with (
+            patch.object(docs, "git", side_effect=self.mock_git),
+            patch.object(docs, "read_versions", side_effect=[[], [{"version": "develop"}]]),
+            patch.object(docs, "files_at", return_value={"develop/index.html": SOURCE, "index.html": HEAD}),
+            patch.object(docs, "extract") as extract,
+            patch.object(docs, "overlay_release_notes") as overlay,
+            patch.object(
+                docs.subprocess, "run", side_effect=[None, None, subprocess.CalledProcessError(1, "notes")]
+            ),
+        ):
+            with self.assertRaises(subprocess.CalledProcessError):
+                docs.prepare("refs/heads/main", SOURCE, self.output, self.state, release_notes=True)
+        extract.assert_not_called()
+        overlay.assert_not_called()
+        self.assertFalse(self.state.exists())
 
     def test_prepare_refuses_old_main_before_build_or_api(self):
         def old_main(*args):

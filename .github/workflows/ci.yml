@@ -322,12 +322,16 @@ jobs:
           DOCS_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           uv run --no-sync mkdocs build --strict
-          uv run --no-sync python .github/scripts/check_docs.py site
+          uv run --no-sync python .github/scripts/check_docs.py site --version-preview
+          uv run --no-sync python .github/scripts/release_notes.py build --output-dir release-notes-site
+          uv run --no-sync python .github/scripts/check_docs.py release-notes-site --base-path /async-batcher/release-notes/
       - name: Preserve the documentation preview
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: documentation-preview
-          path: site/
+          path: |
+            site/
+            release-notes-site/
           if-no-files-found: error
           retention-days: 7
 

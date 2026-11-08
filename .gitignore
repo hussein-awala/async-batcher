@@ -162,3 +162,4 @@ cython_debug/
 
 # Versioned documentation publication staging.
 /pages/
+/release-notes-site/

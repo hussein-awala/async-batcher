@@ -83,17 +83,25 @@ nav:
         self.git("update-ref", "refs/remotes/origin/main", sha)
         return sha
 
-    def prepare(self, ref):
+    def prepare(self, ref, *, release_notes=False):
         self.sequence += 1
         output = self.root / f"pages-{self.sequence}"
         state = self.root / f"state-{self.sequence}.json"
         with patch.object(PUBLICATION, "graphql", side_effect=AssertionError("Preparation must be offline")):
-            result = PUBLICATION.prepare(ref, self.git("rev-parse", "HEAD"), output, state)
+            result = PUBLICATION.prepare(
+                ref, self.git("rev-parse", "HEAD"), output, state, release_notes=release_notes
+            )
         PUBLICATION.verify_output(result["tree"], output)
         self.assertEqual(json.loads(state.read_text()), result)
         # Simulate a subsequent fresh fetch using only local staging objects.
         # No test calls publish(), pushes a branch, or uses an external remote.
-        self.git("update-ref", PUBLICATION.REMOTE_REF, self.git("rev-parse", "gh-pages"))
+        # The remote commit must carry the complete prepared tree, including
+        # the global subtree overlaid after mike created its staging commits.
+        archived = self.git(
+            "commit-tree", result["tree"], "-p", result["expected_head"], "-m", "Local archive fixture"
+        )
+        self.git("update-ref", "refs/heads/gh-pages", archived)
+        self.git("update-ref", PUBLICATION.REMOTE_REF, archived)
         return result, output
 
     @staticmethod
@@ -145,6 +153,50 @@ nav:
         self.assertEqual(versions["0.3.0"]["properties"]["source_sha"], release_sha)
         self.assertEqual(versions["0.4.0rc1"]["properties"]["channel"], "prerelease")
         self.assertEqual(versions["0.2.3"]["aliases"], [])
+
+    def test_main_updates_global_notes_but_old_tag_cannot_restore_older_notes(self):
+        scripts = self.repo / ".github" / "scripts"
+        scripts.mkdir(parents=True)
+        # Stand-in for the independent Material builder: the actual subprocess
+        # interface, source metadata, Git overlay and mike builds remain real.
+        (scripts / "release_notes.py").write_text(
+            "import argparse, os\n"
+            "from pathlib import Path\n"
+            "p = argparse.ArgumentParser()\n"
+            "p.add_argument('command', choices=['build'])\n"
+            "p.add_argument('--output-dir', type=Path, required=True)\n"
+            "a = p.parse_args()\n"
+            "a.output_dir.mkdir(parents=True)\n"
+            "content = Path('notes.txt').read_text() + os.environ['DOCS_SOURCE_SHA']\n"
+            "(a.output_dir / 'index.html').write_text(content)\n",
+            encoding="utf-8",
+        )
+        notes = self.repo / "notes.txt"
+        notes.write_text("Original notes: ", encoding="utf-8")
+        self.git("add", ".github/scripts/release_notes.py", "notes.txt")
+        original_sha = self.commit_page("First notes source")
+        self.git("tag", "0.3.0")
+        _, initial = self.prepare("refs/heads/main", release_notes=True)
+        self.assertEqual(
+            (initial / "release-notes" / "index.html").read_text(), "Original notes: " + original_sha
+        )
+        _, stable = self.prepare("refs/tags/0.3.0")
+        stable_archive = self.snapshot(stable / "0.3.0")
+        notes.write_text("Updated global notes: ", encoding="utf-8")
+        self.git("add", "notes.txt")
+        latest_sha = self.commit_page("New main notes")
+        _, updated = self.prepare("refs/heads/main", release_notes=True)
+        self.assertEqual(self.snapshot(updated / "0.3.0"), stable_archive)
+        expected_notes = self.snapshot(updated / "release-notes")
+        self.assertEqual(expected_notes["index.html"].decode(), "Updated global notes: " + latest_sha)
+        self.git("checkout", "--quiet", "--detach", original_sha)
+        _, old_release = self.prepare("refs/tags/0.3.0")
+        self.assertEqual(self.snapshot(old_release / "release-notes"), expected_notes)
+        self.assertEqual(self.snapshot(old_release / "develop"), self.snapshot(updated / "develop"))
+        self.assertNotIn(
+            "release-notes",
+            {entry["version"] for entry in json.loads((old_release / "versions.json").read_text())},
+        )
 
 
 if __name__ == "__main__":

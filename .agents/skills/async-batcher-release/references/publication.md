@@ -128,8 +128,9 @@ action does not enable `skip-existing`, so classify the actual PyPI state before
 
 Stop and report an unresolved failure after a justified retry; do not loop on publication.
 
-After confirmed package publication, create the authorized GitHub release from that existing
-tag and the reviewed notes file:
+After confirmed package publication, export the canonical reviewed body from
+`release-notes/VERSION.md` with `.github/scripts/release_notes.py extract VERSION --output PATH`.
+Create the authorized GitHub release from that existing tag and the exported file:
 
 ```bash
 gh release create "$release_version" \

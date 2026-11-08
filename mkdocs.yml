@@ -99,6 +99,7 @@ nav:
   - Reference:
       - Core API and lifecycle: api.md
       - Public type contracts: typing.md
+  - Release notes: https://hussein.awala.fr/async-batcher/release-notes/
   - Contributing:
       - Development and testing: https://github.com/hussein-awala/async-batcher/blob/main/CONTRIBUTING.md
       - Documentation publication: documentation.md
