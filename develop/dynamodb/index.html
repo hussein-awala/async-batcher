@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="5eb8ef158ccce9197d1f3efecb5a8666738a7ed2">
+    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
   
 
   </head>
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2"><code>5eb8ef158ccc</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
   
 
           </div>
@@ -273,7 +273,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../workloads/" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -404,6 +404,25 @@
   
   
   
+    <li class="md-tabs__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release notes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
     
     
       <li class="md-tabs__item">
@@ -514,6 +533,8 @@
       
         
       
+        
+      
     
     
     
@@ -558,6 +579,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install the package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1766,6 +1815,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
       
@@ -1786,10 +1862,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -1807,8 +1883,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1961,7 +2037,10 @@
 
 
 <h1 id="dynamodb-reads-and-writes">DynamoDB reads and writes<a class="headerlink" href="#dynamodb-reads-and-writes" title="Permanent link">&para;</a></h1>
-<p>From the <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/README.md#install">current checkout</a>, run <code>uv sync --locked --extra aws</code>.
+<p>Install the <code>aws</code> extra for Async Batcher 0.3.0; see <a href="../installation/">installation</a>
+for Python requirements and release availability:</p>
+<p><div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'async-batcher[aws]==0.3.0'</span>
+</code></pre></div>
 The adapters use aioboto3 resource values: Python strings, integers/<code>Decimal</code>, bytes, lists,
 and dictionaries, rather than low-level AttributeValue wrappers. Floats are not supported by
 boto3's DynamoDB serializer.</p>
@@ -2001,7 +2080,7 @@ are available. AWS can also reject requests for byte limits or invalid keys.</p>
 <p>Both adapters accept <code>region_name</code>, <code>endpoint_url</code>, <code>use_ssl</code>, <code>verify</code>, <code>config</code>, and an optional
 <code>aioboto3_session</code>. TLS is enabled by default. Each dispatch opens and closes its own DynamoDB
 resource context from that session; there is no client for the caller to close through the batcher.
-Use the <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/examples/dynamodb/README.md">local FastAPI example</a> to avoid contacting AWS.</p>
+Use the <a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/examples/dynamodb/README.md">local FastAPI example</a> to avoid contacting AWS.</p>
 <p>Unprocessed keys/items are retried up to <code>max_retries</code> times after the first request (default 5;
 0 disables retries). Backoff starts at 0.1 seconds and caps at 5 seconds. Exhaustion raises
 <code>DynamoDBRetryError</code>, available from <code>async_batcher.aws.dynamodb.exceptions</code>, for the whole

@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="5eb8ef158ccce9197d1f3efecb5a8666738a7ed2">
+    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
   
 
   </head>
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2"><code>5eb8ef158ccc</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
   
 
           </div>
@@ -273,7 +273,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../workloads/" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -404,6 +404,25 @@
   
   
   
+    <li class="md-tabs__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release notes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
     
     
       <li class="md-tabs__item">
@@ -514,6 +533,8 @@
       
         
       
+        
+      
     
     
     
@@ -558,6 +579,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install the package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1799,6 +1848,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
       
@@ -1819,10 +1895,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -1840,8 +1916,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2027,9 +2103,10 @@
 
 
 <h1 id="streaming-recipes">Streaming recipes<a class="headerlink" href="#streaming-recipes" title="Permanent link">&para;</a></h1>
-<p>These runnable examples target the current source checkout. They need only Python's standard
-library and the core package; no server, credentials, model download, or optional SDK is required.
-See <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/README.md#install">installation</a> and run the commands from the repository root:</p>
+<p>These runnable examples accompany Async Batcher 0.3.0 and live in the repository, outside the
+installed package. They need only Python's standard library and the core package; no server,
+credentials, model download, or optional SDK is required. Set up the matching
+<a href="../installation/#run-the-repository-recipes">recipe checkout</a> and run the commands from its root:</p>
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--locked<span class="w"> </span>--no-default-groups<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.12
 </code></pre></div>
 <p>For an HTTP application, the separate <a href="../fastapi-recipe/">FastAPI recipe</a> uses an optional development
@@ -2082,7 +2159,7 @@ source files, and unknown failures are not silently treated as rejected input.</
 <h2 id="import-a-file-or-async-stream-into-sqlite">Import a file or async stream into SQLite<a class="headerlink" href="#import-a-file-or-async-stream-into-sqlite" title="Permanent link">&para;</a></h2>
 <p>For restartable file jobs, the <a href="../resumable-import/">resumable import recipe</a> commits each batch's
 rows and byte checkpoint together and rejects changed source contents.</p>
-<p><a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/examples/recipes/sqlite_stream.py">The SQLite recipe</a> wraps a synchronous bulk writer with
+<p><a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/examples/recipes/sqlite_stream.py">The SQLite recipe</a> wraps a synchronous bulk writer with
 <code>AsyncBatcher.from_callable</code>, then consumes results from <code>map()</code> without retaining a result for
 every input. Each batch uses a real SQLite transaction and a connection created and closed inside
 the worker thread. A single batch is atomic; the whole input stream is not.</p>
@@ -2100,7 +2177,7 @@ the worker thread. A single batch is atomic; the whole input stream is not.</p>
 <p>Each record must contain exactly string <code>id</code> and <code>text</code> fields. IDs must be nonempty. Repeated
 IDs update existing rows in input order, including across batches. Running the demo again updates
 the same IDs; use a fresh database path when comparing measurements from fresh imports.</p>
-<p>The <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/examples/recipes/support.py">file reader</a> reads at most 32 records per chunk, with a
+<p>The <a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/examples/recipes/support.py">file reader</a> reads at most 32 records per chunk, with a
 64 KiB limit per JSONL line, in worker threads. Each read owns and closes its file handle, including
 when the awaiting task is cancelled. It reopens the file at a byte offset for each chunk, so do
 not modify or replace that file during import. The source buffer adds at most one chunk beyond
@@ -2136,7 +2213,7 @@ global transaction, checkpoint, or exactly-once delivery guarantee.</p>
 REST/SDK contracts, an existing compatible vector index, and local boundary tests without credentials.
 The <a href="../durable-embeddings/">durable handoff</a> saves embeddings before a separate replayable delivery
 stage. The <a href="../provider-policy/">provider policy</a> shows explicit quota and retry composition.</p>
-<p><a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/examples/recipes/embedding_vectors.py">The pipeline recipe</a> connects two bounded maps. The
+<p><a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/examples/recipes/embedding_vectors.py">The pipeline recipe</a> connects two bounded maps. The
 first embeds text and keeps each document ID attached to its vector. The second persists vectors
 and returns IDs. Both stages preserve input order, and storage concurrency is one, so later
 duplicate IDs overwrite earlier inputs in a predictable order.</p>
@@ -2201,7 +2278,7 @@ speedup or compare unrelated workloads:</p>
 </table>
 <p>The observer keeps aggregated counts, not payloads or one event object per batch. Throughput
 depends on storage, input sizes, warm caches, and concurrent machine load. Use the retained
-measurements to tune your workload; see the <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/benchmarks/README.md">benchmark methodology</a> for
+measurements to tune your workload; see the <a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/benchmarks/README.md">benchmark methodology</a> for
 controlled comparisons. Tests check real rows and measurements, with no speed threshold.</p>
 <table>
 <thead>

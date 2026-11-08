@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="5eb8ef158ccce9197d1f3efecb5a8666738a7ed2">
+    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
   
 
   </head>
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2"><code>5eb8ef158ccc</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
   
 
           </div>
@@ -273,7 +273,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../workloads/" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -404,6 +404,25 @@
   
   
   
+    <li class="md-tabs__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release notes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
     
     
       <li class="md-tabs__item">
@@ -514,6 +533,8 @@
       
         
       
+        
+      
     
     
     
@@ -558,6 +579,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install the package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1502,6 +1551,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#run-the-repository-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run the repository checks
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1766,6 +1826,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
       
@@ -1786,10 +1873,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -1807,8 +1894,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1940,6 +2027,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#run-the-repository-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run the repository checks
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1961,10 +2059,11 @@
 
 
 <h1 id="compose-provider-pacing-and-finite-retries">Compose provider pacing and finite retries<a class="headerlink" href="#compose-provider-pacing-and-finite-retries" title="Permanent link">&para;</a></h1>
-<p>The <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/examples/recipes/provider_policy.py">provider-policy recipe</a> is application-owned policy around
+<p>The <a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/examples/recipes/provider_policy.py">provider-policy recipe</a> is application-owned policy around
 an async bulk call. AsyncBatcher still owns count/cost collection, bounded producer admission, and
 batch concurrency. It does not gain automatic retry or rate-limit behavior.</p>
-<p>Run a local, credential-free example from the current <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/README.md#install">source checkout</a>:</p>
+<p>The example lives in the repository, outside the installed package. Run the local,
+credential-free demonstration from the matching <a href="../installation/#run-the-repository-recipes">recipe checkout</a>:</p>
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--locked<span class="w"> </span>--no-default-groups<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.12
 uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>examples.recipes.provider_policy
 </code></pre></div>
@@ -2034,6 +2133,8 @@ before closing the client. Bound the total operation budget as well as individua
 native retries. Keep those SDK retries as their sole owner, or explicitly configure/verify the SDK to
 perform one attempt before adding application retries. Do not blindly wrap a retrying SDK and multiply
 its retry count. This recipe changes neither that provider example nor any adapter's retry policy.</p>
+<h2 id="run-the-repository-checks">Run the repository checks<a class="headerlink" href="#run-the-repository-checks" title="Permanent link">&para;</a></h2>
+<p>These development checks run from the same recipe checkout:</p>
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--locked
 uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/core/test_provider_policy_recipe.py<span class="w"> </span>-q
 uv<span class="w"> </span>sync<span class="w"> </span>--locked<span class="w"> </span>--group<span class="w"> </span>example-test<span class="w"> </span>--extra<span class="w"> </span>pinecone

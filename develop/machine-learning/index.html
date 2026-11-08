@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="5eb8ef158ccce9197d1f3efecb5a8666738a7ed2">
+    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
   
 
   </head>
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2"><code>5eb8ef158ccc</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
   
 
           </div>
@@ -273,7 +273,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../workloads/" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -404,6 +404,25 @@
   
   
   
+    <li class="md-tabs__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release notes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
     
     
       <li class="md-tabs__item">
@@ -514,6 +533,8 @@
       
         
       
+        
+      
     
     
     
@@ -558,6 +579,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install the package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1755,6 +1804,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
       
@@ -1775,10 +1851,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -1796,8 +1872,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1939,18 +2015,18 @@
 
 
 <h1 id="prediction-adapters">Prediction adapters<a class="headerlink" href="#prediction-adapters" title="Permanent link">&para;</a></h1>
-<p>These adapters use the <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/README.md#install">current checkout</a> and accept the
+<p>These examples require Async Batcher 0.3.0; see <a href="../installation/">installation</a>. The adapters accept the
 <a href="../api/">core limits and executor options</a>. Submit one sample per <code>process()</code> call. Both
 invoke synchronous <code>model.predict</code> in an executor and return the corresponding prediction.
 The model remains caller-owned. Keep the default <code>concurrency=1</code> unless your model and backend
 can safely predict concurrently; more threads do not necessarily improve throughput.</p>
 <h2 id="keras">Keras<a class="headerlink" href="#keras" title="Permanent link">&para;</a></h2>
-<p>The <code>keras</code> extra requires Keras 3.15.1 or newer and a separately installed backend. Repository
-tests use JAX; select it before importing Keras:</p>
-<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--locked<span class="w"> </span>--extra<span class="w"> </span>keras<span class="w"> </span>--group<span class="w"> </span>ml-test
+<p>The <code>keras</code> extra requires Keras 3.15.1 or newer and a separately installed backend.
+This example uses JAX; install and select it before importing Keras:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'async-batcher[keras]==0.3.0'</span><span class="w"> </span>jax
 <span class="nb">export</span><span class="w"> </span><span class="nv">KERAS_BACKEND</span><span class="o">=</span>jax
 </code></pre></div>
-<p>Save and run this example with <code>uv run --no-sync python</code>:</p>
+<p>Save this example as <code>keras_demo.py</code> and run <code>python keras_demo.py</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">keras</span>
@@ -1982,10 +2058,11 @@ and validate your model on the chosen backend. Keras 2 is unsupported. Prefer th
 model format for new models. The bundled legacy HDF5 example loads with <code>compile=False</code>, and
 its inference path is tested with JAX; custom layers and other backends need separate validation.
 See the <a href="https://keras.io/guides/migrating_to_keras_3/">Keras 3 migration guide</a>.</p>
-<p>Runnable application examples: <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/examples/keras/README.md">FastAPI</a> and
-<a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/examples/keras_with_grpc/README.md">gRPC</a>.</p>
+<p>Runnable application examples: <a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/examples/keras/README.md">FastAPI</a> and
+<a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/examples/keras_with_grpc/README.md">gRPC</a>.</p>
 <h2 id="scikit-learn">scikit-learn<a class="headerlink" href="#scikit-learn" title="Permanent link">&para;</a></h2>
-<p>Run <code>uv sync --locked --extra sklearn</code>. Supply a fitted estimator with a <code>predict</code> method:</p>
+<p>Install <code>python -m pip install 'async-batcher[sklearn]==0.3.0'</code>.
+Supply a fitted estimator with a <code>predict</code> method:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">async_batcher.ml.sklearn.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">SklearnAsyncBatcher</span>

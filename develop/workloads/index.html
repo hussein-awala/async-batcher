@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://hussein.awala.fr/async-batcher/develop/workloads/">
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../installation/">
       
       
         <link rel="next" href="../starting-configurations/">
@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="5eb8ef158ccce9197d1f3efecb5a8666738a7ed2">
+    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
   
 
   </head>
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2"><code>5eb8ef158ccc</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
   
 
           </div>
@@ -275,7 +275,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -404,6 +404,25 @@
   
   
   
+    <li class="md-tabs__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release notes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
     
     
       <li class="md-tabs__item">
@@ -516,6 +535,8 @@
       
         
       
+        
+      
     
     
     
@@ -563,6 +584,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install the package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1777,6 +1826,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
       
@@ -1797,10 +1873,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -1818,8 +1894,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1983,12 +2059,12 @@
 
 
 <h1 id="choose-batching-for-your-workload">Choose batching for your workload<a class="headerlink" href="#choose-batching-for-your-workload" title="Permanent link">&para;</a></h1>
-<p>Start with the current <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/README.md#install">source installation</a>. The core has no runtime
+<p>Start with <a href="../installation/">package installation</a>. The core has no runtime
 dependencies; install an adapter extra only when you use that backend.</p>
 <h2 id="check-the-backend-contract-first">Check the backend contract first<a class="headerlink" href="#check-the-backend-contract-first" title="Permanent link">&para;</a></h2>
 <p>Batching helps when a bulk call amortizes network, transaction, or model overhead. A function that
 simply performs the same independent calls in sequence may add latency without reducing that work.
-Measure your own end-to-end latency and throughput; the included <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/BENCHMARK.md">benchmarks</a> do
+Measure your own end-to-end latency and throughput; the included <a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/BENCHMARK.md">benchmarks</a> do
 not predict a particular database or model's performance.</p>
 <p>Before choosing limits, identify:</p>
 <ul>
@@ -1998,7 +2074,7 @@ not predict a particular database or model's performance.</p>
 <li>Which effects can already have happened when a request fails or its caller is cancelled.</li>
 <li>Who owns the client, model, executor, and any durable replay/checkpoint state.</li>
 </ul>
-<p>Use a built-in <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/README.md#optional-adapters">adapter</a> when its operation and failure contract fit.
+<p>Use a built-in <a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/README.md#optional-adapters">adapter</a> when its operation and failure contract fit.
 Otherwise, wrap a bulk function with <a href="../functions/"><code>from_callable</code></a>, return one result per item,
 and use <a href="../bulk-processing/"><code>map</code></a> for bounded producers. A batcher does not make a backend
 transactional, enforce a request-rate limit, or persist queued work across a process crash.</p>

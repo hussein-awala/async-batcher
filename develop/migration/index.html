@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="5eb8ef158ccce9197d1f3efecb5a8666738a7ed2">
+    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
   
 
   </head>
@@ -88,7 +88,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#compatibility-and-migration" class="md-skip">
+        <a href="#upgrade-from-022-to-030" class="md-skip">
           Skip to content
         </a>
       
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2"><code>5eb8ef158ccc</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
   
 
           </div>
@@ -275,7 +275,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../workloads/" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -404,6 +404,25 @@
   
   
   
+    <li class="md-tabs__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release notes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
     
     
       <li class="md-tabs__item">
@@ -516,6 +535,8 @@
       
         
       
+        
+      
     
     
     
@@ -563,6 +584,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install the package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -687,10 +736,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#choose-the-matching-package-and-documentation" class="md-nav__link">
+  <a href="#what-changes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Choose the matching package and documentation
+        What changes
       
     </span>
   </a>
@@ -1755,6 +1804,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
       
@@ -1775,10 +1851,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -1796,8 +1872,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1897,10 +1973,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#choose-the-matching-package-and-documentation" class="md-nav__link">
+  <a href="#what-changes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Choose the matching package and documentation
+        What changes
       
     </span>
   </a>
@@ -1938,18 +2014,19 @@
   
 
 
-<h1 id="compatibility-and-migration">Compatibility and migration<a class="headerlink" href="#compatibility-and-migration" title="Permanent link">&para;</a></h1>
-<p>These docs describe the source checkout. As of 2026-11-07, the latest published GitHub release is
-<a href="https://github.com/hussein-awala/async-batcher/releases/tag/0.2.2">0.2.2</a>. Installing that release
-does not provide the newer APIs used by the current quickstart. Read the
-<a href="https://github.com/hussein-awala/async-batcher/blob/0.2.2/README.md">0.2.2 README</a> for that version.</p>
-<h2 id="choose-the-matching-package-and-documentation">Choose the matching package and documentation<a class="headerlink" href="#choose-the-matching-package-and-documentation" title="Permanent link">&para;</a></h2>
+<h1 id="upgrade-from-022-to-030">Upgrade from 0.2.2 to 0.3.0<a class="headerlink" href="#upgrade-from-022-to-030" title="Permanent link">&para;</a></h1>
+<p>Async Batcher 0.3.0 adds public APIs and adapters while retaining the existing subclass
+interface and configuration defaults. Review the compatibility changes below before
+upgrading an application. The shared
+<a href="https://hussein.awala.fr/async-batcher/release-notes/">release history</a> records publication
+status and release notes; use the version selector for the docs matching your installation.</p>
+<h2 id="what-changes">What changes<a class="headerlink" href="#what-changes" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Capability</th>
-<th>Published 0.2.2</th>
-<th>Current checkout</th>
+<th>0.2.2</th>
+<th>0.3.0</th>
 </tr>
 </thead>
 <tbody>
@@ -1961,7 +2038,7 @@ does not provide the newer APIs used by the current quickstart. Read the
 <tr>
 <td>Subclass <code>AsyncBatcher</code>, implement <code>process_batch</code>, submit with <code>process</code></td>
 <td>Available</td>
-<td>Available; see stricter contracts below</td>
+<td>Available, with stricter result/configuration validation</td>
 </tr>
 <tr>
 <td><code>from_callable</code> and async context managers</td>
@@ -1980,39 +2057,29 @@ does not provide the newer APIs used by the current quickstart. Read the
 </tr>
 <tr>
 <td>DynamoDB, Scylla, SQLAlchemy, Keras, scikit-learn extras</td>
-<td>Available with older SDK requirements</td>
-<td>Available with refreshed requirements and corrected result/failure behavior</td>
+<td>Older SDK requirements</td>
+<td>Updated SDK requirements and corrected result/failure behavior</td>
 </tr>
 <tr>
 <td>Kafka, MongoDB, Pinecone, Kinesis/Firehose adapters</td>
 <td>Not available</td>
-<td><a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/README.md#optional-adapters">Adapter catalog</a></td>
+<td><a href="../installation/#optional-adapters">Installation and adapters</a></td>
 </tr>
 <tr>
-<td>Development environment</td>
+<td>Contributor environment</td>
 <td>Poetry</td>
 <td>uv with the committed <code>uv.lock</code></td>
 </tr>
 </tbody>
 </table>
-<p>To stay on the published version, pin it explicitly:</p>
-<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'async-batcher==0.2.2'</span>
+<p>Install the selected version, retaining the extras your application uses:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span><span class="s1">'async-batcher==0.3.0'</span>
+<span class="c1"># For example, an AWS application:</span>
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span><span class="s1">'async-batcher[aws]==0.3.0'</span>
 </code></pre></div>
-<p>To try the documented source features reproducibly, pin a reviewed commit rather than a moving
-branch. For example, the following revision contains the feature set listed above:</p>
-<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/hussein-awala/async-batcher.git
-<span class="nb">cd</span><span class="w"> </span>async-batcher
-git<span class="w"> </span>checkout<span class="w"> </span>--detach<span class="w"> </span>aeeaa5630a0ad9d10ac8764cb9bf2ead1145f7f3
-uv<span class="w"> </span>sync<span class="w"> </span>--locked<span class="w"> </span>--no-default-groups<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.12
-uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>python<span class="w"> </span>-c<span class="w"> </span><span class="s1">'from async_batcher import AsyncBatcher; print(AsyncBatcher.from_callable)'</span>
-</code></pre></div>
-<p>Use the docs in that checkout, and substitute a newer reviewed revision when adopting subsequent
-fixes. This is a source snapshot, not a published release or a recommendation to freeze forever.
-A direct pip VCS install can pin the same commit, but does not use the repository's dependency
-lockfile. Extras and their clients still need explicit selection; see each adapter guide.</p>
-<p>The source version <code>0.0.1</code> is a build placeholder, not the latest release number. The publication
-workflow supplies the release version. Record the commit SHA when reporting a source-install bug;
-<code>importlib.metadata.version("async-batcher")</code> alone cannot identify the checkout.</p>
+<p>The <a href="../installation/">installation guide</a> covers application environments and optional clients.
+For an application staying on 0.2.2, pin <code>async-batcher==0.2.2</code> and use its
+<a href="https://github.com/hussein-awala/async-batcher/blob/0.2.2/README.md">tagged documentation</a>.</p>
 <h2 id="upgrade-an-application-deliberately">Upgrade an application deliberately<a class="headerlink" href="#upgrade-an-application-deliberately" title="Permanent link">&para;</a></h2>
 <ol>
 <li>Move the application and its CI to Python 3.11 or newer. Check each optional SDK's supported
@@ -2029,8 +2096,12 @@ workflow supplies the release version. Record the commit SHA when reporting a so
    drains accepted work even on exceptional exit. Caller cancellation does not prove that a write
    was prevented. A shutdown timeout leaves cleanup in progress; keep dependencies open and await
    cleanup again. See the <a href="../api/#lifecycle">lifecycle contract</a> before changing restart behavior.</li>
-<li>Recheck adapter output, transaction, partial-error, and retry contracts against its current
-   guide. SDK upgrades and corrected result mapping can expose assumptions in application code.
+<li>Recheck adapter output, transaction, partial-error, and retry contracts against its guide.
+   SQLAlchemy now requires 2.0.10+; its bulk updates require mapped ORM models and primary
+   keys, and reject Core <code>Table</code> updates and UPDATE RETURNING. Keras requires 3.15.1+;
+   Keras 2 is no longer supported. Install and validate the chosen Keras backend separately.
+   DynamoDB uses TLS by default and applies bounded retries to unprocessed requests. SDK upgrades
+   and corrected result mapping can expose assumptions in application code.
    Test duplicate IDs, missing results, partial failures, and replay using your own payload shapes.</li>
 <li>Run application tests against the pinned candidate. For a stream, prefer bounded <code>map</code> over
    creating one task for every input. For a service, test overload and shutdown while work is active.

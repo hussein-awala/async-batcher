@@ -16,7 +16,7 @@
       
       
       
-        <link rel="next" href="workloads/">
+        <link rel="next" href="installation/">
       
       
         
@@ -64,7 +64,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="5eb8ef158ccce9197d1f3efecb5a8666738a7ed2">
+    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
   
 
   </head>
@@ -103,7 +103,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2"><code>5eb8ef158ccc</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
   
 
           </div>
@@ -273,7 +273,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="workloads/" class="md-tabs__link">
+        <a href="installation/" class="md-tabs__link">
           
   
   
@@ -394,6 +394,25 @@
         </a>
       </li>
     
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release notes
+
+      </a>
+    </li>
   
 
       
@@ -548,10 +567,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-the-matching-source" class="md-nav__link">
+  <a href="#install" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install the matching source
+        Install
       
     </span>
   </a>
@@ -585,6 +604,8 @@
   
     
     
+      
+        
       
         
       
@@ -636,6 +657,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install the package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1759,6 +1808,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
       
@@ -1779,10 +1855,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -1800,8 +1876,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1912,10 +1988,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-the-matching-source" class="md-nav__link">
+  <a href="#install" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install the matching source
+        Install
       
     </span>
   </a>
@@ -1994,23 +2070,17 @@ messaging, and model inference. The core has no runtime dependencies and require
 </table>
 <p>Batching needs a useful bulk operation. It does not add durable delivery or exactly-once writes.
 The <a href="workloads/">workload guide</a> explains when batching helps and how to choose limits.</p>
-<h2 id="install-the-matching-source">Install the matching source<a class="headerlink" href="#install-the-matching-source" title="Permanent link">&para;</a></h2>
-<p>Check the version banner and selector before following an example. <strong>Development documentation
-contains unreleased features.</strong> The <a href="migration/">migration guide</a> compares the published package
-with the current source and explains how to pin a reviewed revision. For an older published release,
-use its <a href="https://github.com/hussein-awala/async-batcher/releases">release notes and source documentation</a>.</p>
-<p>To use the matching source with <a href="https://docs.astral.sh/uv/getting-started/installation/">uv</a>:</p>
-<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/hussein-awala/async-batcher.git
-<span class="nb">cd</span><span class="w"> </span>async-batcher
-git<span class="w"> </span>checkout<span class="w"> </span>--detach<span class="w"> </span>5eb8ef158ccce9197d1f3efecb5a8666738a7ed2
-uv<span class="w"> </span>sync<span class="w"> </span>--locked<span class="w"> </span>--no-default-groups<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.12
+<h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
+<p>These examples target <strong>Async Batcher 0.3.0</strong> and require Python 3.11 or newer.
+The shared <a href="https://hussein.awala.fr/async-batcher/release-notes/">release notes</a>
+show which versions are published. Install into your application's environment:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'async-batcher==0.3.0'</span>
 </code></pre></div>
-<p>The published site pins this checkout to the source revision in its banner. When reading the
-Markdown directly on GitHub, replace <code>main</code> with the release tag or reviewed commit you need.</p>
-<p>Run Python with <code>uv run --no-sync python</code>. Install only the optional extras your backend needs,
-as shown in its integration guide. The <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/CONTRIBUTING.md">contributor guide</a> covers test tools.</p>
+<p>The core needs no optional clients. Use <a href="installation/">installation</a> to select
+extras or add the package with uv, and read <a href="migration/">migration from 0.2.2</a>
+when upgrading. Repository recipes have their own <a href="installation/#run-the-repository-recipes">setup</a>.</p>
 <h2 id="your-first-batch">Your first batch<a class="headerlink" href="#your-first-batch" title="Permanent link">&para;</a></h2>
-<p>Save this as <code>demo.py</code> in the checkout and run <code>uv run --no-sync python demo.py</code>:</p>
+<p>Save this as <code>demo.py</code> and run <code>python demo.py</code> in your package environment:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">async_batcher</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncBatcher</span>

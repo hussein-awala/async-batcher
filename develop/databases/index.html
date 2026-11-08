@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="5eb8ef158ccce9197d1f3efecb5a8666738a7ed2">
+    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
   
 
   </head>
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2"><code>5eb8ef158ccc</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
   
 
           </div>
@@ -273,7 +273,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../workloads/" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -404,6 +404,25 @@
   
   
   
+    <li class="md-tabs__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release notes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
     
     
       <li class="md-tabs__item">
@@ -514,6 +533,8 @@
       
         
       
+        
+      
     
     
     
@@ -558,6 +579,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install the package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1766,6 +1815,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
       
@@ -1786,10 +1862,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -1807,8 +1883,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1961,12 +2037,15 @@
 
 
 <h1 id="database-write-adapters">Database write adapters<a class="headerlink" href="#database-write-adapters" title="Permanent link">&para;</a></h1>
-<p>These examples describe the <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/README.md#install">current checkout</a>. All adapters accept the
+<p>These examples require Async Batcher 0.3.0; see <a href="../installation/">installation</a>. All adapters accept the
 <a href="../api/">core limits and lifecycle</a>; stop them before closing database resources.</p>
 <h2 id="sqlalchemy">SQLAlchemy<a class="headerlink" href="#sqlalchemy" title="Permanent link">&para;</a></h2>
-<p>Run <code>uv sync --locked --extra sqlalchemy --group adapter-test</code> to install the adapter and the
-SQLite/PostgreSQL async drivers used by repository tests. Applications can choose a different
-async driver compatible with their SQLAlchemy dialect. SQLAlchemy 2.0.10 or newer is required.</p>
+<p>Install the adapter and the SQLite async driver used by this example:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'async-batcher[sqlalchemy]==0.3.0'</span><span class="w"> </span><span class="s1">'aiosqlite&gt;=0.22.1,&lt;0.23'</span>
+</code></pre></div>
+<p>SQLAlchemy 2.0.10 or newer is required. The extra installs SQLAlchemy; applications must also
+install the async driver for their chosen dialect, such as <code>asyncpg</code> for PostgreSQL.
+The repository's <code>adapter-test</code> development group is only needed when running its adapter tests.</p>
 <p><code>AsyncSqlalchemyWriteBatcher</code> takes a model, a caller-owned <code>AsyncEngine</code>, and <code>operation="insert"</code>
 or <code>"update"</code>. Each batch uses its own session and commits once all of its statements succeed.
 The adapter does not dispose the engine and does not join an application-owned transaction.</p>
@@ -2019,7 +2098,7 @@ Core <code>Table</code> updates and UPDATE RETURNING are rejected. Each successf
 the adapter does not expose per-item matched-row counts. Driver or commit errors fail the batch.
 See SQLAlchemy's <a href="https://docs.sqlalchemy.org/en/20/orm/queryguide/dml.html">bulk DML contracts</a>.</p>
 <h2 id="scylladb">ScyllaDB<a class="headerlink" href="#scylladb" title="Permanent link">&para;</a></h2>
-<p>Run <code>uv sync --locked --extra scylla</code>. Import from
+<p>Install <code>python -m pip install 'async-batcher[scylla]==0.3.0'</code>. Import from
 <code>async_batcher.scylladb.update</code>; the underlying Scylla driver uses the <code>cassandra</code> module name.
 Configure your cqlengine model connection and keyspace before submitting requests.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
@@ -2048,8 +2127,9 @@ cluster; keep them open through shutdown, including any synchronous work that co
 forced stop. The adapter adds no retries. Scylla batches do not provide SQL transaction isolation
 or ordering for dependent writes; consult the driver's <a href="https://python-driver.docs.scylladb.com/stable/cqlengine/batches.html">batch semantics</a>.</p>
 <h2 id="mongodb">MongoDB<a class="headerlink" href="#mongodb" title="Permanent link">&para;</a></h2>
-<p>Run <code>uv sync --locked --extra mongodb</code> from the repository root to use <code>AsyncMongoDbWriteBatcher</code> with <strong>PyMongo 4.19+
-and MongoDB Server 8.0+</strong>. It uses PyMongo's native async client; Motor is not required.
+<p>Install <code>python -m pip install 'async-batcher[mongodb]==0.3.0'</code> to use
+<code>AsyncMongoDbWriteBatcher</code> with <strong>PyMongo 4.19+ and MongoDB Server 8.0+</strong>. It uses PyMongo's
+native async client; Motor is not required.
 Pass native <code>InsertOne</code>, <code>UpdateOne</code>, <code>UpdateMany</code>, <code>DeleteOne</code>, <code>DeleteMany</code>, or
 <code>ReplaceOne</code> operations with a <code>namespace</code> such as <code>"app.items"</code>. A batch can target
 multiple collections. Each caller receives its own <code>InsertOneResult</code>, <code>UpdateResult</code>,
@@ -2090,7 +2170,7 @@ be used on the batcher's event loop, then closed after stopping the batcher.</p>
 <p>The <a href="https://www.mongodb.com/docs/languages/python/pymongo-driver/current/crud/bulk-write/">client bulk-write API</a>
 provides the per-operation results used here; older collection bulk writes only expose
 aggregate counts.</p>
-<p>See <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/CONTRIBUTING.md#integration-tests">integration test setup</a> for the pinned local service.</p>
+<p>See <a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/CONTRIBUTING.md#integration-tests">integration test setup</a> for the pinned local service.</p>
 
 
 

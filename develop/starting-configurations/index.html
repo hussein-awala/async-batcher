@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="5eb8ef158ccce9197d1f3efecb5a8666738a7ed2">
+    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
   
 
   </head>
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2"><code>5eb8ef158ccc</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
   
 
           </div>
@@ -275,7 +275,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../workloads/" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -404,6 +404,25 @@
   
   
   
+    <li class="md-tabs__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release notes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
     
     
       <li class="md-tabs__item">
@@ -516,6 +535,8 @@
       
         
       
+        
+      
     
     
     
@@ -563,6 +584,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install the package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1766,6 +1815,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
       
@@ -1786,10 +1862,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -1807,8 +1883,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1961,7 +2037,9 @@
 
 
 <h1 id="two-bounded-starting-configurations">Two bounded starting configurations<a class="headerlink" href="#two-bounded-starting-configurations" title="Permanent link">&para;</a></h1>
-<p>Use these examples with the <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/README.md#install">current source checkout</a>, not release 0.2.2.
+<p>These examples use the repository recipes for Async Batcher 0.3.0. Set up the matching
+<a href="../installation/#run-the-repository-recipes">recipe checkout</a>; the <code>examples</code> modules are not part
+of the installed package.
 Choose the shape that matches who controls the producers. The numbers are demonstration limits;
 check the backend's count, payload, and concurrency limits before changing them.</p>
 <h2 id="file-importer-wait-for-capacity">File importer: wait for capacity<a class="headerlink" href="#file-importer-wait-for-capacity" title="Permanent link">&para;</a></h2>
@@ -1986,8 +2064,8 @@ records to SQLite without creating a task or retaining a result for every input:
 
 <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </code></pre></div>
-<p>Run it from the checkout with <code>uv run --no-sync python import_demo.py</code>. The recipe sets a queue
-limit of 64, one active writer batch, a 10 ms collection delay, and a 64 KiB encoded payload budget.
+<p>Save it as <code>import_demo.py</code> in the recipe checkout and run <code>uv run --no-sync python import_demo.py</code>.
+The recipe sets a queue limit of 64, one active writer batch, a 10 ms collection delay, and a 64 KiB encoded payload budget.
 <code>map</code> waits for admission and bounds consumed-but-not-yielded input to 64 items. SQLite commits each
 batch independently; cancellation or failure can leave earlier writes committed. Stable IDs update
 existing rows on replay. Use the <a href="../resumable-import/">resumable recipe</a> for atomic byte checkpoints
@@ -2011,7 +2089,8 @@ the existing lifespan-managed recipe and its deterministic demonstration predict
     <span class="n">shutdown_force</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>Save it as <code>service_demo.py</code>, then run:</p>
+<p>Save it as <code>service_demo.py</code> in the recipe checkout. The optional <code>example-test</code> group
+provides FastAPI and Uvicorn for this demo; it is not needed by the core library:</p>
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--locked<span class="w"> </span>--group<span class="w"> </span>example-test<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.12
 uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>uvicorn<span class="w"> </span>service_demo:app<span class="w"> </span>--host<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--port<span class="w"> </span><span class="m">8000</span><span class="w"> </span>--workers<span class="w"> </span><span class="m">1</span>
 </code></pre></div>

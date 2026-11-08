@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="5eb8ef158ccce9197d1f3efecb5a8666738a7ed2">
+    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
   
 
   </head>
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2"><code>5eb8ef158ccc</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
   
 
           </div>
@@ -273,7 +273,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../workloads/" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -404,6 +404,25 @@
   
   
   
+    <li class="md-tabs__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release notes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
     
     
       <li class="md-tabs__item">
@@ -514,6 +533,8 @@
       
         
       
+        
+      
     
     
     
@@ -558,6 +579,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install the package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1396,6 +1445,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#run-the-repository-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run the repository checks
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1744,6 +1804,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
       
@@ -1764,10 +1851,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -1785,8 +1872,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1896,6 +1983,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#run-the-repository-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run the repository checks
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1917,10 +2015,11 @@
 
 
 <h1 id="import-valid-records-and-retain-explicit-rejections">Import valid records and retain explicit rejections<a class="headerlink" href="#import-valid-records-and-retain-explicit-rejections" title="Permanent link">&para;</a></h1>
-<p>The <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/examples/recipes/rejected_import.py">rejected-record recipe</a> imports an immutable JSONL file
+<p>The <a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/examples/recipes/rejected_import.py">rejected-record recipe</a> imports an immutable JSONL file
 into SQLite, while recording invalid input as source locations and fixed reason codes. The original
 <a href="../cookbook/">streaming</a> and <a href="../resumable-import/">resumable</a> importers remain fail-fast.</p>
-<p>From the current <a href="https://github.com/hussein-awala/async-batcher/blob/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2/README.md#install">source checkout</a>:</p>
+<p>The example lives in the repository, outside the installed package. From the matching
+<a href="../installation/#run-the-repository-recipes">recipe checkout</a>:</p>
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--locked<span class="w"> </span>--no-default-groups<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.12
 uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>examples.recipes.rejected_import<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--input<span class="w"> </span>/tmp/documents.jsonl<span class="w"> </span>--database<span class="w"> </span>/tmp/reviewed-import.sqlite<span class="w"> </span>--run-id<span class="w"> </span>review-1
@@ -1960,6 +2059,8 @@ observed. The caller owns the shared thread pool and must join it before releasi
 CLI does that after the event loop finishes. Connections use WAL and <code>synchronous=FULL</code>; durability
 still depends on storage honoring synchronization. Keep SQLite database/WAL files together and
 use a supported local filesystem. Source-change checks detect ordinary mutation, not adversarial races.</p>
+<h2 id="run-the-repository-checks">Run the repository checks<a class="headerlink" href="#run-the-repository-checks" title="Permanent link">&para;</a></h2>
+<p>These development checks run from the same recipe checkout:</p>
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--locked
 uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/core/test_rejected_import_recipe.py<span class="w"> </span>-q
 </code></pre></div>

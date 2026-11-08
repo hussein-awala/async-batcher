@@ -64,7 +64,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="5eb8ef158ccce9197d1f3efecb5a8666738a7ed2">
+    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
   
 
   </head>
@@ -103,7 +103,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/5eb8ef158ccce9197d1f3efecb5a8666738a7ed2"><code>5eb8ef158ccc</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
   
 
           </div>
@@ -271,7 +271,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../workloads/" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -399,6 +399,25 @@
   
   
   
+  
+    <li class="md-tabs__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release notes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
     
   
   
@@ -512,6 +531,8 @@
       
         
       
+        
+      
     
     
     
@@ -556,6 +577,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install the package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1677,6 +1726,33 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="https://hussein.awala.fr/async-batcher/release-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -1704,10 +1780,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
             
   
   
@@ -1725,8 +1801,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1885,6 +1961,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#shared-release-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared release notes
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1982,6 +2069,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#shared-release-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared release notes
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2014,7 +2112,7 @@ mode, and the version selector are provided by Material.</p>
 uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>discover<span class="w"> </span>-s<span class="w"> </span>docs/tests<span class="w"> </span>-p<span class="w"> </span><span class="s1">'test_*.py'</span>
 uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>discover<span class="w"> </span>-s<span class="w"> </span>.github/scripts<span class="w"> </span>-p<span class="w"> </span><span class="s1">'*docs*.py'</span>
 uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>mkdocs<span class="w"> </span>build<span class="w"> </span>--strict
-uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>python<span class="w"> </span>.github/scripts/check_docs.py<span class="w"> </span>site
+uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>python<span class="w"> </span>.github/scripts/check_docs.py<span class="w"> </span>site<span class="w"> </span>--version-preview
 uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>mkdocs<span class="w"> </span>serve
 </code></pre></div>
 <p>These commands do not publish. The docs group adds no core runtime dependencies
@@ -2024,7 +2122,7 @@ strict build or the rendered-site checker. The checker also validates local
 assets and redirects; it does not make network requests to external sites.</p>
 <p>Keep normal repository-relative links in Markdown. <code>docs/hooks.py</code> converts links
 that leave <code>docs/</code> into GitHub source links at <code>DOCS_SOURCE_SHA</code> during rendering.
-A local preview without that variable links to <code>main</code>. The homepage checkout command is pinned to that source SHA; other code samples
+A local preview without that variable links to <code>main</code>. The recipe checkout command in the installation guide is pinned to that source SHA; other code samples
 are not rewritten. Every PR builds the site in CI and retains a <code>documentation-preview</code>
 artifact, including when only documentation changes.</p>
 <h2 id="versions-and-source-identity">Versions and source identity<a class="headerlink" href="#versions-and-source-identity" title="Permanent link">&para;</a></h2>
@@ -2124,6 +2222,28 @@ move release tags or create a new package release to repair documentation. If an
 archive API request has an ambiguous outcome, inspect <code>gh-pages</code> and its manifest
 before retrying. A conflicting or unsigned archive result is a publishing failure,
 not permission to force-push or bypass signature verification.</p>
+<h2 id="shared-release-notes">Shared release notes<a class="headerlink" href="#shared-release-notes" title="Permanent link">&para;</a></h2>
+<p><a href="https://hussein.awala.fr/async-batcher/release-notes/">Release notes</a> are a project-wide
+page independent of the selected documentation version. Every version's navigation
+links to that permanent URL. Main deployments rebuild it from <code>release-notes/*.md</code>;
+tag deployments preserve its existing archive bytes, so an older release cannot
+replace newer history. It is not an entry in the documentation version selector.</p>
+<p>Each file contains metadata followed by the canonical GitHub release body. Published
+0.2.0, 0.2.1, and 0.2.2 bodies were copied from GitHub, preserving their wording and
+normalizing line endings. Planned releases are labeled <strong>In preparation</strong>. To preview:</p>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>python<span class="w"> </span>.github/scripts/release_notes.py<span class="w"> </span>build<span class="w"> </span>--output-dir<span class="w"> </span>release-notes-site
+uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>python<span class="w"> </span>.github/scripts/check_docs.py<span class="w"> </span>release-notes-site<span class="w"> </span>--base-path<span class="w"> </span>/async-batcher/release-notes/
+</code></pre></div>
+<p>Before creating an authorized GitHub release, export its reviewed body rather than
+maintaining a second copy. For example:</p>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>python<span class="w"> </span>.github/scripts/release_notes.py<span class="w"> </span>extract<span class="w"> </span><span class="m">0</span>.3.0<span class="w"> </span>--output<span class="w"> </span>/tmp/async-batcher-0.3.0-notes.md
+</code></pre></div>
+<p>Use that file with the existing release process's <code>--notes-file</code> argument. Extraction
+only writes a local file; it does not publish. After package and GitHub publication
+are confirmed, update the file's <code>status</code>, <code>date</code>, and <code>github_url</code> to the actual
+release in a signed documentation PR. Its main deployment updates the shared page
+without rebuilding archived version docs. Preserve historical bodies; release-note
+corrections should be deliberate and reviewed.</p>
 
 
 
