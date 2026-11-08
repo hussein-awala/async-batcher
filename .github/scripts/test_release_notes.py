@@ -12,6 +12,7 @@ from release_notes import (
     demote_headings,
     load_release,
     load_releases,
+    release_preview_url,
     render_index,
     version_key,
 )
@@ -100,6 +101,40 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertIn("[GitHub release](https://example.invalid)", rendered)
         self.assertIn("### Fixes", rendered)
         self.assertEqual(planned.body, "## Features\n\nA change.\n")
+
+    def test_planned_links_keep_paths_queries_and_fragments(self):
+        cases = {
+            "https://hussein.awala.fr/async-batcher/0.3.0/": "https://hussein.awala.fr/async-batcher/develop/",
+            "https://hussein.awala.fr/async-batcher/0.3.0/migration/?view=full#shutdown": "https://hussein.awala.fr/async-batcher/develop/migration/?view=full#shutdown",
+            "/async-batcher/0.3.0": "/async-batcher/develop",
+            "//hussein.awala.fr/async-batcher/0.3.0/": "//hussein.awala.fr/async-batcher/develop/",
+        }
+        for source, expected in cases.items():
+            with self.subTest(url=source):
+                self.assertEqual(release_preview_url(source, {"0.3.0"}), expected)
+                self.assertEqual(release_preview_url(source, set()), source)
+
+    def test_preview_links_leave_published_external_and_other_targets_unchanged(self):
+        for url in (
+            "https://hussein.awala.fr/async-batcher/0.2.2/migration/",
+            "https://hussein.awala.fr/async-batcher/0.3.01/",
+            "https://hussein.awala.fr/another-project/0.3.0/",
+            "https://other.example/async-batcher/0.3.0/",
+            "https://github.com/hussein-awala/async-batcher/releases/tag/0.3.0",
+            "https://github.com/hussein-awala/async-batcher/compare/0.2.1...0.2.2",
+            "https://github.com/hussein-awala/async-batcher/compare/0.2.2...0.3.01",
+            "https://github.com/another/repository/compare/0.2.2...0.3.0",
+            "#async-batcher-030",
+            "mailto:maintainer@example.invalid",
+        ):
+            with self.subTest(url=url):
+                self.assertEqual(release_preview_url(url, {"0.3.0"}), url)
+
+    def test_planned_comparison_targets_use_main_only_for_this_repository(self):
+        url = "https://github.com/hussein-awala/async-batcher/compare/0.2.2...0.3.0?expand=1#files_bucket"
+        expected = "https://github.com/hussein-awala/async-batcher/compare/0.2.2...main?expand=1#files_bucket"
+        self.assertEqual(release_preview_url(url, {"0.3.0"}), expected)
+        self.assertEqual(release_preview_url(url, set()), url)
 
     def test_cli_extract_preserves_each_real_body_exactly(self):
         for source in (ROOT / "release-notes").glob("*.md"):

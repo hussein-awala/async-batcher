@@ -8,6 +8,8 @@ import re
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
+from xml.etree.ElementTree import SubElement
 
 ROOT = Path(__file__).resolve().parents[2]
 RELEASE_URL = "https://github.com/hussein-awala/async-batcher/releases/tag/"
@@ -91,6 +93,51 @@ def demote_headings(body: str) -> str:
     return "".join(result)
 
 
+def release_preview_url(url: str, planned_versions: set[str]) -> str:
+    """Route planned documentation and repository comparisons to development previews."""
+    parts = urlsplit(url)
+    if parts.scheme not in ("", "http", "https") or (parts.scheme and not parts.netloc):
+        return url
+    docs_prefix = "/async-batcher/"
+    compare_prefix = "/hussein-awala/async-batcher/compare/"
+    if parts.netloc in ("", "hussein.awala.fr") and parts.path.startswith(docs_prefix):
+        version, separator, page = parts.path.removeprefix(docs_prefix).partition("/")
+        if version not in planned_versions:
+            return url
+        path = docs_prefix + "develop" + separator + page
+    elif parts.netloc == "github.com" and parts.path.startswith(compare_prefix):
+        base, separator, target = parts.path.removeprefix(compare_prefix).rpartition("...")
+        if not base or not separator or target not in planned_versions:
+            return url
+        path = compare_prefix + base + "...main"
+    else:
+        return url
+    return urlunsplit((parts.scheme, parts.netloc, path, parts.query, parts.fragment))
+
+
+def preview_links_extension(planned_versions: set[str]):
+    # Extraction and metadata checks also run in environments without Markdown.
+    from markdown.extensions import Extension
+    from markdown.treeprocessors import Treeprocessor
+
+    class PreviewLinks(Treeprocessor):
+        def run(self, root):
+            for link in root.iter("a"):
+                url = link.get("href", "")
+                preview = release_preview_url(url, planned_versions)
+                if preview != url:
+                    link.set("href", preview)
+                    SubElement(link, "span").text = " (development preview)"
+
+    class PreviewLinksExtension(Extension):
+        def extendMarkdown(self, md):
+            # Rewrite parsed inline, reference and automatic links. Code stays
+            # untouched, and MkDocs validates the resulting destinations next.
+            md.treeprocessors.register(PreviewLinks(md), "planned_release_links", 1)
+
+    return PreviewLinksExtension()
+
+
 def render_index(releases: list[Release]) -> str:
     sections = [
         "# Release notes\n\n"
@@ -103,7 +150,11 @@ def render_index(releases: list[Release]) -> str:
     for release in releases:
         heading = f"\n## {release.title}\n\n"
         if release.status == "planned":
-            heading += "**In preparation** — this release has not been published.\n\n"
+            heading += (
+                "**In preparation** — this release has not been published. "
+                "Documentation and changelog links open development previews "
+                "and may change before release.\n\n"
+            )
         else:
             heading += f"Published {release.date} · [GitHub release]({release.github_url})\n\n"
         sections.append(heading + demote_headings(release.body).rstrip("\n") + "\n")
@@ -123,6 +174,9 @@ def build(output_dir: Path) -> None:
             config_file=str(ROOT / "mkdocs-release-notes.yml"),
             docs_dir=str(docs),
             site_dir=str(output_dir.resolve()),
+        )
+        config.markdown_extensions.append(
+            preview_links_extension({release.version for release in releases if release.status == "planned"})
         )
         build_site(config)
 
