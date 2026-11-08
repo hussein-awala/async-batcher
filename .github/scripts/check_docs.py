@@ -109,6 +109,7 @@ def check_site(
     directory: Path,
     base_path: str = "/async-batcher/",
     site_url: str = "https://hussein.awala.fr",
+    version_preview: bool = False,
 ) -> list[str]:
     """Check one build mounted at base_path, or the complete version archive."""
     root = directory.resolve()
@@ -120,6 +121,8 @@ def check_site(
     origin = urlsplit(site_url).netloc.lower()
     if not origin:
         raise ValueError("site_url must include a hostname")
+    if version_preview and (root / "versions.json").exists():
+        raise ValueError("A complete version archive cannot use preview-only link exclusions")
     pages = {}
     errors = []
     for path in sorted(root.rglob("*.html")):
@@ -139,6 +142,14 @@ def check_site(
                 if url.netloc and url.netloc.lower() != origin:
                     continue
                 path = unquote(url.path)
+                if (
+                    version_preview
+                    and (url.netloc or path.startswith("/"))
+                    and path == "/async-batcher/release-notes/"
+                ):
+                    # A shared project page is outside a standalone version preview.
+                    # CI builds it separately; the full archive must validate it.
+                    continue
                 if path.startswith("/") or url.netloc:
                     if path == prefix.rstrip("/"):
                         path += "/"
@@ -175,9 +186,14 @@ def main() -> int:
     parser.add_argument(
         "--site-url", default="https://hussein.awala.fr", help="Own-site origin for absolute links"
     )
+    parser.add_argument(
+        "--version-preview",
+        action="store_true",
+        help="Check a standalone version build, excluding the shared release-notes homepage",
+    )
     args = parser.parse_args()
     try:
-        errors = check_site(args.site, args.base_path, args.site_url)
+        errors = check_site(args.site, args.base_path, args.site_url, args.version_preview)
     except ValueError as error:
         parser.error(str(error))
     if errors:

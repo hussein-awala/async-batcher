@@ -12,6 +12,8 @@ import json
 import os
 import re
 import subprocess
+import sys
+import tempfile
 from pathlib import Path, PurePosixPath
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -154,8 +156,53 @@ def verify_output(tree: str, output_dir: Path) -> None:
         raise ValueError("Documentation artifact is missing staged files")
 
 
-def prepare(ref: str, source_sha: str, output_dir: Path, state_path: Path) -> dict:
+def overlay_release_notes(tree: str, directory: Path) -> str:
+    """Replace the global notes subtree without changing the working Git index."""
+    previous = files_at(tree)
+    if not directory.is_dir() or directory.is_symlink() or not (directory / "index.html").is_file():
+        raise ValueError("The global release notes build must contain a regular homepage")
+    files = {}
+    for path in sorted(directory.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("The global release notes build must not contain symbolic links")
+        if path.is_dir():
+            continue
+        relative = path.relative_to(directory).as_posix()
+        if not path.is_file() or path.stat().st_nlink != 1 or "\\" in relative or ".git" in path.parts:
+            raise ValueError(f"Invalid global release notes file: {relative}")
+        files[f"release-notes/{relative}"] = path.read_bytes()
+    with tempfile.TemporaryDirectory(prefix="docs-notes-index-") as temporary:
+        env = {**os.environ, "GIT_INDEX_FILE": str(Path(temporary) / "index")}
+
+        def indexed(*args: str, data: bytes | None = None) -> bytes:
+            return subprocess.run(
+                ["git", *args], input=data, env=env, check=True, stdout=subprocess.PIPE
+            ).stdout
+
+        indexed("read-tree", oid(tree))
+        removed = [name for name in previous if name == "release-notes" or name.startswith("release-notes/")]
+        if removed:
+            indexed(
+                "update-index",
+                "--force-remove",
+                "-z",
+                "--stdin",
+                data=b"\0".join(name.encode() for name in removed) + b"\0",
+            )
+        entries = []
+        for name, contents in files.items():
+            blob = oid(indexed("hash-object", "-w", "--stdin", data=contents).decode().strip())
+            entries.append(f"100644 {blob}\t{name}".encode())
+        indexed("update-index", "-z", "--index-info", data=b"\0".join(entries) + b"\0")
+        return oid(indexed("write-tree").decode().strip())
+
+
+def prepare(
+    ref: str, source_sha: str, output_dir: Path, state_path: Path, *, release_notes: bool = False
+) -> dict:
     oid(source_sha)
+    if release_notes and ref != "refs/heads/main":
+        raise ValueError("Only main may update the global release notes")
     if git("rev-parse", "HEAD").decode().strip() != source_sha:
         raise ValueError("Documentation source SHA does not match the checkout")
     if (
@@ -216,6 +263,15 @@ def prepare(ref: str, source_sha: str, output_dir: Path, state_path: Path) -> di
     files = files_at(staged)
     if f"{policy['version']}/index.html" not in files or "index.html" not in files:
         raise ValueError("The staged archive lacks its versioned homepage or root redirect")
+    if release_notes:
+        with tempfile.TemporaryDirectory(prefix="docs-release-notes-") as temporary:
+            notes = Path(temporary) / "site"
+            subprocess.run(
+                [sys.executable, ".github/scripts/release_notes.py", "build", "--output-dir", str(notes)],
+                env=env,
+                check=True,
+            )
+            staged = overlay_release_notes(staged, notes)
     extract(staged, output_dir)
     state = {"expected_head": expected, "tree": staged, "source_sha": source_sha, **policy}
     state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
@@ -311,6 +367,7 @@ def main() -> None:
     stage.add_argument("--source-sha", required=True)
     stage.add_argument("--output-dir", type=Path, required=True)
     stage.add_argument("--state", type=Path, required=True)
+    stage.add_argument("--release-notes", action="store_true", help="Refresh global release notes from main")
     send = commands.add_parser(
         "publish", help="Persist the checked archive with a verified GitHub-signed commit"
     )
@@ -319,7 +376,9 @@ def main() -> None:
     send.add_argument("--state", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "prepare":
-        result = prepare(args.ref, args.source_sha, args.output_dir, args.state)
+        result = prepare(
+            args.ref, args.source_sha, args.output_dir, args.state, release_notes=args.release_notes
+        )
     else:
         result = publish(
             args.repository,

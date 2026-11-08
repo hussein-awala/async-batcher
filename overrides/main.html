@@ -12,7 +12,9 @@
 
 {% block announce %}
   {% set docs = config.extra.documentation %}
-  {% if docs.channel == "develop" %}
+  {% if docs.channel == "project" %}
+    <strong>Release notes for all versions.</strong>
+  {% elif docs.channel == "develop" %}
     <strong>Development documentation — unreleased.</strong>
     Features may differ from the installed package.
   {% elif docs.channel == "prerelease" %}

@@ -280,7 +280,7 @@ Build the existing Markdown guides without installing optional adapter SDKs:
 uv sync --locked --no-default-groups --python 3.12 --group docs
 uv run --no-sync python -m unittest discover -s docs/tests -p 'test_*.py'
 uv run --no-sync mkdocs build --strict
-uv run --no-sync python .github/scripts/check_docs.py site
+uv run --no-sync python .github/scripts/check_docs.py site --version-preview
 uv run --no-sync mkdocs serve
 ```
 

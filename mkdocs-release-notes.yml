@@ -1,0 +1,27 @@
+INHERIT: mkdocs.yml
+site_url: https://hussein.awala.fr/async-batcher/release-notes/
+site_description: Published Async Batcher releases and the next release in preparation.
+edit_uri: ''
+docs_dir: release-notes
+hooks: []
+plugins:
+  - search
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.magiclink
+nav:
+  - Release notes: index.md
+  - Documentation: https://hussein.awala.fr/async-batcher/
+extra:
+  version: null
+  documentation:
+    channel: project
+    version: ''
+    source_sha: !ENV [DOCS_SOURCE_SHA, '']

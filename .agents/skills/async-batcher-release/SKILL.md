@@ -56,7 +56,10 @@ explicit authorization, even when release publication is authorized.
 2. Compare the previous release with that exact target. Write notes about resulting
    behavior, supported Python versions, API/migration changes, new adapters, fixes, and
    security changes that the diff actually supports. Include relevant PR links and a full
-   compare link. Use the categorized `0.2.0` notes for a feature release or the compact
+   compare link. Keep the reviewed body in `release-notes/VERSION.md`; preserve historical
+   published bodies and set new entries to `planned`. Export the body with
+   `.github/scripts/release_notes.py extract VERSION --output PATH` for GitHub publication.
+   Use the categorized `0.2.0` notes for a feature release or the compact
    `0.2.1`/`0.2.2` pattern for a patch. Mention contributors when supported by the history.
    Do not claim old performance figures or incomplete service tests describe the release.
 3. Check CI and the locked advisory audit for the target SHA, including required artifact,
@@ -87,4 +90,7 @@ replace credentials to work around a failure without authorization.
 Create the GitHub release with reviewed notes and `--verify-tag`, preserving stable versus
 prerelease intent. Add an Announcements discussion only when requested. Finish with the
 version, source commit, release/PyPI/workflow URLs, and the result of each authorized action.
+After confirmed package and GitHub publication, update the canonical release-note metadata
+from `planned` to `published` with the actual date and URL in a signed documentation PR.
+Main updates the shared release-history page; tagged documentation remains archived.
 State any incomplete step directly.

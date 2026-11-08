@@ -23,6 +23,26 @@ class DocumentationChecks(unittest.TestCase):
         path.write_text(text, encoding="utf-8")
         return path
 
+    def test_shared_release_notes_are_external_only_for_version_previews(self):
+        self.write(
+            "index.html", '<a href="https://hussein.awala.fr/async-batcher/release-notes/">Release notes</a>'
+        )
+        self.assertEqual(check_site(self.root, version_preview=True), [])
+        self.assertEqual(len(check_site(self.root)), 1)
+        self.write("release-notes/index.html", "<h1>History</h1>")
+        self.assertEqual(check_site(self.root), [])
+        self.write("versions.json", "[]")
+        with self.assertRaisesRegex(ValueError, "complete version archive"):
+            check_site(self.root, version_preview=True)
+
+    def test_preview_does_not_skip_broken_release_notes_subpages_or_relative_links(self):
+        self.write(
+            "index.html",
+            '<a href="release-notes/">Relative</a>'
+            '<a href="/async-batcher/release-notes/missing/">Missing</a>',
+        )
+        self.assertEqual(len(check_site(self.root, version_preview=True)), 2)
+
     def test_missing_homepage(self):
         (self.root / "index.html").unlink()
         self.assertEqual(check_site(self.root), ["index.html: missing documentation homepage"])

@@ -49,9 +49,11 @@ jobs:
           git branch gh-pages refs/remotes/origin/gh-pages
       - name: Build the requested version without pushing local staging commits
         run: |
+          notes_args=()
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then notes_args=(--release-notes); fi
           python .github/scripts/publish_docs.py prepare \
             --ref "$GITHUB_REF" --source-sha "$GITHUB_SHA" \
-            --output-dir pages --state "$RUNNER_TEMP/docs-state.json"
+            --output-dir pages --state "$RUNNER_TEMP/docs-state.json" "${notes_args[@]}"
       - name: Validate all generated links, anchors and assets
         run: python .github/scripts/check_docs.py pages
       - name: Preserve the checked documentation
