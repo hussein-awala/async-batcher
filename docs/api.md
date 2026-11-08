@@ -1,6 +1,6 @@
 # Core API and lifecycle
 
-This guide describes the current checkout. See [installation](../README.md#install) before running examples.
+This guide covers Async Batcher 0.3.0. See [installation](installation.md) before running examples.
 The public core imports are:
 
 ```python

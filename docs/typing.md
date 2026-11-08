@@ -1,9 +1,9 @@
 # Public type contracts
 
-The source checkout includes a [PEP 561 marker](https://typing.python.org/en/latest/spec/distributing.html)
+Async Batcher 0.3.0 includes a [PEP 561 marker](https://typing.python.org/en/latest/spec/distributing.html)
 in its wheel and source distribution. Type checkers can read the library's inline annotations
-after a normal installation. These contracts describe the current checkout; use the documentation
-for your installed release when working with an older published package.
+after a normal [package installation](installation.md). Use the version selector to match
+these contracts to your installed release.
 
 ## Inference and explicit types
 

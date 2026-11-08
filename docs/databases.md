@@ -1,13 +1,19 @@
 # Database write adapters
 
-These examples describe the [current checkout](../README.md#install). All adapters accept the
+These examples require Async Batcher 0.3.0; see [installation](installation.md). All adapters accept the
 [core limits and lifecycle](api.md); stop them before closing database resources.
 
 ## SQLAlchemy
 
-Run `uv sync --locked --extra sqlalchemy --group adapter-test` to install the adapter and the
-SQLite/PostgreSQL async drivers used by repository tests. Applications can choose a different
-async driver compatible with their SQLAlchemy dialect. SQLAlchemy 2.0.10 or newer is required.
+Install the adapter and the SQLite async driver used by this example:
+
+```bash
+python -m pip install 'async-batcher[sqlalchemy]==0.3.0' 'aiosqlite>=0.22.1,<0.23'
+```
+
+SQLAlchemy 2.0.10 or newer is required. The extra installs SQLAlchemy; applications must also
+install the async driver for their chosen dialect, such as `asyncpg` for PostgreSQL.
+The repository's `adapter-test` development group is only needed when running its adapter tests.
 
 `AsyncSqlalchemyWriteBatcher` takes a model, a caller-owned `AsyncEngine`, and `operation="insert"`
 or `"update"`. Each batch uses its own session and commits once all of its statements succeed.
@@ -68,7 +74,7 @@ See SQLAlchemy's [bulk DML contracts](https://docs.sqlalchemy.org/en/20/orm/quer
 
 ## ScyllaDB
 
-Run `uv sync --locked --extra scylla`. Import from
+Install `python -m pip install 'async-batcher[scylla]==0.3.0'`. Import from
 `async_batcher.scylladb.update`; the underlying Scylla driver uses the `cassandra` module name.
 Configure your cqlengine model connection and keyspace before submitting requests.
 
@@ -103,9 +109,9 @@ or ordering for dependent writes; consult the driver's [batch semantics](https:/
 
 ## MongoDB
 
-
-Run `uv sync --locked --extra mongodb` from the repository root to use `AsyncMongoDbWriteBatcher` with **PyMongo 4.19+
-and MongoDB Server 8.0+**. It uses PyMongo's native async client; Motor is not required.
+Install `python -m pip install 'async-batcher[mongodb]==0.3.0'` to use
+`AsyncMongoDbWriteBatcher` with **PyMongo 4.19+ and MongoDB Server 8.0+**. It uses PyMongo's
+native async client; Motor is not required.
 Pass native `InsertOne`, `UpdateOne`, `UpdateMany`, `DeleteOne`, `DeleteMany`, or
 `ReplaceOne` operations with a `namespace` such as `"app.items"`. A batch can target
 multiple collections. Each caller receives its own `InsertOneResult`, `UpdateResult`,

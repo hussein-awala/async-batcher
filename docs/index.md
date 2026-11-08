@@ -18,31 +18,23 @@ messaging, and model inference. The core has no runtime dependencies and require
 Batching needs a useful bulk operation. It does not add durable delivery or exactly-once writes.
 The [workload guide](workloads.md) explains when batching helps and how to choose limits.
 
-## Install the matching source
+## Install
 
-Check the version banner and selector before following an example. **Development documentation
-contains unreleased features.** The [migration guide](migration.md) compares the published package
-with the current source and explains how to pin a reviewed revision. For an older published release,
-use its [release notes and source documentation](https://github.com/hussein-awala/async-batcher/releases).
-
-To use the matching source with [uv](https://docs.astral.sh/uv/getting-started/installation/):
+These examples target **Async Batcher 0.3.0** and require Python 3.11 or newer.
+The shared [release notes](https://hussein.awala.fr/async-batcher/release-notes/)
+show which versions are published. Install into your application's environment:
 
 ```bash
-git clone https://github.com/hussein-awala/async-batcher.git
-cd async-batcher
-git checkout --detach main
-uv sync --locked --no-default-groups --python 3.12
+python -m pip install 'async-batcher==0.3.0'
 ```
 
-The published site pins this checkout to the source revision in its banner. When reading the
-Markdown directly on GitHub, replace `main` with the release tag or reviewed commit you need.
-
-Run Python with `uv run --no-sync python`. Install only the optional extras your backend needs,
-as shown in its integration guide. The [contributor guide](../CONTRIBUTING.md) covers test tools.
+The core needs no optional clients. Use [installation](installation.md) to select
+extras or add the package with uv, and read [migration from 0.2.2](migration.md)
+when upgrading. Repository recipes have their own [setup](installation.md#run-the-repository-recipes).
 
 ## Your first batch
 
-Save this as `demo.py` in the checkout and run `uv run --no-sync python demo.py`:
+Save this as `demo.py` and run `python demo.py` in your package environment:
 
 ```python
 import asyncio

@@ -1,8 +1,9 @@
 # Streaming recipes
 
-These runnable examples target the current source checkout. They need only Python's standard
-library and the core package; no server, credentials, model download, or optional SDK is required.
-See [installation](../README.md#install) and run the commands from the repository root:
+These runnable examples accompany Async Batcher 0.3.0 and live in the repository, outside the
+installed package. They need only Python's standard library and the core package; no server,
+credentials, model download, or optional SDK is required. Set up the matching
+[recipe checkout](installation.md#run-the-repository-recipes) and run the commands from its root:
 
 ```bash
 uv sync --locked --no-default-groups --python 3.12

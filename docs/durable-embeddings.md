@@ -12,7 +12,8 @@ The two stages run sequentially, so disk must hold the full set of embeddings be
 
 ## Run without credentials
 
-From the current [source checkout](../README.md#install):
+The example lives in the repository, outside the installed package. From the matching
+[recipe checkout](installation.md#run-the-repository-recipes):
 
 ```bash
 uv sync --locked --no-default-groups --python 3.12
@@ -88,6 +89,10 @@ SQLite uses WAL and `synchronous=FULL`; storage must honor synchronization. Keep
 files together and use SQLite-aware backups on a supported local filesystem. Source checks detect
 ordinary mutation, not adversarial filesystem races. `acknowledged_vectors` records the sink's
 acknowledgement contract, not immediate search visibility or independent proof of remote durability.
+
+## Run the repository checks
+
+These development checks run from the same recipe checkout:
 
 ```bash
 uv sync --locked

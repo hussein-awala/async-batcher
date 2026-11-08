@@ -1,6 +1,11 @@
 # Kinesis and Firehose
 
-From the [current checkout](../README.md#install), run `uv sync --locked --extra aws`.
+Install the `aws` extra for Async Batcher 0.3.0; see [installation](installation.md)
+for Python requirements and release availability:
+
+```bash
+python -m pip install 'async-batcher[aws]==0.3.0'
+```
 These adapters accept an asynchronous client from
 aioboto3 or aiobotocore. You own the client: keep it open until the batcher has
 stopped. One batcher targets one stream.

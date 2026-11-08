@@ -1,6 +1,8 @@
 # Two bounded starting configurations
 
-Use these examples with the [current source checkout](../README.md#install), not release 0.2.2.
+These examples use the repository recipes for Async Batcher 0.3.0. Set up the matching
+[recipe checkout](installation.md#run-the-repository-recipes); the `examples` modules are not part
+of the installed package.
 Choose the shape that matches who controls the producers. The numbers are demonstration limits;
 check the backend's count, payload, and concurrency limits before changing them.
 
@@ -30,8 +32,8 @@ async def main():
 asyncio.run(main())
 ```
 
-Run it from the checkout with `uv run --no-sync python import_demo.py`. The recipe sets a queue
-limit of 64, one active writer batch, a 10 ms collection delay, and a 64 KiB encoded payload budget.
+Save it as `import_demo.py` in the recipe checkout and run `uv run --no-sync python import_demo.py`.
+The recipe sets a queue limit of 64, one active writer batch, a 10 ms collection delay, and a 64 KiB encoded payload budget.
 `map` waits for admission and bounds consumed-but-not-yielded input to 64 items. SQLite commits each
 batch independently; cancellation or failure can leave earlier writes committed. Stable IDs update
 existing rows on replay. Use the [resumable recipe](resumable-import.md) for atomic byte checkpoints
@@ -60,7 +62,8 @@ app = create_app(
 )
 ```
 
-Save it as `service_demo.py`, then run:
+Save it as `service_demo.py` in the recipe checkout. The optional `example-test` group
+provides FastAPI and Uvicorn for this demo; it is not needed by the core library:
 
 ```bash
 uv sync --locked --group example-test --python 3.12

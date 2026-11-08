@@ -80,7 +80,7 @@ Do not stop the manager from a child processor or its descendant tasks.
 
 ## Flush accepted child work without closing the manager
 
-The current source checkout provides `await grouped.flush(timeout=None)`. It dispatches
+`await grouped.flush(timeout=None)` dispatches
 partial batches and waits for work already accepted by every currently owned child,
 including children already closing. Intake stays open. Each child's acceptance boundary
 is captured when the grouped flush coroutine starts, before its child waiters are scheduled.

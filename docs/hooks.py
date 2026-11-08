@@ -73,8 +73,8 @@ def on_page_markdown(markdown: str, *, page: Page, config: MkDocsConfig, **kwarg
     source_sha = metadata["source_sha"]
     if source_sha and not re.fullmatch(r"[0-9a-f]{40}", source_sha):
         raise ValueError("DOCS_SOURCE_SHA must be a full lowercase commit SHA")
-    if source_sha and page.file.src_uri == "index.md":
-        markdown = markdown.replace("git checkout --detach main\n", f"git checkout --detach {source_sha}\n")
+    if source_sha and page.file.src_uri == "installation.md":
+        markdown = markdown.replace("git checkout --detach 0.3.0\n", f"git checkout --detach {source_sha}\n")
     extension = RepositoryLinksExtension(
         page=(docs_dir / page.file.src_uri).resolve(),
         docs_dir=docs_dir,

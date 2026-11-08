@@ -1,7 +1,12 @@
 # Pinecone vector batches
 
 
-From the [current checkout](../README.md#install), run `uv sync --locked --extra pinecone`.
+Install the `pinecone` extra for Async Batcher 0.3.0; see [installation](installation.md)
+for Python requirements and release availability:
+
+```bash
+python -m pip install 'async-batcher[pinecone]==0.3.0'
+```
 The extra requires Pinecone SDK 10.3 through 10.x.
 The vector adapters use a caller-owned `pinecone.AsyncIndex` and one namespace per batcher:
 

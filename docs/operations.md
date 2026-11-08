@@ -1,8 +1,9 @@
 # Deadlines, shared capacity, and telemetry
 
-The [operational helpers](../examples/recipes/operations.py) are source-checkout recipes, not new
-library APIs. They use the standard library and existing core contracts. Run core examples after
-the [minimal source install](../README.md#install), using `uv run --no-sync python`.
+The [operational helpers](../examples/recipes/operations.py) are application recipes in the
+repository, outside the installed package. They use the standard library and core contracts.
+Set up the matching [recipe checkout](installation.md#run-the-repository-recipes), then run the examples with
+`uv run --no-sync python` from its root.
 
 ## Give each deadline one job
 

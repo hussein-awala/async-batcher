@@ -1,6 +1,11 @@
 # DynamoDB reads and writes
 
-From the [current checkout](../README.md#install), run `uv sync --locked --extra aws`.
+Install the `aws` extra for Async Batcher 0.3.0; see [installation](installation.md)
+for Python requirements and release availability:
+
+```bash
+python -m pip install 'async-batcher[aws]==0.3.0'
+```
 The adapters use aioboto3 resource values: Python strings, integers/`Decimal`, bytes, lists,
 and dictionaries, rather than low-level AttributeValue wrappers. Floats are not supported by
 boto3's DynamoDB serializer.

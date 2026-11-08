@@ -27,7 +27,7 @@ assets and redirects; it does not make network requests to external sites.
 
 Keep normal repository-relative links in Markdown. `docs/hooks.py` converts links
 that leave `docs/` into GitHub source links at `DOCS_SOURCE_SHA` during rendering.
-A local preview without that variable links to `main`. The homepage checkout command is pinned to that source SHA; other code samples
+A local preview without that variable links to `main`. The recipe checkout command in the installation guide is pinned to that source SHA; other code samples
 are not rewritten. Every PR builds the site in CI and retains a `documentation-preview`
 artifact, including when only documentation changes.
 
