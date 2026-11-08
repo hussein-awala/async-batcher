@@ -1,6 +1,6 @@
 # Cohere embeddings into an existing Pinecone index
 
-[This source-checkout recipe](../examples/recipes/cohere_pinecone.py) uses Cohere's real Embed v2
+[This repository recipe](../examples/recipes/cohere_pinecone.py) uses Cohere's real Embed v2
 REST endpoint through HTTPX2, then the native Pinecone `AsyncIndex` and
 [`AsyncPineconeUpsertBatcher`](pinecone.md). It performs paid provider calls when you run its CLI.
 The repository tests use temporary local HTTP servers and dummy credentials; they do not create
@@ -36,7 +36,8 @@ application namespace if isolation matters.
 
 ## Install and run
 
-From the repository root:
+The pipeline application lives in the repository, outside the installed package.
+Set up the matching [recipe checkout](installation.md#run-the-repository-recipes), then run from its root:
 
 ```bash
 uv sync --locked --no-default-groups --group example-test --extra pinecone --python 3.12

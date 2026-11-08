@@ -4,6 +4,8 @@
 pads each batch, calls a synchronous model once, and restores each request's original output length.
 It needs only the core package and standard library. The included model **doubles token IDs for a
 demonstration; it is not trained and does not produce semantic predictions**.
+The example lives in the repository, outside the installed package. From the matching
+[recipe checkout](installation.md#run-the-repository-recipes):
 
 ```bash
 uv sync --locked --no-default-groups --python 3.12

@@ -1,6 +1,6 @@
 # Batch an existing function
 
-These APIs describe this repository checkout; see [installation](../README.md#install).
+These APIs require Async Batcher 0.3.0; see [installation](installation.md).
 `AsyncBatcher.from_callable()` accepts a bulk function and all normal batcher options.
 There is no need to subclass when you already have a function that processes a list.
 

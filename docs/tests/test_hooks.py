@@ -95,7 +95,7 @@ class RepositoryLinkTests(unittest.TestCase):
         self.assertIn("<code>[code](../README.md)</code>", rendered)
         self.assertIn("[example](../README.md)", rendered)
 
-    def test_page_hook_pins_home_install_and_replaces_per_page_context(self):
+    def test_page_hook_pins_recipe_checkout_and_replaces_per_page_context(self):
         config = SimpleNamespace(
             config_file_path=str(self.root / "mkdocs.yml"),
             docs_dir=str(self.docs),
@@ -103,8 +103,8 @@ class RepositoryLinkTests(unittest.TestCase):
             repo_url=self.options["repo_url"],
             markdown_extensions=["fenced_code"],
         )
-        page = SimpleNamespace(file=SimpleNamespace(src_uri="index.md"))
-        source = "git checkout --detach main\n"
+        page = SimpleNamespace(file=SimpleNamespace(src_uri="installation.md"))
+        source = "git checkout --detach 0.3.0\n"
         self.assertEqual(
             HOOKS.on_page_markdown(source, page=page, config=config),
             "git checkout --detach " + "a" * 40 + "\n",

@@ -12,7 +12,8 @@ Each JSONL line must contain exactly a nonempty string `id` and a string `text`:
 {"id": "document-2", "text": "été 🌎"}
 ```
 
-From a [source checkout](../README.md#install), run:
+The example lives in the repository, outside the installed package. From the matching
+[recipe checkout](installation.md#run-the-repository-recipes), run:
 
 ```bash
 uv sync --locked --no-default-groups --python 3.12

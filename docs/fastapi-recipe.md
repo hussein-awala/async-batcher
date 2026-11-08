@@ -7,7 +7,8 @@ It uses a deterministic weighted sum as a **demo predictor, not a trained model*
 transactions for writes. No model download, server account, or credentials are needed.
 
 The example dependencies are an opt-in development group. They are not added to the core package
-or any adapter extra. From the current [source checkout](../README.md#install):
+or any adapter extra. The application itself lives in the repository. From the matching
+[recipe checkout](installation.md#run-the-repository-recipes):
 
 ```bash
 uv sync --locked --group example-test --python 3.12

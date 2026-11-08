@@ -4,7 +4,8 @@ The [rejected-record recipe](../examples/recipes/rejected_import.py) imports an 
 into SQLite, while recording invalid input as source locations and fixed reason codes. The original
 [streaming](cookbook.md) and [resumable](resumable-import.md) importers remain fail-fast.
 
-From the current [source checkout](../README.md#install):
+The example lives in the repository, outside the installed package. From the matching
+[recipe checkout](installation.md#run-the-repository-recipes):
 
 ```bash
 uv sync --locked --no-default-groups --python 3.12
@@ -57,6 +58,10 @@ observed. The caller owns the shared thread pool and must join it before releasi
 CLI does that after the event loop finishes. Connections use WAL and `synchronous=FULL`; durability
 still depends on storage honoring synchronization. Keep SQLite database/WAL files together and
 use a supported local filesystem. Source-change checks detect ordinary mutation, not adversarial races.
+
+## Run the repository checks
+
+These development checks run from the same recipe checkout:
 
 ```bash
 uv sync --locked

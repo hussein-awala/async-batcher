@@ -158,8 +158,8 @@ tests use SDK/local HTTP boundaries and do not assert live cloud persistence.
 
 ## Documentation and examples
 
-The [README](README.md) introduces the current checkout; the [API guide](docs/api.md) and adapter
-guides document its contracts. Clearly distinguish unreleased source behavior from a published
+The [README](README.md) introduces package usage for the target release; the [API guide](docs/api.md)
+and adapter guides document its contracts. Clearly distinguish unreleased source behavior from a published
 release when adding features. Keep resource ownership, error/partial-success behavior, and
 shutdown examples consistent with the implementation.
 

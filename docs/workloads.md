@@ -1,6 +1,6 @@
 # Choose batching for your workload
 
-Start with the current [source installation](../README.md#install). The core has no runtime
+Start with [package installation](installation.md). The core has no runtime
 dependencies; install an adapter extra only when you use that backend.
 
 ## Check the backend contract first

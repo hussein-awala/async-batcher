@@ -4,7 +4,8 @@ The [provider-policy recipe](../examples/recipes/provider_policy.py) is applicat
 an async bulk call. AsyncBatcher still owns count/cost collection, bounded producer admission, and
 batch concurrency. It does not gain automatic retry or rate-limit behavior.
 
-Run a local, credential-free example from the current [source checkout](../README.md#install):
+The example lives in the repository, outside the installed package. Run the local,
+credential-free demonstration from the matching [recipe checkout](installation.md#run-the-repository-recipes):
 
 ```bash
 uv sync --locked --no-default-groups --python 3.12
@@ -93,6 +94,10 @@ An SDK may retry by itself. The [Cohere/Pinecone recipe](cohere-pinecone.md) alr
 native retries. Keep those SDK retries as their sole owner, or explicitly configure/verify the SDK to
 perform one attempt before adding application retries. Do not blindly wrap a retrying SDK and multiply
 its retry count. This recipe changes neither that provider example nor any adapter's retry policy.
+
+## Run the repository checks
+
+These development checks run from the same recipe checkout:
 
 ```bash
 uv sync --locked

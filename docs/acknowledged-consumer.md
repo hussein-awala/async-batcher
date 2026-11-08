@@ -37,7 +37,9 @@ protocol rather than a new automatic retry rule.
 
 ## Run a local demonstration
 
-After the [minimal source installation](../README.md#install):
+The consumer helper lives in the repository, outside the installed package. Set up the
+matching [recipe checkout](installation.md#run-the-repository-recipes), then save and run this example from its root
+with `uv run --no-sync python`:
 
 ```python
 import asyncio

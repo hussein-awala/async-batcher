@@ -67,6 +67,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Get started:
+      - Install the package: installation.md
       - Choose a workload: workloads.md
       - Bounded starting configurations: starting-configurations.md
       - Compatibility and migration: migration.md

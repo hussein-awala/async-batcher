@@ -1,7 +1,12 @@
 # Kafka producer batches
 
 
-From the [current checkout](../README.md#install), run `uv sync --locked --extra kafka`.
+Install the `kafka` extra for Async Batcher 0.3.0; see [installation](installation.md)
+for Python requirements and release availability:
+
+```bash
+python -m pip install 'async-batcher[kafka]==0.3.0'
+```
 Use `AsyncKafkaBatcher` with a caller-owned aiokafka producer.
 The adapter collects application requests into [native Kafka batches](https://aiokafka.readthedocs.io/en/stable/producer.html#direct-batch-control)
 and groups them by an explicit topic and partition. The caller supplies and starts the producer:

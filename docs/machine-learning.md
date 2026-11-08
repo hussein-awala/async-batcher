@@ -1,6 +1,6 @@
 # Prediction adapters
 
-These adapters use the [current checkout](../README.md#install) and accept the
+These examples require Async Batcher 0.3.0; see [installation](installation.md). The adapters accept the
 [core limits and executor options](api.md). Submit one sample per `process()` call. Both
 invoke synchronous `model.predict` in an executor and return the corresponding prediction.
 The model remains caller-owned. Keep the default `concurrency=1` unless your model and backend
@@ -8,15 +8,15 @@ can safely predict concurrently; more threads do not necessarily improve through
 
 ## Keras
 
-The `keras` extra requires Keras 3.15.1 or newer and a separately installed backend. Repository
-tests use JAX; select it before importing Keras:
+The `keras` extra requires Keras 3.15.1 or newer and a separately installed backend.
+This example uses JAX; install and select it before importing Keras:
 
 ```bash
-uv sync --locked --extra keras --group ml-test
+python -m pip install 'async-batcher[keras]==0.3.0' jax
 export KERAS_BACKEND=jax
 ```
 
-Save and run this example with `uv run --no-sync python`:
+Save this example as `keras_demo.py` and run `python keras_demo.py`:
 
 ```python
 import asyncio
@@ -59,7 +59,8 @@ Runnable application examples: [FastAPI](../examples/keras/README.md) and
 
 ## scikit-learn
 
-Run `uv sync --locked --extra sklearn`. Supply a fitted estimator with a `predict` method:
+Install `python -m pip install 'async-batcher[sklearn]==0.3.0'`.
+Supply a fitted estimator with a `predict` method:
 
 ```python
 import asyncio
