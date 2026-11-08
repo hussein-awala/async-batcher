@@ -7,5 +7,16 @@
       "source_sha": "6374bed2c849f91dcd10f6c3424ba278c8a1cfc5",
       "channel": "develop"
     }
+  },
+  {
+    "version": "0.3.0",
+    "title": "0.3.0",
+    "aliases": [
+      "latest"
+    ],
+    "properties": {
+      "source_sha": "6374bed2c849f91dcd10f6c3424ba278c8a1cfc5",
+      "channel": "release"
+    }
   }
 ]
