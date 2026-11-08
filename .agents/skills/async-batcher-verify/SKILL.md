@@ -23,7 +23,9 @@ adapter or launch every service for an unrelated edit.
    Let hosted CI supply operating systems or service environments unavailable locally.
 4. Include tests for meaningful new failure/partial-success cases and update affected API docs,
    examples, exports, and typing fixtures. A prose-only correction needs link/content checks,
-   not a new runtime test that merely checks documentation wording.
+   not a new runtime test that merely checks documentation wording. Follow
+   [documentation publication](../../../docs/documentation.md) for the locked strict site build
+   and rendered link checks; the docs build is required even for prose-only PRs.
 
 ## Keep the environment honest
 

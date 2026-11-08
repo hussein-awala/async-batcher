@@ -18,7 +18,7 @@ this reference and the current checkout differ. The current endpoints are Python
 | Package/dependency/build changes | Lock check, affected suites, distribution checker; intentional lock audit after dependency changes | Full matrix and applicable locked-dependency audit |
 | Workflow/filter/helper changes | CI helper unit tests, actionlint, representative selection cases | Verify changed paths select intended suites; a `.github` change selects the full matrix |
 | Benchmark harness | Benchmark unit tests and a small correctness smoke run | No speed threshold; published comparisons need a controlled run with raw data/environment |
-| Pure documentation or agent instructions | Local links, API/command references, runnable snippets if changed; skill validation and a realistic read-only scenario for workflow changes | Normal selected CI; no new runtime tests for prose |
+| Pure documentation or agent instructions | Strict MkDocs build and rendered link check from `docs/documentation.md`; API/command references and runnable snippets if changed; skill validation for instruction changes | Documentation build on every PR; no new runtime tests for prose |
 
 ## Core and quality
 

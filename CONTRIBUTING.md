@@ -268,3 +268,29 @@ uv run --no-sync python -m coverage report --show-missing
 ```
 
 This intentionally measures recipes separately; it is not a full-package or live-service report.
+
+## Documentation site
+
+The [documentation site](https://hussein.awala.fr/async-batcher/) uses MkDocs Material
+and mike, following the versioned documentation setup in
+[spark-on-k8s](https://github.com/hussein-awala/spark-on-k8s).
+Build the existing Markdown guides without installing optional adapter SDKs:
+
+```bash
+uv sync --locked --no-default-groups --python 3.12 --group docs
+uv run --no-sync python -m unittest discover -s docs/tests -p 'test_*.py'
+uv run --no-sync mkdocs build --strict
+uv run --no-sync python .github/scripts/check_docs.py site
+uv run --no-sync mkdocs serve
+```
+
+`mkdocs serve` starts a local preview; it does not publish. Keep every guide in
+`mkdocs.yml` navigation. Relative links to repository files work on GitHub and
+are rewritten to the selected source revision in the built site. Local previews
+use `main` unless `DOCS_SOURCE_SHA` is set. CI checks documentation on every PR,
+including prose-only edits, and saves a `documentation-preview` artifact.
+
+See [documentation publication](docs/documentation.md) for channels, signed archive
+commits, initial Pages setup, deployment verification, and recovery. After selecting
+a different test suite, resync its dependencies; the docs environment is independent
+of the runtime test environment.

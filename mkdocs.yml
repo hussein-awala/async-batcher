@@ -1,0 +1,114 @@
+site_name: Async Batcher
+site_url: https://hussein.awala.fr/async-batcher/
+site_description: Combine concurrent Python requests into bounded batches for database writes, messaging, and model inference.
+site_author: hussein-awala
+repo_url: https://github.com/hussein-awala/async-batcher
+repo_name: hussein-awala/async-batcher
+edit_uri: edit/main/docs/
+strict: true
+validation:
+  nav:
+    omitted_files: warn
+  links:
+    anchors: warn
+    unrecognized_links: warn
+exclude_docs: |
+  hooks.py
+  tests/
+  __pycache__/
+hooks:
+  - docs/hooks.py
+theme:
+  name: material
+  custom_dir: overrides
+  font:
+    text: Fira Sans
+    code: Fira Code
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - scheme: slate
+      primary: black
+      accent: black
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  features:
+    - content.code.copy
+    - search.highlight
+    - search.suggest
+    - navigation.indexes
+    - navigation.instant
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+plugins:
+  - search
+  - mike:
+      alias_type: redirect
+      version_selector: true
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+nav:
+  - Home: index.md
+  - Get started:
+      - Choose a workload: workloads.md
+      - Bounded starting configurations: starting-configurations.md
+      - Compatibility and migration: migration.md
+  - Core guides:
+      - Wrap a bulk function: functions.md
+      - Bulk and streaming producers: bulk-processing.md
+      - Count and cost budgets: cost-aware-batching.md
+      - Compatible request groups: grouped-batching.md
+      - In-flight coalescing: coalescing.md
+  - Integrations:
+      - SQLAlchemy, ScyllaDB, and MongoDB: databases.md
+      - DynamoDB: dynamodb.md
+      - Kinesis and Firehose: aws-streams.md
+      - Kafka: kafka.md
+      - Pinecone: pinecone.md
+      - Keras and scikit-learn: machine-learning.md
+  - Recipes:
+      - Cookbook and recovery choices: cookbook.md
+      - FastAPI service: fastapi-recipe.md
+      - Variable-length inference: variable-length-inference.md
+      - Cohere to Pinecone: cohere-pinecone.md
+      - Resumable imports: resumable-import.md
+      - Rejected-record imports: rejected-import.md
+      - Durable embedding handoff: durable-embeddings.md
+      - Acknowledged message consumer: acknowledged-consumer.md
+      - Provider quotas and retries: provider-policy.md
+  - Operations:
+      - Statistics and telemetry: observability.md
+      - Deadlines, capacity, and shutdown: operations.md
+  - Reference:
+      - Core API and lifecycle: api.md
+      - Public type contracts: typing.md
+  - Contributing:
+      - Development and testing: https://github.com/hussein-awala/async-batcher/blob/main/CONTRIBUTING.md
+      - Documentation publication: documentation.md
+extra:
+  documentation:
+    channel: !ENV [DOCS_CHANNEL, local]
+    version: !ENV [DOCS_VERSION, local]
+    source_sha: !ENV [DOCS_SOURCE_SHA, ""]
+  version:
+    provider: mike
+    default:
+      - latest
+      - develop

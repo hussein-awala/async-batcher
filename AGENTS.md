@@ -39,6 +39,9 @@ Use these repo-local skills when the task needs their workflow:
 - [async-batcher-release](.agents/skills/async-batcher-release/SKILL.md): prepare versioned builds and
   release notes, then publish only with explicit release authorization.
 
+Documentation site work also uses [docs/documentation.md](docs/documentation.md):
+strict builds, rendered link checks, and signed version archives are separate from PyPI publication.
+
 Read only the relevant guides. [CONTRIBUTING.md](CONTRIBUTING.md) and the current workflow/configuration
 files are the executable-command sources of truth; update guidance when those commands change.
 

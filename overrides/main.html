@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  {% set docs = config.extra.documentation %}
+  <meta name="documentation-channel" content="{{ docs.channel }}">
+  <meta name="documentation-version" content="{{ docs.version }}">
+  {% if docs.source_sha %}
+    <meta name="documentation-source" content="{{ docs.source_sha }}">
+  {% endif %}
+{% endblock %}
+
+{% block announce %}
+  {% set docs = config.extra.documentation %}
+  {% if docs.channel == "develop" %}
+    <strong>Development documentation — unreleased.</strong>
+    Features may differ from the installed package.
+  {% elif docs.channel == "prerelease" %}
+    <strong>Prerelease {{ docs.version }} documentation.</strong>
+  {% elif docs.channel == "release" %}
+    <strong>Release {{ docs.version }} documentation.</strong>
+  {% else %}
+    <strong>Local documentation preview.</strong>
+  {% endif %}
+  {% if docs.source_sha %}
+    Source: <a href="{{ config.repo_url }}/tree/{{ docs.source_sha }}"><code>{{ docs.source_sha[:12] }}</code></a>.
+  {% endif %}
+{% endblock %}
