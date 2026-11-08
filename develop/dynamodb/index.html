@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
+    <meta name="documentation-source" content="0118bf3fc72f117e2f7dd30bed53df246e741eee">
   
 
   </head>
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/0118bf3fc72f117e2f7dd30bed53df246e741eee"><code>0118bf3fc72f</code></a>.
   
 
           </div>
@@ -2080,7 +2080,7 @@ are available. AWS can also reject requests for byte limits or invalid keys.</p>
 <p>Both adapters accept <code>region_name</code>, <code>endpoint_url</code>, <code>use_ssl</code>, <code>verify</code>, <code>config</code>, and an optional
 <code>aioboto3_session</code>. TLS is enabled by default. Each dispatch opens and closes its own DynamoDB
 resource context from that session; there is no client for the caller to close through the batcher.
-Use the <a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/examples/dynamodb/README.md">local FastAPI example</a> to avoid contacting AWS.</p>
+Use the <a href="https://github.com/hussein-awala/async-batcher/blob/0118bf3fc72f117e2f7dd30bed53df246e741eee/examples/dynamodb/README.md">local FastAPI example</a> to avoid contacting AWS.</p>
 <p>Unprocessed keys/items are retried up to <code>max_retries</code> times after the first request (default 5;
 0 disables retries). Backoff starts at 0.1 seconds and caps at 5 seconds. Exhaustion raises
 <code>DynamoDBRetryError</code>, available from <code>async_batcher.aws.dynamodb.exceptions</code>, for the whole

@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
+    <meta name="documentation-source" content="0118bf3fc72f117e2f7dd30bed53df246e741eee">
   
 
   </head>
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/0118bf3fc72f117e2f7dd30bed53df246e741eee"><code>0118bf3fc72f</code></a>.
   
 
           </div>
@@ -2159,7 +2159,7 @@ source files, and unknown failures are not silently treated as rejected input.</
 <h2 id="import-a-file-or-async-stream-into-sqlite">Import a file or async stream into SQLite<a class="headerlink" href="#import-a-file-or-async-stream-into-sqlite" title="Permanent link">&para;</a></h2>
 <p>For restartable file jobs, the <a href="../resumable-import/">resumable import recipe</a> commits each batch's
 rows and byte checkpoint together and rejects changed source contents.</p>
-<p><a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/examples/recipes/sqlite_stream.py">The SQLite recipe</a> wraps a synchronous bulk writer with
+<p><a href="https://github.com/hussein-awala/async-batcher/blob/0118bf3fc72f117e2f7dd30bed53df246e741eee/examples/recipes/sqlite_stream.py">The SQLite recipe</a> wraps a synchronous bulk writer with
 <code>AsyncBatcher.from_callable</code>, then consumes results from <code>map()</code> without retaining a result for
 every input. Each batch uses a real SQLite transaction and a connection created and closed inside
 the worker thread. A single batch is atomic; the whole input stream is not.</p>
@@ -2177,7 +2177,7 @@ the worker thread. A single batch is atomic; the whole input stream is not.</p>
 <p>Each record must contain exactly string <code>id</code> and <code>text</code> fields. IDs must be nonempty. Repeated
 IDs update existing rows in input order, including across batches. Running the demo again updates
 the same IDs; use a fresh database path when comparing measurements from fresh imports.</p>
-<p>The <a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/examples/recipes/support.py">file reader</a> reads at most 32 records per chunk, with a
+<p>The <a href="https://github.com/hussein-awala/async-batcher/blob/0118bf3fc72f117e2f7dd30bed53df246e741eee/examples/recipes/support.py">file reader</a> reads at most 32 records per chunk, with a
 64 KiB limit per JSONL line, in worker threads. Each read owns and closes its file handle, including
 when the awaiting task is cancelled. It reopens the file at a byte offset for each chunk, so do
 not modify or replace that file during import. The source buffer adds at most one chunk beyond
@@ -2213,7 +2213,7 @@ global transaction, checkpoint, or exactly-once delivery guarantee.</p>
 REST/SDK contracts, an existing compatible vector index, and local boundary tests without credentials.
 The <a href="../durable-embeddings/">durable handoff</a> saves embeddings before a separate replayable delivery
 stage. The <a href="../provider-policy/">provider policy</a> shows explicit quota and retry composition.</p>
-<p><a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/examples/recipes/embedding_vectors.py">The pipeline recipe</a> connects two bounded maps. The
+<p><a href="https://github.com/hussein-awala/async-batcher/blob/0118bf3fc72f117e2f7dd30bed53df246e741eee/examples/recipes/embedding_vectors.py">The pipeline recipe</a> connects two bounded maps. The
 first embeds text and keeps each document ID attached to its vector. The second persists vectors
 and returns IDs. Both stages preserve input order, and storage concurrency is one, so later
 duplicate IDs overwrite earlier inputs in a predictable order.</p>
@@ -2278,7 +2278,7 @@ speedup or compare unrelated workloads:</p>
 </table>
 <p>The observer keeps aggregated counts, not payloads or one event object per batch. Throughput
 depends on storage, input sizes, warm caches, and concurrent machine load. Use the retained
-measurements to tune your workload; see the <a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/benchmarks/README.md">benchmark methodology</a> for
+measurements to tune your workload; see the <a href="https://github.com/hussein-awala/async-batcher/blob/0118bf3fc72f117e2f7dd30bed53df246e741eee/benchmarks/README.md">benchmark methodology</a> for
 controlled comparisons. Tests check real rows and measurements, with no speed threshold.</p>
 <table>
 <thead>

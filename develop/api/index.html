@@ -66,7 +66,7 @@
   <meta name="documentation-channel" content="develop">
   <meta name="documentation-version" content="develop">
   
-    <meta name="documentation-source" content="6374bed2c849f91dcd10f6c3424ba278c8a1cfc5">
+    <meta name="documentation-source" content="0118bf3fc72f117e2f7dd30bed53df246e741eee">
   
 
   </head>
@@ -105,7 +105,7 @@
     Features may differ from the installed package.
   
   
-    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5"><code>6374bed2c849</code></a>.
+    Source: <a href="https://github.com/hussein-awala/async-batcher/tree/0118bf3fc72f117e2f7dd30bed53df246e741eee"><code>0118bf3fc72f</code></a>.
   
 
           </div>
@@ -2331,7 +2331,7 @@ loop. It cannot be moved to another loop, including after stopping. Once dispatc
 completion callbacks finish, the next <code>process()</code> call automatically restarts it on the same loop. During graceful
 draining or forced cleanup, submissions raise <code>RuntimeError("Batcher is stopping")</code>, including
 after a shutdown timeout.</p>
-<p>Use <code>async with</code>, as in the <a href="https://github.com/hussein-awala/async-batcher/blob/6374bed2c849f91dcd10f6c3424ba278c8a1cfc5/README.md#quickstart">quickstart</a>, or keep <code>await batcher.stop()</code> in a
+<p>Use <code>async with</code>, as in the <a href="https://github.com/hussein-awala/async-batcher/blob/0118bf3fc72f117e2f7dd30bed53df246e741eee/README.md#quickstart">quickstart</a>, or keep <code>await batcher.stop()</code> in a
 <code>finally</code> block when you need an explicit timeout or force policy.
 Call it from outside <code>process_batch</code>: a processor or a child task cannot await its own shutdown.</p>
 <p><code>GroupedBatcher(factory, group_key=..., max_groups=128, idle_timeout=60)</code> owns separate fresh child
