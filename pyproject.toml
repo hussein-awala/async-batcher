@@ -64,7 +64,7 @@ lint = [
     "pre-commit>=4.7,<5",
     "virtualenv>=21.14.9,<22",
     "filelock>=4.2.1,<5",
-    "ruff==0.17.4",
+    "ruff==0.17.5",
 ]
 typing = ["types-aioboto3[dynamodb]>=15.5,<16"]
 typecheck = ["mypy==2.4.1"]
